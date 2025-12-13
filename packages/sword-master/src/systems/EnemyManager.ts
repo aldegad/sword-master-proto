@@ -200,7 +200,21 @@ export class EnemyManager {
   }
   
   resetEnemyActionQueue(enemy: Enemy) {
-    enemy.actionQueue = enemy.actions.map(action => ({
+    // 스킬을 랜덤하게 섞기
+    const shuffledActions = [...enemy.actions].sort(() => Math.random() - 0.5);
+    
+    // 턴당 스킬 수 결정
+    let actionCount: number;
+    if (enemy.actionsPerTurn) {
+      const { min, max } = enemy.actionsPerTurn;
+      actionCount = Math.floor(Math.random() * (max - min + 1)) + min;
+    } else {
+      // 기본값: 전체 스킬 사용
+      actionCount = shuffledActions.length;
+    }
+    
+    // 선택된 수만큼 스킬을 큐에 추가
+    enemy.actionQueue = shuffledActions.slice(0, actionCount).map(action => ({
       ...action,
       currentDelay: action.delay,
     }));

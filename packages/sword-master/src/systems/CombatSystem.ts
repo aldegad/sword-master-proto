@@ -1,5 +1,5 @@
 import type { GameScene } from '../scenes/GameScene';
-import type { Enemy, SkillCard, EnemyAction } from '../types';
+import type { Enemy, SkillCard, EnemyAction, SwordCard } from '../types';
 import { COLORS } from '../constants/colors';
 
 /**
@@ -87,8 +87,8 @@ export class CombatSystem {
       return;
     }
     
-    // 각 타격을 500ms 간격으로 순차 처리
-    const hitInterval = 500;
+    // 각 타격을 300ms 간격으로 순차 처리
+    const hitInterval = 300;
     
     for (let hitIndex = 0; hitIndex < actualHits; hitIndex++) {
       this.scene.time.delayedCall(hitIndex * hitInterval, () => {
@@ -100,12 +100,21 @@ export class CombatSystem {
           // 적이 이미 죽었으면 스킵
           if (enemy.hp <= 0) return;
           
-          // 방어관통 계산: 무기 관통력 + 스킬 관통력을 적 방어력에서 빼기
-          const weaponPierce = sword.pierce || 0;
-          const skillPierce = skill.effect?.type === 'pierce' ? skill.effect.value : 0;
-          const totalPierce = weaponPierce + skillPierce;
-          const effectiveDefense = Math.max(0, enemy.defense - totalPierce);
-          const damage = Math.max(1, baseDamage - effectiveDefense);
+          // armorBreaker 효과: 방어 완전 무시 + 적 방어력 영구 감소
+          const isArmorBreaker = skill.effect?.type === 'armorBreaker';
+          
+          let damage: number;
+          if (isArmorBreaker) {
+            // 방어 완전 무시
+            damage = baseDamage;
+          } else {
+            // 방어관통 계산: 무기 관통력 + 스킬 관통력을 적 방어력에서 빼기
+            const weaponPierce = sword.pierce || 0;
+            const skillPierce = skill.effect?.type === 'pierce' ? skill.effect.value : 0;
+            const totalPierce = weaponPierce + skillPierce;
+            const effectiveDefense = Math.max(0, enemy.defense - totalPierce);
+            damage = Math.max(1, baseDamage - effectiveDefense);
+          }
           
           // 흡혈 효과 (타격당 적용)
           if (skill.effect?.type === 'lifesteal') {
@@ -116,6 +125,16 @@ export class CombatSystem {
           
           // 데미지 적용 (적 HP 감소 및 사망 처리)
           this.damageEnemy(enemy, damage);
+          
+          // armorBreaker 효과: 적 방어력 영구 감소 (첫 타격에만, 0 이하로 내려가지 않음)
+          if (hitIndex === 0 && isArmorBreaker && skill.effect) {
+            const armorReduction = skill.effect.value;
+            const oldDefense = enemy.defense;
+            enemy.defense = Math.max(0, enemy.defense - armorReduction);
+            if (oldDefense > 0) {
+              this.scene.animationHelper.showMessage(`🔨 ${enemy.name} 방어력 -${Math.min(armorReduction, oldDefense)}!`, COLORS.message.warning);
+            }
+          }
           
           // 출혈 효과 (첫 타격에만)
           if (hitIndex === 0 && skill.effect?.type === 'bleed') {
@@ -165,46 +184,31 @@ export class CombatSystem {
   executeDefense(skill: SkillCard) {
     const sword = this.scene.playerState.currentSword;
     
-    // 패리 효과 (카운트 기반)
-    if (skill.effect?.type === 'parry') {
-      const defenseMultiplier = skill.effect.value;  // 방어율 배수 (x5)
-      const duration = skill.effect.duration || 1;   // 대기 시간
+    // 카운트 방어 스킬 (통합 처리: 검 얽기, 철벽 등)
+    if (skill.effect?.type === 'countDefense') {
+      const effect = skill.effect;
+      const defenseMultiplier = effect.value;        // 방어율 배수
+      const duration = effect.duration || 1;          // 대기 시간
+      const counterAttack = effect.counterAttack ?? false;  // 반격 여부
+      const counterMultiplier = effect.counterMultiplier ?? skill.attackMultiplier;  // 반격 배수
+      const consumeOnSuccess = effect.consumeOnSuccess ?? true;  // 방어 성공 시 소멸 여부
       
       this.scene.playerState.countEffects.push({
-        id: 'parry_' + Date.now(),
-        type: 'parry',
-        name: '패리',
-        emoji: '🛡️',
+        id: 'countDefense_' + Date.now(),
+        type: 'countDefense',
+        name: skill.name,
+        emoji: skill.emoji,
         remainingDelays: duration,
         isNew: true,  // 이번 턴에 추가됨 (첫 감소 시 스킵)
         data: {
           defenseMultiplier: defenseMultiplier,
-          attackMultiplier: skill.attackMultiplier,  // 반격 배수
+          attackMultiplier: counterMultiplier,
+          counterAttack: counterAttack,
+          consumeOnSuccess: consumeOnSuccess,
         },
       });
       
-      this.scene.animationHelper.showMessage(`🛡️ 패리 준비! (${duration}대기)`, COLORS.message.success);
-      return;
-    }
-    
-    // 철벽 효과 (카운트 기반)
-    if (skill.effect?.type === 'ironWall') {
-      const defenseMultiplier = skill.effect.value;  // 방어율 배수 (x10)
-      const duration = skill.effect.duration || 3;   // 대기 시간
-      
-      this.scene.playerState.countEffects.push({
-        id: 'ironWall_' + Date.now(),
-        type: 'ironWall',
-        name: '철벽',
-        emoji: '🏰',
-        remainingDelays: duration,
-        isNew: true,  // 이번 턴에 추가됨 (첫 감소 시 스킵)
-        data: {
-          defenseMultiplier: defenseMultiplier,
-        },
-      });
-      
-      this.scene.animationHelper.showMessage(`🏰 철벽 준비! (${duration}대기)`, COLORS.message.info);
+      this.scene.animationHelper.showMessage(`${skill.emoji} ${skill.name} 준비! (${duration}대기)`, COLORS.message.success);
       return;
     }
     
@@ -294,7 +298,7 @@ export class CombatSystem {
       this.scene.showSkillCardSelection('graveEquip', selectableSwords);
     } else if (skill.effect?.type === 'drawSwords') {
       // 덱에서 검 꺼내기 (상위 N개)
-      const count = skill.effect.value || 2;
+      const count = skill.effect.value || 3;
       let drawn = 0;
       const tempDeck = [...this.scene.playerState.deck];
       
@@ -315,6 +319,48 @@ export class CombatSystem {
       } else {
         this.scene.animationHelper.showMessage('덱에 검이 없다!', COLORS.message.error);
       }
+      this.scene.events.emit('handUpdated');
+    } else if (skill.effect?.type === 'bladeGrab') {
+      // 검 잡기: 덱 최상위 검 즉시 장착+발도, 그 다음 검은 손패로
+      const deck = this.scene.playerState.deck;
+      let firstSwordIndex = -1;
+      let secondSwordIndex = -1;
+      
+      // 덱 상위부터 검 2개 찾기
+      for (let i = 0; i < deck.length; i++) {
+        if (deck[i].type === 'sword') {
+          if (firstSwordIndex === -1) {
+            firstSwordIndex = i;
+          } else if (secondSwordIndex === -1) {
+            secondSwordIndex = i;
+            break;
+          }
+        }
+      }
+      
+      if (firstSwordIndex === -1) {
+        this.scene.animationHelper.showMessage('덱에 검이 없다!', COLORS.message.error);
+        return;
+      }
+      
+      // 첫 번째 검: 즉시 장착 + 발도
+      const [firstSword] = deck.splice(firstSwordIndex, 1);
+      const swordData = firstSword.data as SwordCard;
+      this.scene.animationHelper.showMessage(`🔍 ${swordData.name} 잡았다!`, COLORS.message.success);
+      
+      // 두 번째 검이 있으면 손패로 (인덱스 조정 필요)
+      if (secondSwordIndex !== -1) {
+        const adjustedIndex = secondSwordIndex > firstSwordIndex ? secondSwordIndex - 1 : secondSwordIndex;
+        const [secondSword] = deck.splice(adjustedIndex, 1);
+        this.scene.playerState.hand.push(secondSword);
+        this.scene.animationHelper.showMessage(`🎴 ${secondSword.data.name} 손패로!`, COLORS.message.info);
+      }
+      
+      // 장착 + 발도 (약간의 딜레이 후)
+      this.scene.time.delayedCall(300, () => {
+        this.scene.cardSystem.equipSword(swordData);
+      });
+      
       this.scene.events.emit('handUpdated');
     } else if (skill.effect?.type === 'graveDrawTop') {
       // 무덤 상위 N장을 손패로 가져오기
@@ -406,22 +452,23 @@ export class CombatSystem {
       }
     });
     
-    // 카운트 효과 체크 (철벽, 패리)
+    // 카운트 효과 체크 (통합: countDefense, 레거시: ironWall, parry)
     let activeCountEffect: typeof this.scene.playerState.countEffects[0] | null = null;
     let countEffectParryRate = baseParryRate;
     
-    // 철벽 효과 찾기 (최우선)
-    const ironWallEffect = this.scene.playerState.countEffects.find(e => e.type === 'ironWall');
-    if (ironWallEffect) {
-      activeCountEffect = ironWallEffect;
-      countEffectParryRate = sword ? sword.defense * (ironWallEffect.data.defenseMultiplier || 10) : 0;
-    }
+    // countDefense 효과 찾기 (방어 배수가 높은 것 우선)
+    const countDefenseEffects = this.scene.playerState.countEffects.filter(
+      e => e.type === 'countDefense'
+    );
     
-    // 패리 효과 찾기 (철벽이 없을 때)
-    const parryEffect = this.scene.playerState.countEffects.find(e => e.type === 'parry');
-    if (!activeCountEffect && parryEffect) {
-      activeCountEffect = parryEffect;
-      countEffectParryRate = sword ? sword.defense * (parryEffect.data.defenseMultiplier || 5) : 0;
+    if (countDefenseEffects.length > 0) {
+      // 방어 배수가 가장 높은 효과 선택
+      activeCountEffect = countDefenseEffects.reduce((best, current) => {
+        const bestMult = best.data.defenseMultiplier || 1;
+        const currentMult = current.data.defenseMultiplier || 1;
+        return currentMult > bestMult ? current : best;
+      });
+      countEffectParryRate = sword ? sword.defense * (activeCountEffect.data.defenseMultiplier || 5) : 0;
     }
     
     // 최종 방어율 계산 (카운트 효과가 있으면 해당 효과의 방어율 사용)
@@ -441,22 +488,25 @@ export class CombatSystem {
         this.scene.updatePlayerWeaponDisplay();
       }
       
-      // 패리/검얽기 효과별 메시지
-      if (activeCountEffect?.type === 'parry') {
-        this.scene.animationHelper.showMessage(`⚔️ 검얽기 성공! ${action.name} 흘려냄!`, COLORS.message.success);
-        // 검얽기 성공 시 공격모션 재생
-        this.scene.playAttakAnimation();
-      } else if (activeCountEffect?.type === 'ironWall') {
-        this.scene.animationHelper.showMessage(`🏰 철벽! ${action.name} 방어!`, COLORS.message.success);
+      // 효과별 메시지
+      if (activeCountEffect) {
+        const hasCounter = activeCountEffect.data.counterAttack;
+        if (hasCounter) {
+          this.scene.animationHelper.showMessage(`${activeCountEffect.emoji} ${activeCountEffect.name} 성공! ${action.name} 흘려냄!`, COLORS.message.success);
+          this.scene.playAttakAnimation();
+        } else {
+          this.scene.animationHelper.showMessage(`${activeCountEffect.emoji} ${activeCountEffect.name}! ${action.name} 방어!`, COLORS.message.success);
+        }
       } else {
         this.scene.animationHelper.showMessage(`🛡️ 방어 성공! ${action.name} 흘려냄!`, COLORS.message.success);
       }
       
-      // 패리 반격 체크 (검얽기 성공 시에만)
-      if (activeCountEffect?.type === 'parry' && this.scene.playerState.currentSword) {
+      // 반격 체크 (counterAttack이 true인 경우)
+      const shouldCounter = activeCountEffect?.data.counterAttack;
+      if (shouldCounter && this.scene.playerState.currentSword) {
         const swordAttack = this.scene.playerState.currentSword.attack;
-        const parryMultiplier = activeCountEffect.data.attackMultiplier || 1.0;
-        const counterDamage = (swordAttack * parryMultiplier) + (action.damage * 0.5);
+        const counterMultiplier = activeCountEffect!.data.attackMultiplier || 1.0;
+        const counterDamage = (swordAttack * counterMultiplier) + (action.damage * 0.5);
         
         this.damageEnemy(enemy, counterDamage);
         this.scene.animationHelper.showMessage(`⚔️ 반격! ${Math.floor(counterDamage)} 데미지!`, COLORS.message.warning);
@@ -477,19 +527,19 @@ export class CombatSystem {
     
     // 카운트 효과 소멸 처리
     if (activeCountEffect) {
-      if (activeCountEffect.type === 'ironWall') {
-        // 철벽: 방어 성공/실패 관계없이 1회 후 소멸
+      const shouldConsume = activeCountEffect.data.consumeOnSuccess ?? true;
+      // consumeOnSuccess가 true면 방어 성공 시 소멸, 아니면 항상 소멸
+      if (shouldConsume && parrySuccess) {
         this.scene.playerState.countEffects = this.scene.playerState.countEffects.filter(
           e => e.id !== activeCountEffect!.id
         );
-        this.scene.animationHelper.showMessage('🏰 철벽 효과 소멸!', COLORS.message.muted);
-      } else if (activeCountEffect.type === 'parry') {
-        // 패리: 발동 후 소멸 (방어 성공 시에만 발동했으므로)
-        if (parrySuccess) {
-          this.scene.playerState.countEffects = this.scene.playerState.countEffects.filter(
-            e => e.id !== activeCountEffect!.id
-          );
-        }
+        this.scene.animationHelper.showMessage(`${activeCountEffect.emoji} ${activeCountEffect.name} 효과 소멸!`, COLORS.message.muted);
+      } else if (!shouldConsume) {
+        // consumeOnSuccess가 false면 1회 사용 후 무조건 소멸
+        this.scene.playerState.countEffects = this.scene.playerState.countEffects.filter(
+          e => e.id !== activeCountEffect!.id
+        );
+        this.scene.animationHelper.showMessage(`${activeCountEffect.emoji} ${activeCountEffect.name} 효과 소멸!`, COLORS.message.muted);
       }
     }
     
@@ -564,7 +614,7 @@ export class CombatSystem {
   
   gainExp(amount: number) {
     this.scene.playerState.exp += amount;
-    const expNeeded = this.scene.playerState.level * 50;
+    const expNeeded = this.scene.playerState.level * 25;  // 필요 경험치 절반
     
     if (this.scene.playerState.exp >= expNeeded) {
       this.scene.playerState.exp -= expNeeded;
@@ -582,8 +632,11 @@ export class CombatSystem {
       this.scene.animationHelper.showMessage(`✨ 잔광의 검사 Lv.${lightBlade.level}!`, COLORS.message.warning);
     }
     
-    this.scene.playerState.maxHp += 10;
-    this.scene.playerState.hp = Math.min(this.scene.playerState.hp + 20, this.scene.playerState.maxHp);
+    // 체력 +5, 마나 +1, 체력 풀 회복
+    this.scene.playerState.maxHp += 5;
+    this.scene.playerState.hp = this.scene.playerState.maxHp;
+    this.scene.playerState.maxMana += 1;
+    this.scene.playerState.mana = this.scene.playerState.maxMana;
   }
   
   // ========== 유틸리티 ==========
@@ -794,8 +847,8 @@ export class CombatSystem {
     // 방어관통 계산: 무기 관통력
     const weaponPierce = sword.pierce || 0;
     
-    // 각 타격을 500ms 간격으로 순차 처리
-    const hitInterval = 500;
+    // 각 타격을 300ms 간격으로 순차 처리
+    const hitInterval = 300;
     
     for (let hitIndex = 0; hitIndex < actualHits; hitIndex++) {
       this.scene.time.delayedCall(hitIndex * hitInterval, () => {

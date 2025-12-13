@@ -170,9 +170,6 @@ export class CardSystem {
       this.scene.animationHelper.showMessage(`${this.scene.playerState.currentSword.name} → 무덤`, COLORS.message.discard);
     }
     
-    // 무기 장착 시 attak 애니메이션 재생 (스케일 애니메이션 제거)
-    this.scene.playAttakAnimation();
-    
     // 새 무기 장착
     this.scene.playerState.currentSword = { ...sword };
     this.scene.updatePlayerWeaponDisplay();
@@ -233,7 +230,7 @@ export class CardSystem {
       );
       if (hasDelay1Enemy) {
         isCritical = true;
-        damage *= 2.0;  // 크리티컬 200%
+        damage *= 3.0;  // 크리티컬 300%
       }
     }
     
@@ -260,6 +257,15 @@ export class CardSystem {
         ? damage 
         : Math.max(1, damage - effectiveDefense);
       this.scene.combatSystem.damageEnemy(enemy, actualDamage, isCritical);
+      
+      // 적 방어력 영구 감소 효과 (armorReduce)
+      if (drawAtk.armorReduce && drawAtk.armorReduce > 0) {
+        const oldDefense = enemy.defense;
+        enemy.defense = Math.max(0, enemy.defense - drawAtk.armorReduce);
+        if (oldDefense > 0) {
+          this.scene.animationHelper.showMessage(`🔨 ${enemy.name} 방어력 -${Math.min(drawAtk.armorReduce, oldDefense)}!`, COLORS.message.warning);
+        }
+      }
     });
     
     // 집중 버프 소모

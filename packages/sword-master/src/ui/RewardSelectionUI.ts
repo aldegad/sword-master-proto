@@ -134,18 +134,30 @@ export class RewardSelectionUI {
     let infoText = '';
     if (isSword) {
       const sword = data as SwordCard;
-      infoText = `공격력 ${sword.attack}  ${sword.attackCount}타\n내구도: ${sword.durability}`;
+      const drawAtk = sword.drawAttack;
+      const reachMap: Record<string, string> = {
+        single: '1적', double: '2적', triple: '3적', all: '전체', swordDouble: '무기x2'
+      };
+      const swiftTag = drawAtk.isSwift ? '⚡' : '';
+      infoText = [
+        `공격력 ${sword.attack} | ${sword.attackCount}타 | ${reachMap[sword.reach] || sword.reach}`,
+        `내구도: ${sword.durability} | 방어: ${sword.defense}`,
+        ``,
+        `━━ 발도: ${drawAtk.name} ${swiftTag} ━━`,
+        `x${drawAtk.multiplier} | ${reachMap[drawAtk.reach] || drawAtk.reach}`,
+        drawAtk.effect || '',
+      ].filter(line => line !== undefined).join('\n');
     } else {
       const skill = data as SkillCard;
       infoText = `마나: ${skill.manaCost}\n${skill.description}`;
     }
     
     // 정보 텍스트 (스케일)
-    const info = this.scene.add.text(0, 75, infoText, {
-      font: '22px monospace',
+    const info = this.scene.add.text(0, 60, infoText, {
+      font: '20px monospace',
       color: COLORS_STR.text.primary,
       align: 'center',
-      lineSpacing: 8,
+      lineSpacing: 6,
       wordWrap: { width: cardWidth - 45 },
     }).setOrigin(0.5);
     container.add(info);

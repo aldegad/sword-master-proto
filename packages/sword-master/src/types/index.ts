@@ -53,6 +53,7 @@ export interface SwordCard {
     isSwift?: boolean;     // 신속 발도 (단검류)
     criticalCondition?: 'enemyDelay1';  // 크리티컬 조건
     pierce?: boolean;      // 방어 무시
+    armorReduce?: number;  // 적 방어력 영구 감소 (0 이하로 내려가지 않음)
   };
   // 인첸트
   prefix?: SwordPrefix;
@@ -79,26 +80,32 @@ export interface SkillCard {
 
 // 스킬 특수 효과
 export interface SkillEffect {
-  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'parry' | 'ironWall' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' | 'followUp' | 'drawSwords' | 'graveDrawTop';
+  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' | 'followUp' | 'drawSwords' | 'graveDrawTop' | 'armorBreaker' | 'countDefense' | 'bladeGrab' | 'sweep';
   value: number;
   duration?: number;
+  // countDefense 전용 데이터
+  counterAttack?: boolean;      // 반격 여부
+  counterMultiplier?: number;   // 반격 배수
+  consumeOnSuccess?: boolean;   // 방어 성공 시 소멸 여부
 }
 
 // 카운트 효과 타입 (패리, 철벽, 강타 등 대기 시간 기반 효과)
 export interface CountEffect {
   id: string;
-  type: 'ironWall' | 'parry' | 'chargeAttack';
+  type: 'chargeAttack' | 'countDefense';
   name: string;
   emoji: string;
   remainingDelays: number;  // 남은 대기 시간
   isNew: boolean;           // 이번 턴에 추가됨 (첫 감소 시 false로 변경)
   data: {
     defenseMultiplier?: number;  // 방어율 배수 (x5, x10)
-    attackMultiplier?: number;   // 공격 배수
+    attackMultiplier?: number;   // 공격 배수 (반격용)
     attackCount?: number;        // 추가 타수 (deprecated, skillAttackCount 사용)
     skillAttackCount?: number;   // 스킬 타수배율 (발동 시 현재 무기 타수와 곱함)
     reach?: string;              // 공격 범위 (발동 시 무기 범위와 비교)
     targetId?: string;           // 타겟 적 ID (강타용)
+    counterAttack?: boolean;     // 반격 여부
+    consumeOnSuccess?: boolean;  // 방어 성공 시 소멸 여부
   };
 }
 
@@ -182,6 +189,7 @@ export interface Enemy {
   currentActionIndex: number; // 현재 준비 중인 행동
   isStunned: number;         // 스턴 남은 턴
   bleed?: { damage: number; duration: number };
+  actionsPerTurn?: { min: number; max: number };  // 턴당 스킬 사용 수 제한
 }
 
 // 게임 상태

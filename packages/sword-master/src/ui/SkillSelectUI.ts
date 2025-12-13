@@ -59,10 +59,10 @@ export class SkillSelectUI {
     }).setOrigin(0.5);
     this.skillSelectContainer.add(title);
     
-    // 카드 표시
-    const cardWidth = 160;
-    const cardHeight = 220;
-    const spacing = 40;
+    // 카드 표시 (크기 확대)
+    const cardWidth = 220;
+    const cardHeight = 300;
+    const spacing = 50;
     const totalWidth = cards.length * cardWidth + (cards.length - 1) * spacing;
     const startX = (width - totalWidth) / 2 + cardWidth / 2;
     
@@ -126,51 +126,51 @@ export class SkillSelectUI {
     bg.setStrokeStyle(4, borderColor);
     container.add(bg);
     
-    // 이모지
-    const emoji = this.scene.add.text(0, -70, data.emoji, {
-      font: '48px Arial',
+    // 이모지 (크기 확대)
+    const emoji = this.scene.add.text(0, -100, data.emoji, {
+      font: '64px Arial',
     }).setOrigin(0.5);
     container.add(emoji);
     
     // 이름 (스킬 카드도 색상 일관성 유지)
     const displayName = isSword ? ((data as SwordCard).displayName || data.name) : data.name;
     const nameColor = '#' + borderColor.toString(16).padStart(6, '0');
-    const name = this.scene.add.text(0, -25, displayName, {
-      font: 'bold 16px monospace',
+    const name = this.scene.add.text(0, -40, displayName, {
+      font: 'bold 20px monospace',
       color: nameColor,
     }).setOrigin(0.5);
     container.add(name);
     
     // 타입 라벨
-    const typeLabel = this.scene.add.text(0, 5, isSword ? '⚔️ 무기' : '📜 스킬', {
-      font: '14px monospace',
+    const typeLabel = this.scene.add.text(0, -10, isSword ? '⚔️ 무기' : '📜 스킬', {
+      font: '16px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     container.add(typeLabel);
     
-    // 간략 정보
+    // 간략 정보 (크기 확대)
     let infoText = '';
     if (isSword) {
       const sword = data as SwordCard;
-      infoText = `공${sword.attack} ${sword.attackCount}타\n내구도:${sword.currentDurability}/${sword.durability}`;
+      infoText = `공격력: ${sword.attack} | ${sword.attackCount}타\n범위: ${sword.reach}\n내구도: ${sword.currentDurability}/${sword.durability}`;
     } else {
       const skill = data as SkillCard;
-      infoText = `마나:${skill.manaCost}\n${skill.description.slice(0, 20)}...`;
+      infoText = `마나: ${skill.manaCost}\n${skill.description.slice(0, 30)}...`;
     }
     
     const info = this.scene.add.text(0, 50, infoText, {
-      font: '12px monospace',
+      font: '14px monospace',
       color: COLORS_STR.text.primary,
       align: 'center',
-      lineSpacing: 4,
+      lineSpacing: 6,
     }).setOrigin(0.5);
     container.add(info);
     
-    // 선택 버튼
-    const selectBtn = this.scene.add.rectangle(0, 90, 100, 35, COLORS.success.main, 0.9);
+    // 선택 버튼 (크기 확대)
+    const selectBtn = this.scene.add.rectangle(0, 120, 140, 45, COLORS.success.main, 0.9);
     selectBtn.setStrokeStyle(2, COLORS.primary.light);
-    const selectText = this.scene.add.text(0, 90, '선택', {
-      font: 'bold 14px monospace',
+    const selectText = this.scene.add.text(0, 120, '선택', {
+      font: 'bold 18px monospace',
       color: COLORS_STR.primary.light,
     }).setOrigin(0.5);
     container.add([selectBtn, selectText]);

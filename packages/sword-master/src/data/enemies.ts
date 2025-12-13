@@ -23,6 +23,7 @@ interface EnemyTemplate {
   attack: number;
   defense: number;
   actions: EnemyActionTemplate[];
+  actionsPerTurn?: { min: number; max: number };  // 턴당 스킬 사용 수 (미지정 시 전체 스킬 사용)
 }
 
 export const ENEMIES: Record<string, EnemyTemplate> = {
@@ -48,6 +49,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
       { id: 'quickSlash', name: '속검', type: 'attack', damage: 10, delay: 2, description: '빠르게 벤다' },
       { id: 'powerSlash', name: '강참', type: 'attack', damage: 18, delay: 4, description: '힘을 모아 벤다' },
     ],
+    actionsPerTurn: { min: 1, max: 2 },  // 턴당 1~2개 스킬 랜덤 사용
   },
   archer: {
     name: '궁수',
@@ -71,6 +73,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
       { id: 'thrust', name: '찌르기', type: 'attack', damage: 14, delay: 3, description: '창으로 찌른다' },
       { id: 'sweep', name: '휩쓸기', type: 'attack', damage: 12, delay: 4, description: '창을 휘두른다' },
     ],
+    actionsPerTurn: { min: 1, max: 1 },  // 턴당 1개 스킬만 사용
   },
   
   // ===== 강적 =====
@@ -176,6 +179,7 @@ export function createEnemy(templateId: string, x: number = 900): Enemy | null {
     actionQueue: [],  // EnemyManager에서 초기화됨
     currentActionIndex: 0,
     isStunned: 0,
+    actionsPerTurn: template.actionsPerTurn,  // 턴당 스킬 수 제한
   };
 }
 

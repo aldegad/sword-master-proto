@@ -219,14 +219,14 @@ export class TopUI {
     this.updateManaDisplay();
     
     // 레벨 표시 업데이트
-    const expNeeded = player.level * 50;
+    const expNeeded = player.level * 25;  // 필요 경험치 절반
     this.levelText.setText(`LV.${player.level} [${player.exp}/${expNeeded}]`);
     
     // 버프만 표시 (방어율은 SwordInfoUI에서 표시) + 남은 턴수
     const buffs = player.buffs;
     if (buffs.length > 0) {
       const buffTexts = buffs.map(b => `${b.name}(${b.duration})`);
-      this.statsText.setText(`✨ ${buffTexts.join(', ')} [마우스 올려서 상세보기]`);
+      this.statsText.setText(`✨ ${buffTexts.join(', ')}`);
       this.statsText.setVisible(true);
     } else {
       this.statsText.setText('');

@@ -52,9 +52,12 @@ export class CountEffectUI {
     // 효과 타입별 색상
     let color: string = COLORS_STR.success.dark;
     let colorHex: number = COLORS.success.dark;
-    if (effect.type === 'ironWall') {
-      color = '#6b8e9f';
-      colorHex = 0x6b8e9f;
+    if (effect.type === 'countDefense') {
+      // 반격 없는 방어는 다른 색상
+      if (!effect.data.counterAttack) {
+        color = '#6b8e9f';
+        colorHex = 0x6b8e9f;
+      }
     } else if (effect.type === 'chargeAttack') {
       color = COLORS_STR.primary.dark;
       colorHex = COLORS.primary.dark;
@@ -100,28 +103,30 @@ export class CountEffectUI {
     let titleColorHex: number = COLORS.success.dark;
     
     switch (effect.type) {
-      case 'parry':
-        titleColor = COLORS_STR.success.dark;
-        titleColorHex = COLORS.success.dark;
-        description = [
-          `남은 대기: ${effect.remainingDelays}`,
-          '',
-          `방어율 x${effect.data.defenseMultiplier || 5} 적용`,
-          '방어 성공 시 반격 발동!',
-          '',
-          `반격 배수: x${effect.data.attackMultiplier || 1.0}`,
-        ].join('\n');
-        break;
-        
-      case 'ironWall':
-        titleColor = '#6b8e9f';
-        titleColorHex = 0x6b8e9f;
-        description = [
-          `남은 대기: ${effect.remainingDelays}`,
-          '',
-          `방어율 x${effect.data.defenseMultiplier || 10} 적용`,
-          '1회 방어 시 효과 소멸',
-        ].join('\n');
+      case 'countDefense':
+        if (effect.data.counterAttack) {
+          // 반격 있는 방어 (검 얽기 등)
+          titleColor = COLORS_STR.success.dark;
+          titleColorHex = COLORS.success.dark;
+          description = [
+            `남은 대기: ${effect.remainingDelays}`,
+            '',
+            `방어율 x${effect.data.defenseMultiplier || 5} 적용`,
+            '방어 성공 시 반격 발동!',
+            '',
+            `반격 배수: x${effect.data.attackMultiplier || 1.0}`,
+          ].join('\n');
+        } else {
+          // 반격 없는 방어 (쳐내기 등)
+          titleColor = '#6b8e9f';
+          titleColorHex = 0x6b8e9f;
+          description = [
+            `남은 대기: ${effect.remainingDelays}`,
+            '',
+            `방어율 x${effect.data.defenseMultiplier || 10} 적용`,
+            '1회 방어 시 효과 소멸',
+          ].join('\n');
+        }
         break;
         
       case 'chargeAttack':

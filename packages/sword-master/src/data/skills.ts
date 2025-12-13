@@ -186,8 +186,8 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '방어 완전 무시! x1.5. 적 방어력 -10.',
-    effect: { type: 'pierce', value: 10 },
+    description: '방어 완전 무시! x1.5. 적 방어력 -5.',
+    effect: { type: 'armorBreaker', value: 5 },
   },
   
   // ===== 신속 공격 (적 대기턴 감소 없음) =====
@@ -264,11 +264,18 @@ export const SKILLS: Record<string, SkillCard> = {
     durabilityCost: 1,
     manaCost: 1,
     description: '1대기 동안 방어율 x5. 방어 성공 시 반격!',
-    effect: { type: 'parry', value: 5, duration: 1 },  // value: 방어율 배수, duration: 대기 시간
+    effect: { 
+      type: 'countDefense', 
+      value: 5,              // 방어율 배수
+      duration: 1,           // 대기 시간
+      counterAttack: true,   // 반격 O
+      counterMultiplier: 1.0,// 반격 배수
+      consumeOnSuccess: true,// 방어 성공 시 소멸
+    },
   },
   ironWall: {
     id: 'ironWall',
-    name: '철벽',
+    name: '쳐내기',
     emoji: '🏰',
     type: 'defense',
     attackMultiplier: 0,
@@ -278,7 +285,13 @@ export const SKILLS: Record<string, SkillCard> = {
     durabilityCost: 0,
     manaCost: 1,
     description: '3대기 동안 방어율 x10. 1회 방어 후 소멸.',
-    effect: { type: 'ironWall', value: 10, duration: 3 },  // value: 방어율 배수, duration: 대기 시간
+    effect: { 
+      type: 'countDefense', 
+      value: 10,             // 방어율 배수
+      duration: 3,           // 대기 시간
+      counterAttack: false,  // 반격 X
+      consumeOnSuccess: true,// 방어 성공 시 소멸
+    },
   },
   // ===== 버프기 (신속 - 적 대기턴 감소 없음) =====
   focus: {
@@ -357,13 +370,13 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '덱 상위에서 검 2자루를 손패로 가져온다.',
-    effect: { type: 'drawSwords', value: 2 },
+    description: '덱 상위에서 검 3자루를 손패로 가져온다.',
+    effect: { type: 'drawSwords', value: 3 },
     isSwift: true,
   },
   bladeSeeker: {
     id: 'bladeSeeker',
-    name: '검 부르기',
+    name: '검 잡기',
     emoji: '🔍',
     type: 'buff',
     attackMultiplier: 0,
@@ -372,8 +385,8 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '덱에서 검 3자루 중 1개를 즉시 장착 + 발도!',
-    effect: { type: 'searchSword', value: 3 },
+    description: '덱 최상위 검 즉시 장착+발도! 그 다음 검은 손패로.',
+    effect: { type: 'bladeGrab', value: 1 },
     isSwift: true,
   },
   soulRecall: {
@@ -401,17 +414,17 @@ export const SKILLS: Record<string, SkillCard> = {
     reach: 'single',
     defenseBonus: 0,
     durabilityCost: 0,
-    manaCost: 3,
+    manaCost: 1,
     description: '무덤에 있는 검 중 랜덤 장착 및 발도스킬 시전.',
     effect: { type: 'graveEquip', value: 1 },
     isSwift: true,
   },
 
   // ===== 특수기 (강한 스킬: 자체 범위 사용) =====
-  chargeSlash: {
-    id: 'chargeSlash',
-    name: '돌격참',
-    emoji: '🏃',
+  sweepSlash: {
+    id: 'sweepSlash',
+    name: '쓸어내기',
+    emoji: '🌊',
     type: 'special',
     attackMultiplier: 2.0,
     attackCount: 1,
@@ -419,8 +432,8 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '돌진하며 3적을 x2.0으로 벤다!',
-    effect: { type: 'charge', value: 3 },
+    description: '검을 크게 휘둘러 3적을 x2.0으로 벤다.',
+    effect: { type: 'sweep', value: 3 },
   },
   bladeStorm: {
     id: 'bladeStorm',
@@ -479,18 +492,19 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
     swords: [
       'katana', 'samjeongdo', 'wakizashi',  // 기본 3종 (동양검)
       'yedogeom', 'bongukgeom',  // 추가 2종 (동양검)
+      'haegapdo', 'katana',  // 칼 2개 추가
     ],
     skills: [
-      'slash', 'slash',           // slash 3개 → 2개로 줄임
-      'thrust', 'thrust',
-      'doubleSlash', 'doubleSlash',
+      'slash', 'slash',
+      'thrust',              // thrust 하나 줄임
+      'doubleSlash',         // doubleSlash 하나 줄임
       'parry', 'parry',
       'quickSlash',
       'focus',
       'powerStrike',
       'sweepingBlow',
       'ironWall',
-      'drawSword', 'drawSword',   // 검 꺼내기 2개로 증가
+      'drawSword', 'drawSword',
     ],
   };
 }

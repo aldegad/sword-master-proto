@@ -48,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   // 스킬 효과로 인한 카드 선택
   skillSelectCards: Card[] = [];
   skillSelectType: 'searchSword' | 'graveRecall' | 'graveEquip' | null = null;
+  pendingSkillCard: Card | null = null;  // 취소 시 복구할 카드
   
   constructor() {
     super({ key: 'GameScene' });
@@ -250,15 +251,12 @@ export class GameScene extends Phaser.Scene {
       }
     }
     
-    // 카운트 효과 방어 배수 체크 (철벽, 패리)
+    // 카운트 효과 방어 배수 체크 (countDefense 통합)
     let countDefenseMultiplier = 1;
-    const ironWallEffect = this.playerState.countEffects.find(e => e.type === 'ironWall');
-    const parryEffect = this.playerState.countEffects.find(e => e.type === 'parry');
+    const countDefenseEffect = this.playerState.countEffects.find(e => e.type === 'countDefense');
     
-    if (ironWallEffect) {
-      countDefenseMultiplier = ironWallEffect.data.defenseMultiplier || 10;
-    } else if (parryEffect) {
-      countDefenseMultiplier = parryEffect.data.defenseMultiplier || 5;
+    if (countDefenseEffect) {
+      countDefenseMultiplier = countDefenseEffect.data.defenseMultiplier || 5;
     }
     
     // 카운트 효과가 있으면 방어율 배수 적용해서 표시
@@ -512,8 +510,11 @@ export class GameScene extends Phaser.Scene {
     
     this.cardSystem.tryAddUniqueWeapon();
     
-    if (this.gameState.turn === 1 || this.playerState.hand.length === 0) {
+    // 첫 전투: 5장 드로우, 이후 전투: 2장 드로우 (턴 시작처럼)
+    if (this.gameState.currentWave === 1) {
       this.cardSystem.drawCards(GAME_CONSTANTS.INITIAL_DRAW);
+    } else {
+      this.cardSystem.drawCards(GAME_CONSTANTS.DRAW_PER_TURN);
     }
     
     this.enemyManager.initializeEnemyActions();
@@ -568,8 +569,10 @@ export class GameScene extends Phaser.Scene {
       this.gameState.phase = 'victory';
       this.animationHelper.showMessage('승리!', COLORS.success.dark);
       
-      // 모든 카드를 덱으로 돌리고 셔플
-      this.resetDeck();
+      // 손패와 덱 상태 유지 (리셋 안함)
+      // 버프/카운트 효과만 초기화
+      this.playerState.buffs = [];
+      this.playerState.countEffects = [];
       
       // 보상 카드 3장 생성
       this.generateRewardCards();
@@ -603,13 +606,13 @@ export class GameScene extends Phaser.Scene {
     if (index < 0 || index >= this.rewardCards.length) return;
     
     const selectedCard = this.rewardCards[index];
-    this.playerState.deck.push(selectedCard);
-    this.cardSystem.shuffleArray(this.playerState.deck);
+    this.playerState.hand.push(selectedCard);  // 손패로 바로 획득
     
-    this.animationHelper.showMessage(`${selectedCard.data.name} 획득!`, COLORS.success.dark);
+    this.animationHelper.showMessage(`${selectedCard.data.name} 손패로 획득!`, COLORS.success.dark);
     
     this.rewardCards = [];
     this.events.emit('rewardSelected');
+    this.events.emit('handUpdated');
     
     // 다음 웨이브로 이동
     this.time.delayedCall(500, () => {
@@ -628,6 +631,10 @@ export class GameScene extends Phaser.Scene {
   showSkillCardSelection(type: 'searchSword' | 'graveRecall' | 'graveEquip', cards: Card[]) {
     this.skillSelectType = type;
     this.skillSelectCards = cards;
+    // 방금 사용한 스킬 카드 저장 (무덤의 마지막 카드)
+    if (this.playerState.discard.length > 0) {
+      this.pendingSkillCard = this.playerState.discard[this.playerState.discard.length - 1];
+    }
     this.events.emit('showSkillCardSelection');
   }
   
@@ -669,15 +676,33 @@ export class GameScene extends Phaser.Scene {
     
     this.skillSelectCards = [];
     this.skillSelectType = null;
+    this.pendingSkillCard = null;  // 선택 완료 시 초기화
     this.events.emit('skillCardSelected');
     this.events.emit('handUpdated');
     this.events.emit('statsUpdated');
   }
   
   cancelSkillCardSelection() {
+    // 취소 시 사용한 스킬 카드를 손패로 복구
+    if (this.pendingSkillCard) {
+      const discardIdx = this.playerState.discard.indexOf(this.pendingSkillCard);
+      if (discardIdx !== -1) {
+        this.playerState.discard.splice(discardIdx, 1);
+        this.playerState.hand.push(this.pendingSkillCard);
+        // 마나도 복구
+        const skill = this.pendingSkillCard.data as any;
+        if (skill.manaCost) {
+          this.playerState.mana = Math.min(this.playerState.maxMana, this.playerState.mana + skill.manaCost);
+        }
+        this.animationHelper.showMessage('취소됨', COLORS.message.muted);
+      }
+      this.pendingSkillCard = null;
+    }
     this.skillSelectCards = [];
     this.skillSelectType = null;
     this.events.emit('skillCardSelected');
+    this.events.emit('handUpdated');
+    this.events.emit('statsUpdated');
   }
   
   // 전투 종료 시 덱 리셋
