@@ -123,9 +123,13 @@ export class CardSystem {
     // 손패에서 제거
     this.scene.playerState.hand.splice(index, 1);
     
-    // 스킬 카드만 무덤으로
+    // 스킬 카드만 무덤으로 (1회용 스킬은 완전히 제거)
     if (card.type === 'skill') {
-      this.scene.playerState.discard.push(card);
+      if (card.data.isConsumable) {
+        this.scene.animationHelper.showMessage(`${card.data.emoji} ${card.data.name} 소멸!`, COLORS.message.discard);
+      } else {
+        this.scene.playerState.discard.push(card);
+      }
     }
     
     // 신속 여부 체크:
@@ -202,7 +206,15 @@ export class CardSystem {
       this.scene.updatePlayerWeaponDisplay();
     }
     
-    let damage = sword.attack * drawAtk.multiplier;
+    // 집중 버프 적용
+    let focusMultiplier = 1.0;
+    this.scene.playerState.buffs.forEach(buff => {
+      if (buff.id === 'focus') {
+        focusMultiplier += buff.value;  // 집중: 최종 데미지에 배율 적용 (0.5면 1.5배)
+      }
+    });
+    
+    let damage = sword.attack * drawAtk.multiplier * focusMultiplier;
     
     // 타겟이 지정되었으면 해당 타겟 기준으로 범위 공격, 아니면 기본 범위 공격
     let targets: Enemy[];
@@ -239,12 +251,19 @@ export class CardSystem {
     }
     
     targets.forEach(enemy => {
+      // 방어관통 적용: 무기 관통력을 적 방어력에서 빼기
+      const weaponPierce = sword.pierce || 0;
+      const effectiveDefense = Math.max(0, enemy.defense - weaponPierce);
+      
       // 크리티컬이면 방어 무시
       const actualDamage = isCritical || drawAtk.pierce 
         ? damage 
-        : Math.max(1, damage - enemy.defense);
-      this.scene.combatSystem.damageEnemy(enemy, actualDamage);
+        : Math.max(1, damage - effectiveDefense);
+      this.scene.combatSystem.damageEnemy(enemy, actualDamage, isCritical);
     });
+    
+    // 집중 버프 소모
+    this.scene.playerState.buffs = this.scene.playerState.buffs.filter(b => b.id !== 'focus');
     
     // 참고: 적 대기턴/카운트 효과 감소는 executeCard에서 처리됨
     // (발도가 신속이면 executeCard에서 이미 스킵됨)

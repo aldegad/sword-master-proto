@@ -37,6 +37,7 @@ export interface SwordCard {
   attackCount: number;     // 공격 횟수
   reach: ReachType;        // 공격 범위
   defense: number;         // 방어력
+  pierce: number;          // 방어관통력 (적 방어력에서 빼는 고정 수치)
   durability: number;      // 내구도 (최대 1~5)
   currentDurability: number; // 현재 내구도
   manaCost: number;        // 장착 마나 비용
@@ -73,6 +74,7 @@ export interface SkillCard {
   description: string;
   effect?: SkillEffect;
   isSwift?: boolean;         // 신속 스킬 - 적 대기턴을 감소시키지 않음
+  isConsumable?: boolean;    // 1회용 스킬 - 사용 후 덱에서 완전히 제거
 }
 
 // 스킬 특수 효과

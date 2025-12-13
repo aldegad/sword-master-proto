@@ -69,6 +69,7 @@ interface SwordTemplate {
   attackCount: number;
   reach: ReachType;
   defense: number;
+  pierce: number;     // 방어관통력 (0~5, 적 방어력에서 빼는 고정 수치)
   durability: number;
   manaCost: number;
   description: string;
@@ -97,7 +98,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 8,
-    durability: 6,  // 4→6
+    pierce: 1,        // 일반 군도
+    durability: 6,
     manaCost: 1,
     description: '조선 군관의 표준 도검.',
     drawAttack: { 
@@ -118,10 +120,11 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 3,
-    durability: 5,  // 3→5
+    pierce: 5,        // 갑옷 관통 특화!
+    durability: 5,
     manaCost: 2,
     description: '갑옷을 뚫는 관통력.',
-    specialEffect: '관통 20%',
+    specialEffect: '관통 5',
     drawAttack: { 
       name: '파갑일섬', 
       multiplier: 1.3, 
@@ -140,16 +143,17 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 2,
     reach: 'single',
     defense: 12,
-    durability: 8,  // 5→8 (2타 무기라 더 높게)
+    pierce: 0,        // 단검류 - 낮은 관통
+    durability: 8,
     manaCost: 1,
     description: '예법과 실전을 겸비한 검. 2타.',
     drawAttack: { 
       name: '쌍발도', 
       multiplier: 0.6, 
       reach: 'single', 
-      durabilityCost: 2,  // 2타라 2 소모
+      durabilityCost: 2,
       effect: '2회 연속 타격',
-      isSwift: true,  // 신속 발도 (단검류)
+      isSwift: true,
     },
   },
   bongukgeom: {
@@ -162,7 +166,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'double',
     defense: 15,
-    durability: 6,  // 4→6
+    pierce: 2,        // 중간 수준
+    durability: 6,
     manaCost: 2,
     description: '본국검법의 정수. 2적 범위.',
     drawAttack: { 
@@ -183,14 +188,15 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'triple',
     defense: 5,
-    durability: 4,  // 2→4
+    pierce: 3,        // 대형 도검
+    durability: 4,
     manaCost: 3,
     description: '초승달 모양 장수도. 3적 범위.',
     specialEffect: '휩쓸기',
     drawAttack: { 
       name: '크게 베기', 
       multiplier: 1.2, 
-      reach: 'all',  // 전체 공격!
+      reach: 'all',
       durabilityCost: 1,
       effect: '월도를 크게 휘둘러 전체 베기!' 
     },
@@ -207,7 +213,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 10,
-    durability: 6,  // 4→6
+    pierce: 2,        // 날카로운 베기 특화
+    durability: 6,
     manaCost: 1,
     description: '일본도의 대표. 날카로운 베기.',
     drawAttack: { 
@@ -228,7 +235,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 2,
     reach: 'single',
     defense: 12,
-    durability: 8,  // 5→8 (2타 무기)
+    pierce: 0,        // 단검류 - 낮은 관통
+    durability: 8,
     manaCost: 1,
     description: '보조검. 빠른 2타 공격.',
     drawAttack: { 
@@ -237,8 +245,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
       reach: 'single', 
       durabilityCost: 1,
       effect: '적 대기 1일 때 크리티컬!',
-      isSwift: true,  // 신속 발도
-      criticalCondition: 'enemyDelay1',  // 적 대기 1일 때 크리티컬
+      isSwift: true,
+      criticalCondition: 'enemyDelay1',
     },
   },
   nodachi: {
@@ -251,7 +259,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'double',
     defense: 3,
-    durability: 4,  // 2→4
+    pierce: 4,        // 무거운 대검 - 높은 관통
+    durability: 4,
     manaCost: 3,
     description: '거대한 장검. 압도적 파괴력.',
     drawAttack: { 
@@ -274,7 +283,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'all',
     defense: 0,
-    durability: 5,  // 3→5
+    pierce: 4,        // 무거운 언월도 - 높은 관통
+    durability: 5,
     manaCost: 4,
     description: '청룡언월도. 전체 공격!',
     specialEffect: '위압: 적 공격력 -10%',
@@ -298,7 +308,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 2,
     reach: 'double',
     defense: 0,
-    durability: 1,  // 유니크는 1 유지 (일회용)
+    pierce: 5,        // 유니크 관통 특화!
+    durability: 1,
     manaCost: 0,
     description: '사라지는 빛의 검. 단 한 번의 섬광.',
     specialEffect: '일회용! 모든 공격 관통.',

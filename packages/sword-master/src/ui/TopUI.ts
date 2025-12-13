@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { GAME_CONSTANTS } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
-import { FONTS } from '../constants/typography';
 
 /**
  * 상단 UI - HP바, 마나, 턴/웨이브/점수 표시
@@ -25,6 +24,9 @@ export class TopUI {
   private waveText!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
+  
+  // 버프 툴팁
+  private buffTooltip!: Phaser.GameObjects.Container;
   
   constructor(scene: UIScene) {
     this.scene = scene;
@@ -115,6 +117,65 @@ export class TopUI {
       backgroundColor: '#0a0a1580',  // 반투명 배경
       padding: { x: 15, y: 8 },
     });
+    
+    // 버프 툴팁 생성
+    this.createBuffTooltip();
+    
+    // 버프 텍스트에 마우스 이벤트 추가
+    this.statsText.setInteractive({ useHandCursor: true });
+    this.statsText.on('pointerover', () => this.showBuffTooltip());
+    this.statsText.on('pointerout', () => this.hideBuffTooltip());
+  }
+  
+  private createBuffTooltip() {
+    this.buffTooltip = this.scene.add.container(38, 600);
+    this.buffTooltip.setVisible(false);
+    this.buffTooltip.setDepth(1000);
+  }
+  
+  private showBuffTooltip() {
+    const buffs = this.scene.gameScene.playerState.buffs;
+    if (buffs.length === 0) return;
+    
+    // 기존 툴팁 내용 제거
+    this.buffTooltip.removeAll(true);
+    
+    // 툴팁 내용 생성
+    const lines: string[] = ['◈ 활성 버프'];
+    buffs.forEach(buff => {
+      let description = '';
+      if (buff.id === 'focus') {
+        description = `다음 공격 데미지 +${buff.value * 100}%`;
+      } else if (buff.id === 'sharpen') {
+        description = `공격력 +${buff.value}`;
+      } else if (buff.type === 'defense') {
+        description = `방어율 +${buff.value}%`;
+      } else {
+        description = `공격력 +${buff.value}`;
+      }
+      lines.push(`  ${buff.name}: ${description} (${buff.duration}턴 남음)`);
+    });
+    
+    const tooltipText = lines.join('\n');
+    
+    // 배경
+    const bg = this.scene.add.rectangle(0, 0, 350, 30 + buffs.length * 28, COLORS.background.black, 0.95);
+    bg.setOrigin(0, 0);
+    bg.setStrokeStyle(2, COLORS.primary.main);
+    
+    // 텍스트
+    const text = this.scene.add.text(10, 8, tooltipText, {
+      font: '16px monospace',
+      color: COLORS_STR.text.secondary,
+      lineSpacing: 6,
+    });
+    
+    this.buffTooltip.add([bg, text]);
+    this.buffTooltip.setVisible(true);
+  }
+  
+  private hideBuffTooltip() {
+    this.buffTooltip.setVisible(false);
   }
   
   updateHpBar() {
@@ -161,10 +222,11 @@ export class TopUI {
     const expNeeded = player.level * 50;
     this.levelText.setText(`LV.${player.level} [${player.exp}/${expNeeded}]`);
     
-    // 버프만 표시 (방어율은 SwordInfoUI에서 표시)
+    // 버프만 표시 (방어율은 SwordInfoUI에서 표시) + 남은 턴수
     const buffs = player.buffs;
     if (buffs.length > 0) {
-      this.statsText.setText(`✨ ${buffs.map(b => b.name).join(', ')}`);
+      const buffTexts = buffs.map(b => `${b.name}(${b.duration})`);
+      this.statsText.setText(`✨ ${buffTexts.join(', ')} [마우스 올려서 상세보기]`);
       this.statsText.setVisible(true);
     } else {
       this.statsText.setText('');

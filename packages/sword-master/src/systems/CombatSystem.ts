@@ -51,18 +51,19 @@ export class CombatSystem {
     
     // 버프 적용
     let attackBonus = 0;
-    let multiplierBonus = 0;
+    let focusMultiplier = 1.0;
     this.scene.playerState.buffs.forEach(buff => {
       if (buff.type === 'attack') {
         if (buff.id === 'focus') {
-          multiplierBonus += buff.value;
+          focusMultiplier += buff.value;  // 집중: 최종 데미지에 배율 적용 (0.5면 1.5배)
         } else {
           attackBonus += buff.value;
         }
       }
     });
     
-    const baseDamage = (sword.attack + attackBonus) * (skill.attackMultiplier + multiplierBonus);
+    // 기본 데미지 = (무기공격력 + 버프) * 스킬배율 * 집중배율
+    const baseDamage = (sword.attack + attackBonus) * skill.attackMultiplier * focusMultiplier;
     
     // 타겟 선정
     let targets: Enemy[];
@@ -77,16 +78,6 @@ export class CombatSystem {
       targets = this.getTargetsByReach(reach);
     }
     
-    // 연격 시 공격모션 2번 재생 (스킬 타수배율이 2 이상이면)
-    if (skill.attackCount >= 2) {
-      this.scene.animationHelper.playerAttack();
-      this.scene.time.delayedCall(200, () => {
-        this.scene.animationHelper.playerAttack();
-      });
-    } else {
-      this.scene.animationHelper.playerAttack();
-    }
-    
     // 내구도 소모: 타수만큼 (부족하면 가능한 만큼만)
     const actualHits = this.consumeDurabilityAndGetHits(totalHits);
     
@@ -96,55 +87,51 @@ export class CombatSystem {
       return;
     }
     
-    // 데미지 계산 및 즉시 적용 (적이 죽으면 행동 못하도록)
-    targets.forEach(enemy => {
-      let damage = baseDamage;
-      
-      // 관통 효과
-      if (skill.effect?.type === 'pierce') {
-        damage = baseDamage - (enemy.defense * (1 - skill.effect.value));
-      } else {
-        damage = Math.max(1, baseDamage - enemy.defense);
-      }
-      
-      // 총 데미지 = 타격당 데미지 × 실제 타수
-      const totalDamage = damage * actualHits;
-      
-      // 흡혈 효과
-      if (skill.effect?.type === 'lifesteal') {
-        const heal = Math.floor(totalDamage * skill.effect.value);
-        this.scene.playerState.hp = Math.min(this.scene.playerState.maxHp, this.scene.playerState.hp + heal);
-        this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, heal, COLORS.message.success);
-      }
-      
-      // 데미지 즉시 적용 (적 HP 감소 및 사망 처리)
-      this.damageEnemy(enemy, totalDamage);
-      
-      // 시각적 효과: 타수만큼 데미지 숫자 표시 (비동기) - 천천히 따닥 느낌
-      for (let i = 1; i < actualHits; i++) {
-        this.scene.time.delayedCall(i * 250, () => {
-          if (enemy.hp > 0) {
-            const sprite = this.scene.enemySprites.get(enemy.id);
-            if (sprite) {
-              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), COLORS.effect.damage);
-            }
+    // 각 타격을 500ms 간격으로 순차 처리
+    const hitInterval = 500;
+    
+    for (let hitIndex = 0; hitIndex < actualHits; hitIndex++) {
+      this.scene.time.delayedCall(hitIndex * hitInterval, () => {
+        // 공격 애니메이션 재생
+        this.scene.animationHelper.playerAttack();
+        
+        // 각 타겟에 데미지 적용
+        targets.forEach(enemy => {
+          // 적이 이미 죽었으면 스킵
+          if (enemy.hp <= 0) return;
+          
+          // 방어관통 계산: 무기 관통력 + 스킬 관통력을 적 방어력에서 빼기
+          const weaponPierce = sword.pierce || 0;
+          const skillPierce = skill.effect?.type === 'pierce' ? skill.effect.value : 0;
+          const totalPierce = weaponPierce + skillPierce;
+          const effectiveDefense = Math.max(0, enemy.defense - totalPierce);
+          const damage = Math.max(1, baseDamage - effectiveDefense);
+          
+          // 흡혈 효과 (타격당 적용)
+          if (skill.effect?.type === 'lifesteal') {
+            const heal = Math.floor(damage * skill.effect.value);
+            this.scene.playerState.hp = Math.min(this.scene.playerState.maxHp, this.scene.playerState.hp + heal);
+            this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, heal, COLORS.message.success);
+          }
+          
+          // 데미지 적용 (적 HP 감소 및 사망 처리)
+          this.damageEnemy(enemy, damage);
+          
+          // 출혈 효과 (첫 타격에만)
+          if (hitIndex === 0 && skill.effect?.type === 'bleed') {
+            enemy.bleed = {
+              damage: skill.effect.value,
+              duration: skill.effect.duration || 3,
+            };
+          }
+          
+          // 스턴 효과 (첫 타격에만)
+          if (hitIndex === 0 && skill.effect?.type === 'stun') {
+            enemy.isStunned = skill.effect.duration || 1;
           }
         });
-      }
-      
-      // 출혈 효과
-      if (skill.effect?.type === 'bleed') {
-        enemy.bleed = {
-          damage: skill.effect.value,
-          duration: skill.effect.duration || 3,
-        };
-      }
-      
-      // 스턴 효과
-      if (skill.effect?.type === 'stun') {
-        enemy.isStunned = skill.effect.duration || 1;
-      }
-    });
+      });
+    }
     
     // 집중 버프 소모
     this.scene.playerState.buffs = this.scene.playerState.buffs.filter(b => b.id !== 'focus');
@@ -244,6 +231,7 @@ export class CombatSystem {
         value: skill.effect.value,
         duration: 1,
       });
+      this.scene.animationHelper.showMessage(`🎯 집중! 다음 공격 +${skill.effect.value * 100}%!`, COLORS.message.success);
     } else if (skill.effect?.type === 'draw') {
       this.scene.cardSystem.drawCards(skill.effect.value);
     } else if (skill.effect?.type === 'sharpen') {
@@ -510,13 +498,13 @@ export class CombatSystem {
   
   // ========== 데미지 처리 ==========
   
-  damageEnemy(enemy: Enemy, damage: number) {
+  damageEnemy(enemy: Enemy, damage: number, isCritical: boolean = false) {
     const actualDamage = Math.floor(damage);
     enemy.hp -= actualDamage;
     
     const sprite = this.scene.enemySprites.get(enemy.id);
     if (sprite) {
-      this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, actualDamage, COLORS.effect.damage);
+      this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, actualDamage, COLORS.effect.damage, isCritical);
       
       // 적이 죽을 경우 더 강렬한 깜빡임 후 사망
       if (enemy.hp <= 0) {
@@ -790,41 +778,43 @@ export class CombatSystem {
     
     // 버프 적용
     let attackBonus = 0;
-    let multiplierBonus = 0;
+    let focusMultiplier = 1.0;
     this.scene.playerState.buffs.forEach(buff => {
       if (buff.type === 'attack') {
         if (buff.id === 'focus') {
-          multiplierBonus += buff.value;
+          focusMultiplier += buff.value;  // 집중: 최종 데미지에 배율 적용
         } else {
           attackBonus += buff.value;
         }
       }
     });
     
-    const baseDamage = (sword.attack + attackBonus) * (attackMultiplier + multiplierBonus);
+    const baseDamage = (sword.attack + attackBonus) * attackMultiplier * focusMultiplier;
     
-    this.scene.animationHelper.playerAttack();
+    // 방어관통 계산: 무기 관통력
+    const weaponPierce = sword.pierce || 0;
     
-    // 데미지 계산 및 즉시 적용
-    targets.forEach(enemy => {
-      const damage = Math.max(1, baseDamage - enemy.defense);
-      const totalDamage = damage * actualHits;
-      
-      // 데미지 즉시 적용
-      this.damageEnemy(enemy, totalDamage);
-      
-      // 시각적 효과: 타수만큼 데미지 숫자 표시 (비동기) - 천천히 따닥 느낌
-      for (let i = 1; i < actualHits; i++) {
-        this.scene.time.delayedCall(i * 250, () => {
-          if (enemy.hp > 0) {
-            const sprite = this.scene.enemySprites.get(enemy.id);
-            if (sprite) {
-              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), COLORS.effect.damage);
-            }
-          }
+    // 각 타격을 500ms 간격으로 순차 처리
+    const hitInterval = 500;
+    
+    for (let hitIndex = 0; hitIndex < actualHits; hitIndex++) {
+      this.scene.time.delayedCall(hitIndex * hitInterval, () => {
+        // 공격 애니메이션 재생
+        this.scene.animationHelper.playerAttack();
+        
+        // 각 타겟에 데미지 적용
+        targets.forEach(enemy => {
+          // 적이 이미 죽었으면 스킵
+          if (enemy.hp <= 0) return;
+          
+          const effectiveDefense = Math.max(0, enemy.defense - weaponPierce);
+          const damage = Math.max(1, baseDamage - effectiveDefense);
+          
+          // 데미지 적용 (적 HP 감소 및 사망 처리)
+          this.damageEnemy(enemy, damage);
         });
-      }
-    });
+      });
+    }
   }
   
   applyBleedDamage() {

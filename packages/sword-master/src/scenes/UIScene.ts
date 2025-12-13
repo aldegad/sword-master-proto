@@ -11,6 +11,7 @@ import {
   SkillSelectUI,
   CountEffectUI,
 } from '../ui';
+import { COLORS } from '../constants/colors';
 
 /**
  * UI 씬 - 모든 UI 헬퍼를 조합하여 관리
@@ -69,24 +70,24 @@ export class UIScene extends Phaser.Scene {
     
     this.noWeaponWarning = this.add.container(centerX, centerY);
     
-    // 배경 박스 - 사이버펑크 스타일
-    const bg = this.add.rectangle(0, 0, 320, 80, 0x0a0a15, 0.95);
+    // 배경 박스 - 사이버펑크 스타일 (크기 키움)
+    const bg = this.add.rectangle(0, 0, 420, 100, 0x0a0a15, 0.95);
     bg.setStrokeStyle(2, 0xff2a6d);
     
-    // 경고 아이콘과 텍스트
-    const warningIcon = this.add.text(0, -15, '⚠ NO WEAPON ⚠', {
-      font: 'bold 22px monospace',
+    // 경고 아이콘과 텍스트 (폰트 키움)
+    const warningIcon = this.add.text(0, -18, '⚠ NO WEAPON ⚠', {
+      font: 'bold 26px monospace',
       color: '#ff2a6d',
     }).setOrigin(0.5);
     
-    const warningText = this.add.text(0, 18, '무기 카드를 사용하여 장착하세요', {
-      font: '13px monospace',
+    const warningText = this.add.text(0, 20, '무기 카드를 사용하여 장착하세요', {
+      font: '18px monospace',
       color: '#05d9e8',
     }).setOrigin(0.5);
     
     this.noWeaponWarning.add([bg, warningIcon, warningText]);
     this.noWeaponWarning.setVisible(false);
-    this.noWeaponWarning.setDepth(50);  // 적 스킬 이름(3000)보다 뒤에
+    this.noWeaponWarning.setDepth(5);  // 가장 낮은 depth - 다른 중앙 표시들 아래에
     
     // 깜빡이는 애니메이션
     this.tweens.add({
@@ -120,6 +121,22 @@ export class UIScene extends Phaser.Scene {
     this.gameScene.events.on('showSkillCardSelection', () => this.skillSelectUI.show(), this);
     this.gameScene.events.on('skillCardSelected', () => this.skillSelectUI.hide(), this);
     this.gameScene.events.on('exchangeUsed', () => this.actionButtonsUI.onExchangeUsed(), this);
+    
+    // 씬 종료 시 이벤트 리스너 정리 (재시작 시 중복 방지)
+    this.events.once('shutdown', () => {
+      this.gameScene.events.off('handUpdated', this.onHandUpdated, this);
+      this.gameScene.events.off('statsUpdated', this.updateAllStats, this);
+      this.gameScene.events.off('turnEnded', this.onTurnEnded, this);
+      this.gameScene.events.off('combatStarted', this.onCombatStarted, this);
+      this.gameScene.events.off('modeChanged', this.onModeChanged, this);
+      this.gameScene.events.off('targetingStarted');
+      this.gameScene.events.off('targetingCancelled');
+      this.gameScene.events.off('showRewardSelection');
+      this.gameScene.events.off('rewardSelected');
+      this.gameScene.events.off('showSkillCardSelection');
+      this.gameScene.events.off('skillCardSelected');
+      this.gameScene.events.off('exchangeUsed');
+    });
   }
   
   private onHandUpdated() {
@@ -153,6 +170,7 @@ export class UIScene extends Phaser.Scene {
         color: '#ffcc00',
       }
     ).setOrigin(0.5).setAlpha(0);
+    turnText.setDepth(100);  // noWeaponWarning(5)보다 위에 표시
     
     this.tweens.add({
       targets: turnText,
@@ -177,6 +195,7 @@ export class UIScene extends Phaser.Scene {
         color: '#e94560',
       }
     ).setOrigin(0.5).setAlpha(0);
+    text.setDepth(100);  // noWeaponWarning(5)보다 위에 표시
     
     this.tweens.add({
       targets: text,
@@ -194,5 +213,71 @@ export class UIScene extends Phaser.Scene {
     if (this.gameScene.isTargetingMode) {
       this.targetIndicatorUI.updatePositions();
     }
+  }
+  
+  /**
+   * 적 스킬 이름을 화면 중앙에 크게 표시 (UIScene에서 처리하여 noWeaponWarning보다 위에 표시)
+   */
+  showEnemySkillName(enemyName: string, skillName: string, skillEmoji: string): Promise<void> {
+    return new Promise((resolve) => {
+      const centerX = this.cameras.main.width / 2;
+      const centerY = this.cameras.main.height / 2 - 50;
+      
+      // 배경 어둡게
+      const overlay = this.add.rectangle(
+        centerX,
+        centerY,
+        400,
+        100,
+        COLORS.background.black,
+        0.7
+      ).setOrigin(0.5);
+      overlay.setDepth(3000);  // noWeaponWarning(50)보다 위에 표시
+      
+      // 테두리
+      overlay.setStrokeStyle(3, COLORS.message.error);
+      
+      // 적 이름 + 스킬 이름
+      const text = this.add.text(
+        centerX,
+        centerY,
+        `${skillEmoji} ${enemyName}의 ${skillName}!`,
+        {
+          font: 'bold 28px monospace',
+          color: '#c44536',
+        }
+      ).setOrigin(0.5);
+      text.setDepth(3001);
+      
+      // 등장 애니메이션
+      overlay.setScale(0.5);
+      overlay.setAlpha(0);
+      text.setScale(0.5);
+      text.setAlpha(0);
+      
+      this.tweens.add({
+        targets: [overlay, text],
+        scale: 1,
+        alpha: 1,
+        duration: 200,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          // 잠시 유지 후 사라짐
+          this.time.delayedCall(600, () => {
+            this.tweens.add({
+              targets: [overlay, text],
+              alpha: 0,
+              y: centerY - 30,
+              duration: 300,
+              onComplete: () => {
+                overlay.destroy();
+                text.destroy();
+                resolve();
+              },
+            });
+          });
+        },
+      });
+    });
   }
 }

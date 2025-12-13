@@ -386,8 +386,9 @@ export class GameScene extends Phaser.Scene {
   }
   
   /**
-   * Attak(카드 뽑기) 애니메이션 재생
+   * Attak(공격) 애니메이션 재생
    * 재생 후 자동으로 idle로 복귀
+   * 연속 공격 시 이전 애니메이션을 중단하고 새로 시작
    */
   playAttakAnimation(onComplete?: () => void) {
     if (!USE_SPRITES || !this.playerAnim) {
@@ -395,10 +396,14 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     
-    // 이미 애니메이션 중이면 스킵
-    if (this.isAnimating) {
-      if (onComplete) onComplete();
-      return;
+    // 이전 애니메이션 중단하고 새로 시작 (연속 공격 지원)
+    try {
+      if (this.playerAnim.anims) {
+        this.playerAnim.stop();
+      }
+      this.playerAnim.off('animationcomplete');
+    } catch {
+      // 애니메이션 정리 실패 시 무시
     }
     
     this.isAnimating = true;
@@ -738,39 +743,56 @@ export class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    this.add.rectangle(width/2, height/2, width, height, COLORS.background.overlay, 0.9);
+    const overlay = this.add.rectangle(width/2, height/2, width, height, COLORS.background.overlay, 0.9);
+    overlay.setDepth(5000);
     
-    this.add.text(width/2, height/2 - 60, '💀 패배 💀', {
+    const title = this.add.text(width/2, height/2 - 60, '💀 패배 💀', {
       font: 'bold 48px monospace',
       color: COLORS_STR.secondary.dark,
     }).setOrigin(0.5);
+    title.setDepth(5001);
     
-    this.add.text(width/2, height/2 + 10, `도달 파: ${this.gameState.currentWave}`, {
+    const waveText = this.add.text(width/2, height/2 + 10, `도달 파: ${this.gameState.currentWave}`, {
       font: 'bold 24px monospace',
       color: COLORS_STR.text.primary,
     }).setOrigin(0.5);
+    waveText.setDepth(5001);
     
-    this.add.text(width/2, height/2 + 50, `처치한 적: ${this.gameState.enemiesDefeated}`, {
+    const killText = this.add.text(width/2, height/2 + 50, `처치한 적: ${this.gameState.enemiesDefeated}`, {
       font: '20px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
+    killText.setDepth(5001);
     
-    this.add.text(width/2, height/2 + 90, `공: ${this.gameState.score}`, {
+    const scoreText = this.add.text(width/2, height/2 + 90, `공: ${this.gameState.score}`, {
       font: 'bold 28px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
+    scoreText.setDepth(5001);
     
     const restartBtn = this.add.text(width/2, height/2 + 150, '[ 다시 시작 ]', {
       font: 'bold 24px monospace',
       color: COLORS_STR.success.dark,
     }).setOrigin(0.5);
+    restartBtn.setDepth(5002);
+    
+    // 오버레이에 인터랙션 설정 (다른 클릭 차단)
+    overlay.setInteractive();
     
     restartBtn.setInteractive({ useHandCursor: true });
     restartBtn.on('pointerover', () => restartBtn.setColor(COLORS_STR.primary.light));
     restartBtn.on('pointerout', () => restartBtn.setColor(COLORS_STR.success.dark));
     restartBtn.on('pointerdown', () => {
+      // 버튼 중복 클릭 방지
+      restartBtn.disableInteractive();
+      
+      // UIScene 정리
       this.scene.stop('UIScene');
-      this.scene.restart();
+      
+      // 약간의 딜레이 후 재시작
+      this.time.delayedCall(100, () => {
+        this.scene.restart();
+      });
     });
   }
 

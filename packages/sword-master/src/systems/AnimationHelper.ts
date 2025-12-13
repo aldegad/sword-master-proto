@@ -26,12 +26,26 @@ export class AnimationHelper {
   
   // ========== 데미지 숫자 ==========
   
-  showDamageNumber(x: number, y: number, damage: number, color: number) {
+  showDamageNumber(x: number, y: number, damage: number, color: number, isCritical: boolean = false) {
     const prefix = color === COLORS.message.success ? '+' : '-';
-    const text = this.scene.add.text(x, y, `${prefix}${Math.floor(damage)}`, {
-      font: 'bold 20px monospace',
+    const fontSize = isCritical ? 60 : 40;  // 크리티컬: 60px, 일반: 40px (기존 20px의 2배)
+    const displayText = isCritical ? `${prefix}${Math.floor(damage)}!` : `${prefix}${Math.floor(damage)}`;
+    
+    const text = this.scene.add.text(x, y, displayText, {
+      font: `bold ${fontSize}px monospace`,
       color: `#${color.toString(16).padStart(6, '0')}`,
     }).setOrigin(0.5);
+    
+    // 크리티컬일 때 스케일 펀치 효과
+    if (isCritical) {
+      text.setScale(1.5);
+      this.scene.tweens.add({
+        targets: text,
+        scale: 1,
+        duration: 200,
+        ease: 'Back.easeOut',
+      });
+    }
     
     this.scene.tweens.add({
       targets: text,
@@ -68,58 +82,48 @@ export class AnimationHelper {
   
   /**
    * 적 스킬 이름을 화면 중앙에 크게 표시
+   * UIScene에서 처리하여 noWeaponWarning보다 위에 표시
    * @returns Promise - 표시 완료 후 resolve
    */
   showEnemySkillName(enemyName: string, skillName: string, skillEmoji: string): Promise<void> {
+    // UIScene에서 처리 (같은 씬 내에서 depth가 작동하도록)
+    const uiScene = this.scene.scene.get('UIScene') as import('../scenes/UIScene').UIScene;
+    if (uiScene && uiScene.showEnemySkillName) {
+      return uiScene.showEnemySkillName(enemyName, skillName, skillEmoji);
+    }
+    
+    // fallback: UIScene이 없으면 기존 방식으로 처리
     return new Promise((resolve) => {
       const centerX = this.scene.cameras.main.width / 2;
       const centerY = this.scene.cameras.main.height / 2 - 50;
       
-      // 배경 어둡게
       const overlay = this.scene.add.rectangle(
-        centerX,
-        centerY,
-        400,
-        100,
-        COLORS.background.black,
-        0.7
+        centerX, centerY, 400, 100,
+        COLORS.background.black, 0.7
       ).setOrigin(0.5);
-      overlay.setDepth(3000);  // 모든 경고 메시지보다 위에 표시
-      
-      // 테두리
+      overlay.setDepth(3000);
       overlay.setStrokeStyle(3, COLORS.message.error);
       
-      // 적 이름 + 스킬 이름
       const text = this.scene.add.text(
-        centerX,
-        centerY,
+        centerX, centerY,
         `${skillEmoji} ${enemyName}의 ${skillName}!`,
-        {
-          font: 'bold 28px monospace',
-          color: '#c44536',
-        }
+        { font: 'bold 28px monospace', color: '#c44536' }
       ).setOrigin(0.5);
-      text.setDepth(3001);  // 모든 경고 메시지보다 위에 표시
+      text.setDepth(3001);
       
-      // 등장 애니메이션
-      overlay.setScale(0.5);
-      overlay.setAlpha(0);
-      text.setScale(0.5);
-      text.setAlpha(0);
+      overlay.setScale(0.5).setAlpha(0);
+      text.setScale(0.5).setAlpha(0);
       
       this.scene.tweens.add({
         targets: [overlay, text],
-        scale: 1,
-        alpha: 1,
+        scale: 1, alpha: 1,
         duration: 200,
         ease: 'Back.easeOut',
         onComplete: () => {
-          // 잠시 유지 후 사라짐
           this.scene.time.delayedCall(600, () => {
             this.scene.tweens.add({
               targets: [overlay, text],
-              alpha: 0,
-              y: centerY - 30,
+              alpha: 0, y: centerY - 30,
               duration: 300,
               onComplete: () => {
                 overlay.destroy();

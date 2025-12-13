@@ -30,8 +30,8 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '관통력 있는 찌르기. 방어 30% 무시.',
-    effect: { type: 'pierce', value: 0.3 },
+    description: '관통력 있는 찌르기. 적 방어력 -3.',
+    effect: { type: 'pierce', value: 3 },
   },
 
   // ===== 연속기 (타수 배율 증가) =====
@@ -186,8 +186,8 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '방어 완전 무시! x1.5 관통.',
-    effect: { type: 'pierce', value: 1.0 },
+    description: '방어 완전 무시! x1.5. 적 방어력 -10.',
+    effect: { type: 'pierce', value: 10 },
   },
   
   // ===== 신속 공격 (적 대기턴 감소 없음) =====
@@ -294,6 +294,7 @@ export const SKILLS: Record<string, SkillCard> = {
     manaCost: 0,
     description: '다음 공격의 배율 +50%!',
     isSwift: true,
+    effect: { type: 'focus', value: 0.5, duration: 1 },
   },
   sharpen: {
     id: 'sharpen',
@@ -306,8 +307,9 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '3턴간 공격력+5. 덱의 모든 검 내구도 1회복.',
+    description: '3턴간 공격력+5. 덱의 모든 검 내구도 1회복. (1회용)',
     isSwift: true,
+    isConsumable: true,
     effect: { type: 'sharpen', value: 5, duration: 3 },
   },
   
@@ -444,8 +446,8 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '궁극기! x5.0! 관통 50%.',
-    effect: { type: 'pierce', value: 0.5 },
+    description: '궁극기! x5.0! 적 방어력 -5.',
+    effect: { type: 'pierce', value: 5 },
   },
 };
 
@@ -479,7 +481,7 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
       'yedogeom', 'bongukgeom',  // 추가 2종 (동양검)
     ],
     skills: [
-      'slash', 'slash', 'slash',
+      'slash', 'slash',           // slash 3개 → 2개로 줄임
       'thrust', 'thrust',
       'doubleSlash', 'doubleSlash',
       'parry', 'parry',
@@ -488,7 +490,7 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
       'powerStrike',
       'sweepingBlow',
       'ironWall',
-      'drawSword',  // 검 꺼내기 추가
+      'drawSword', 'drawSword',   // 검 꺼내기 2개로 증가
     ],
   };
 }

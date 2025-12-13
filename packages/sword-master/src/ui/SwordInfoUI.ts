@@ -72,7 +72,7 @@ export class SwordInfoUI {
     const displayName = sword.displayName || sword.name;
     this.swordInfoText.setText([
       `${displayName}`,
-      `공${sword.attack} 방${sword.defense}% ${sword.attackCount}타`,
+      `공${sword.attack} 방${sword.defense}% 관${sword.pierce || 0} ${sword.attackCount}타`,
       `범위:${reachMap[sword.reach]} 내구:${sword.currentDurability}/${sword.durability}`,
     ].join('\n'));
     
