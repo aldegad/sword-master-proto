@@ -190,6 +190,22 @@ export const SKILLS: Record<string, SkillCard> = {
     effect: { type: 'armorBreaker', value: 5 },
   },
   
+  // ===== 복합 스킬 (공격+드로우) =====
+  slashAndDraw: {
+    id: 'slashAndDraw',
+    name: '베며 가다듬기',
+    emoji: '🎴',
+    type: 'attack',
+    attackMultiplier: 0.7,
+    attackCount: 1,
+    reach: 'single', // 무기 범위 사용
+    defenseBonus: 0,
+    durabilityCost: 0,
+    manaCost: 1,
+    description: '적을 베면서 카드 1장 드로우!',
+    effect: { type: 'draw', value: 1 },
+  },
+
   // ===== 신속 공격 (적 대기턴 감소 없음) =====
   quickSlash: {
     id: 'quickSlash',
@@ -263,11 +279,11 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 1,
     durabilityCost: 1,
     manaCost: 1,
-    description: '1대기 동안 방어율 x5. 방어 성공 시 반격!',
+    description: '2대기 동안 방어율 x5. 방어 성공 시 반격!',
     effect: { 
       type: 'countDefense', 
       value: 5,              // 방어율 배수
-      duration: 1,           // 대기 시간
+      duration: 2,           // 대기 시간 (1 → 2)
       counterAttack: true,   // 반격 O
       counterMultiplier: 1.0,// 반격 배수
       consumeOnSuccess: true,// 방어 성공 시 소멸
@@ -290,6 +306,28 @@ export const SKILLS: Record<string, SkillCard> = {
       value: 10,             // 방어율 배수
       duration: 3,           // 대기 시간
       counterAttack: false,  // 반격 X
+      consumeOnSuccess: true,// 방어 성공 시 소멸
+    },
+  },
+  flowRead: {
+    id: 'flowRead',
+    name: '흐름을 읽다',
+    emoji: '👁️',
+    type: 'defense',
+    attackMultiplier: 2.0,  // 최대 반격 배수
+    attackCount: 0,
+    reach: 'single',
+    defenseBonus: 1,
+    durabilityCost: 1,
+    manaCost: 3,
+    description: '5대기 동안 흐름을 읽는다. 대기가 길수록 방어율/반격력 증가!',
+    effect: { 
+      type: 'flowRead', 
+      value: 8,              // 최대 방어율 배수
+      duration: 5,           // 대기 시간
+      counterAttack: true,   // 반격 O
+      defenseScaling: [1, 2, 4, 6, 8],       // 대기별 방어 배율 (1~5)
+      counterScaling: [0.25, 0.5, 1.0, 1.5, 2.0], // 대기별 반격 배율 (1~5)
       consumeOnSuccess: true,// 방어 성공 시 소멸
     },
   },
@@ -503,7 +541,7 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
       'focus',
       'powerStrike',
       'sweepingBlow',
-      'ironWall',
+      'slashAndDraw',        // 베며 가다듬기
       'drawSword', 'drawSword',
     ],
   };

@@ -98,7 +98,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 12,
     attackCount: 1,
     reach: 'single',
-    defense: 16,
+    defense: 20,
     pierce: 1,        // 일반 군도
     durability: 6,
     manaCost: 1,
@@ -120,7 +120,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 18,
     attackCount: 1,
     reach: 'single',
-    defense: 6,
+    defense: 15,
     pierce: 5,        // 갑옷 관통 특화!
     durability: 5,
     manaCost: 2,
@@ -132,7 +132,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
       reach: 'single', 
       durabilityCost: 1,
       effect: '적 방어력 무시. 방어력 -5.',
-      armorReduce: 5,
+      pierce: true,       // 방어 무시
+      armorReduce: 5,     // 방어력 영구 감소
     },
   },
   yedogeom: {
@@ -144,7 +145,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 10,
     attackCount: 2,
     reach: 'single',
-    defense: 24,
+    defense: 12,
     pierce: 0,        // 단검류 - 낮은 관통
     durability: 8,
     manaCost: 1,
@@ -167,7 +168,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 14,
     attackCount: 1,
     reach: 'double',
-    defense: 30,
+    defense: 25,
     pierce: 2,        // 중간 수준
     durability: 6,
     manaCost: 2,
@@ -189,7 +190,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 22,
     attackCount: 1,
     reach: 'triple',
-    defense: 10,
+    defense: 30,
     pierce: 3,        // 대형 도검
     durability: 4,
     manaCost: 3,
@@ -214,7 +215,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 15,
     attackCount: 1,
     reach: 'single',
-    defense: 20,
+    defense: 18,
     pierce: 2,        // 날카로운 베기 특화
     durability: 6,
     manaCost: 1,
@@ -236,7 +237,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 8,
     attackCount: 2,
     reach: 'single',
-    defense: 24,
+    defense: 8,
     pierce: 0,        // 단검류 - 낮은 관통
     durability: 8,
     manaCost: 1,
@@ -260,7 +261,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 25,
     attackCount: 1,
     reach: 'double',
-    defense: 6,
+    defense: 28,
     pierce: 4,        // 무거운 대검 - 높은 관통
     durability: 4,
     manaCost: 3,
@@ -284,7 +285,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attack: 28,
     attackCount: 1,
     reach: 'all',
-    defense: 0,
+    defense: 32,
     pierce: 4,        // 무거운 언월도 - 높은 관통
     durability: 5,
     manaCost: 4,

@@ -261,9 +261,11 @@ export class CardSystem {
       // 적 방어력 영구 감소 효과 (armorReduce)
       if (drawAtk.armorReduce && drawAtk.armorReduce > 0) {
         const oldDefense = enemy.defense;
+        const reduceAmount = Math.min(drawAtk.armorReduce, oldDefense);
         enemy.defense = Math.max(0, enemy.defense - drawAtk.armorReduce);
-        if (oldDefense > 0) {
-          this.scene.animationHelper.showMessage(`🔨 ${enemy.name} 방어력 -${Math.min(drawAtk.armorReduce, oldDefense)}!`, COLORS.message.warning);
+        console.log(`[armorReduce] ${enemy.name}: ${oldDefense} → ${enemy.defense} (감소: ${reduceAmount})`);
+        if (reduceAmount > 0) {
+          this.scene.animationHelper.showMessage(`🔨 ${enemy.name} 방어력 -${reduceAmount}!`, COLORS.message.warning);
         }
       }
     });

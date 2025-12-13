@@ -154,6 +154,15 @@ export class CombatSystem {
     
     // 집중 버프 소모
     this.scene.playerState.buffs = this.scene.playerState.buffs.filter(b => b.id !== 'focus');
+    
+    // 드로우 효과 (공격 후 카드 드로우)
+    if (skill.effect?.type === 'draw') {
+      const drawCount = skill.effect.value || 1;
+      this.scene.time.delayedCall(actualHits * hitInterval + 100, () => {
+        this.scene.cardSystem.drawCards(drawCount);
+        this.scene.animationHelper.showMessage(`🎴 ${drawCount}장 드로우!`, COLORS.message.info);
+      });
+    }
   }
   
   /**
@@ -209,6 +218,31 @@ export class CombatSystem {
       });
       
       this.scene.animationHelper.showMessage(`${skill.emoji} ${skill.name} 준비! (${duration}대기)`, COLORS.message.success);
+      return;
+    }
+    
+    // 흐름을 읽다 스킬 (대기별 스케일링)
+    if (skill.effect?.type === 'flowRead') {
+      const effect = skill.effect;
+      const duration = effect.duration || 5;
+      
+      this.scene.playerState.countEffects.push({
+        id: 'flowRead_' + Date.now(),
+        type: 'flowRead',
+        name: skill.name,
+        emoji: skill.emoji,
+        remainingDelays: duration,
+        maxDelays: duration,
+        isNew: true,
+        data: {
+          counterAttack: effect.counterAttack ?? true,
+          consumeOnSuccess: effect.consumeOnSuccess ?? true,
+          defenseScaling: effect.defenseScaling || [1, 2, 4, 6, 8],
+          counterScaling: effect.counterScaling || [0.25, 0.5, 1.0, 1.5, 2.0],
+        },
+      });
+      
+      this.scene.animationHelper.showMessage(`${skill.emoji} ${skill.name}... 흐름을 읽는 중 (${duration}대기)`, COLORS.message.success);
       return;
     }
     
@@ -452,23 +486,52 @@ export class CombatSystem {
       }
     });
     
-    // 카운트 효과 체크 (통합: countDefense, 레거시: ironWall, parry)
+    // 카운트 효과 체크 (통합: countDefense, flowRead)
     let activeCountEffect: typeof this.scene.playerState.countEffects[0] | null = null;
     let countEffectParryRate = baseParryRate;
+    let currentCounterMultiplier = 1.0;  // 반격 배수 (flowRead용)
     
-    // countDefense 효과 찾기 (방어 배수가 높은 것 우선)
-    const countDefenseEffects = this.scene.playerState.countEffects.filter(
-      e => e.type === 'countDefense'
+    // flowRead 효과 체크 (대기별 스케일링)
+    const flowReadEffects = this.scene.playerState.countEffects.filter(
+      e => e.type === 'flowRead'
     );
     
-    if (countDefenseEffects.length > 0) {
-      // 방어 배수가 가장 높은 효과 선택
-      activeCountEffect = countDefenseEffects.reduce((best, current) => {
-        const bestMult = best.data.defenseMultiplier || 1;
-        const currentMult = current.data.defenseMultiplier || 1;
-        return currentMult > bestMult ? current : best;
-      });
-      countEffectParryRate = sword ? sword.defense * (activeCountEffect.data.defenseMultiplier || 5) : 0;
+    if (flowReadEffects.length > 0) {
+      activeCountEffect = flowReadEffects[0];
+      // 경과 시간 계산 (0 = 방금 설치, maxDelays-1 = 거의 끝)
+      const maxDelays = activeCountEffect.maxDelays || 5;
+      const elapsed = maxDelays - activeCountEffect.remainingDelays;  // 0~4
+      
+      // 대기별 방어 배율 적용
+      const defenseScaling = activeCountEffect.data.defenseScaling || [1, 2, 4, 6, 8];
+      const defenseIndex = Math.min(elapsed, defenseScaling.length - 1);
+      const defenseMultiplier = defenseScaling[defenseIndex];
+      countEffectParryRate = sword ? sword.defense * defenseMultiplier : 0;
+      
+      // 대기별 반격 배율 저장
+      const counterScaling = activeCountEffect.data.counterScaling || [0.25, 0.5, 1.0, 1.5, 2.0];
+      const counterIndex = Math.min(elapsed, counterScaling.length - 1);
+      currentCounterMultiplier = counterScaling[counterIndex];
+      
+      console.log(`[flowRead] 경과: ${elapsed}대기, 방어x${defenseMultiplier}, 반격x${currentCounterMultiplier}`);
+    }
+    
+    // countDefense 효과 찾기 (방어 배수가 높은 것 우선)
+    if (!activeCountEffect) {
+      const countDefenseEffects = this.scene.playerState.countEffects.filter(
+        e => e.type === 'countDefense'
+      );
+      
+      if (countDefenseEffects.length > 0) {
+        // 방어 배수가 가장 높은 효과 선택
+        activeCountEffect = countDefenseEffects.reduce((best, current) => {
+          const bestMult = best.data.defenseMultiplier || 1;
+          const currentMult = current.data.defenseMultiplier || 1;
+          return currentMult > bestMult ? current : best;
+        });
+        countEffectParryRate = sword ? sword.defense * (activeCountEffect.data.defenseMultiplier || 5) : 0;
+        currentCounterMultiplier = activeCountEffect.data.attackMultiplier || 1.0;
+      }
     }
     
     // 최종 방어율 계산 (카운트 효과가 있으면 해당 효과의 방어율 사용)
@@ -505,11 +568,14 @@ export class CombatSystem {
       const shouldCounter = activeCountEffect?.data.counterAttack;
       if (shouldCounter && this.scene.playerState.currentSword) {
         const swordAttack = this.scene.playerState.currentSword.attack;
-        const counterMultiplier = activeCountEffect!.data.attackMultiplier || 1.0;
+        // flowRead는 currentCounterMultiplier 사용, countDefense는 attackMultiplier 사용
+        const counterMultiplier = activeCountEffect!.type === 'flowRead' 
+          ? currentCounterMultiplier 
+          : (activeCountEffect!.data.attackMultiplier || 1.0);
         const counterDamage = (swordAttack * counterMultiplier) + (action.damage * 0.5);
         
         this.damageEnemy(enemy, counterDamage);
-        this.scene.animationHelper.showMessage(`⚔️ 반격! ${Math.floor(counterDamage)} 데미지!`, COLORS.message.warning);
+        this.scene.animationHelper.showMessage(`⚔️ 반격! x${counterMultiplier} ${Math.floor(counterDamage)} 데미지!`, COLORS.message.warning);
       }
     } else {
       // 방어 실패 - 풀 데미지

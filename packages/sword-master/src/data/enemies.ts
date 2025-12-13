@@ -138,19 +138,21 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
       { id: 'combo2', name: '연환', type: 'attack', damage: 16, delay: 2, description: '연환격 2타' },
       { id: 'ultimate', name: '필살', type: 'special', damage: 40, delay: 6, description: '필살기...!', effect: { type: 'stun', value: 1 } },
     ],
+    actionsPerTurn: { min: 2, max: 3 },  // 턴당 1~2개 스킬 랜덤 사용
   },
   dragonWarrior: {
     name: '용전사',
     emoji: '🐉',
-    hp: 200,
-    attack: 30,
-    defense: 14,  // 15 → 14
+    hp: 150,      // 200 → 150
+    attack: 25,   // 30 → 25
+    defense: 10,  // 14 → 10
     actions: [
-      { id: 'greatSlash', name: '대참', type: 'attack', damage: 25, delay: 3, description: '대검 휘두르기' },
+      { id: 'greatSlash', name: '대참', type: 'attack', damage: 20, delay: 3, description: '대검 휘두르기' },      // 25 → 20
       { id: 'guard', name: '철벽', type: 'defend', damage: 0, delay: 2, description: '철벽 방어' },
-      { id: 'dragonBreath', name: '용염', type: 'special', damage: 35, delay: 5, description: '용의 숨결!', effect: { type: 'bleed', value: 8, duration: 3 } },
-      { id: 'dragonStrike', name: '용격', type: 'attack', damage: 50, delay: 7, description: '용의 일격!' },
+      { id: 'dragonBreath', name: '용염', type: 'special', damage: 28, delay: 5, description: '용의 숨결!', effect: { type: 'bleed', value: 5, duration: 3 } },  // 35→28, 출혈 8→5
+      { id: 'dragonStrike', name: '용격', type: 'attack', damage: 40, delay: 7, description: '용의 일격!' },      // 50 → 40
     ],
+    actionsPerTurn: { min: 2, max: 3 },  // 턴당 1~2개 스킬 랜덤 사용
   },
 };
 
@@ -197,8 +199,13 @@ export function createRandomEnemy(difficulty: number, x: number = 900): Enemy {
     enemyPool.push('ronin', 'knight', 'assassin', 'shaman');
   }
   
+  // 보스 등장: 5, 10, 15... 스테이지마다
+  // 용전사는 10스테이지 이후부터만 등장
   if (difficulty > 0 && difficulty % 5 === 0) {
-    const bosses = ['swordMaster', 'dragonWarrior'];
+    let bosses = ['swordMaster'];
+    if (difficulty >= 10) {
+      bosses.push('dragonWarrior');
+    }
     const bossId = bosses[Math.floor(Math.random() * bosses.length)];
     return createEnemy(bossId, x)!;
   }

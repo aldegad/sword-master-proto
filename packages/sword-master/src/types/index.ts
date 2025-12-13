@@ -80,22 +80,26 @@ export interface SkillCard {
 
 // 스킬 특수 효과
 export interface SkillEffect {
-  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' | 'followUp' | 'drawSwords' | 'graveDrawTop' | 'armorBreaker' | 'countDefense' | 'bladeGrab' | 'sweep';
+  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' | 'followUp' | 'drawSwords' | 'graveDrawTop' | 'armorBreaker' | 'countDefense' | 'bladeGrab' | 'sweep' | 'flowRead';
   value: number;
   duration?: number;
   // countDefense 전용 데이터
   counterAttack?: boolean;      // 반격 여부
   counterMultiplier?: number;   // 반격 배수
   consumeOnSuccess?: boolean;   // 방어 성공 시 소멸 여부
+  // flowRead 전용 데이터
+  defenseScaling?: number[];    // 대기별 방어 배율 [1대기, 2대기, ...]
+  counterScaling?: number[];    // 대기별 반격 배율 [1대기, 2대기, ...]
 }
 
-// 카운트 효과 타입 (패리, 철벽, 강타 등 대기 시간 기반 효과)
+// 카운트 효과 타입 (패리, 철벽, 강타, 흐름을 읽다 등 대기 시간 기반 효과)
 export interface CountEffect {
   id: string;
-  type: 'chargeAttack' | 'countDefense';
+  type: 'chargeAttack' | 'countDefense' | 'flowRead';
   name: string;
   emoji: string;
   remainingDelays: number;  // 남은 대기 시간
+  maxDelays?: number;       // 최대 대기 시간 (flowRead용)
   isNew: boolean;           // 이번 턴에 추가됨 (첫 감소 시 false로 변경)
   data: {
     defenseMultiplier?: number;  // 방어율 배수 (x5, x10)
@@ -106,6 +110,9 @@ export interface CountEffect {
     targetId?: string;           // 타겟 적 ID (강타용)
     counterAttack?: boolean;     // 반격 여부
     consumeOnSuccess?: boolean;  // 방어 성공 시 소멸 여부
+    // flowRead 전용
+    defenseScaling?: number[];   // 대기별 방어 배율
+    counterScaling?: number[];   // 대기별 반격 배율
   };
 }
 

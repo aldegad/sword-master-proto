@@ -22,7 +22,7 @@ export class SwordInfoUI {
     const infoPanel = this.scene.add.rectangle(38, 160, 488, 188, COLORS.background.dark, 0.95).setOrigin(0);
     infoPanel.setStrokeStyle(3, COLORS.border.medium);
     
-    this.scene.add.text(56, 172, '◈ 장착 무기', {
+    this.scene.add.text(56, 172, '◈ 뽑아든 검', {
       font: 'bold 26px monospace',
       color: COLORS_STR.secondary.main,
     });
