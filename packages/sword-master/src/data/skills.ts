@@ -455,7 +455,7 @@ export function getSkillsByType(type: SkillCard['type']): string[] {
     .map(([id]) => id);
 }
 
-// 기본 덱 구성 (무기 비율 증가)
+// 기본 덱 구성 (총 20장)
 export function getStarterDeck(): { swords: string[]; skills: string[] } {
   return {
     swords: [
@@ -465,11 +465,13 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
     skills: [
       'slash', 'slash', 'slash',
       'thrust', 'thrust',
-      'doubleSlash',
+      'doubleSlash', 'doubleSlash',
       'parry', 'parry',
       'quickSlash',
       'focus',
       'powerStrike',
+      'sweepingBlow',
+      'counter',
     ],
   };
 }

@@ -1,0 +1,20 @@
+{
+  "name": "sword-master",
+  "version": "1.0.0",
+  "description": "액션 카드 러너 게임 - 검과 검술의 마스터가 되어라!",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "firebase deploy --only hosting"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  },
+  "dependencies": {
+    "phaser": "^3.70.0"
+  }
+}
+

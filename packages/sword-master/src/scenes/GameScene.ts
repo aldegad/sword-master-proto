@@ -5,6 +5,7 @@ import { createSwordCard, getRandomSword } from '../data/swords';
 import { createSkillCard, getStarterDeck, getRandomSkill } from '../data/skills';
 import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../systems';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
 
 /**
  * 메인 게임 씬
@@ -94,8 +95,8 @@ export class GameScene extends Phaser.Scene {
     this.cardSystem.shuffleArray(deck);
     
     this.playerState = {
-      hp: 100,
-      maxHp: 100,
+      hp: 50,
+      maxHp: 50,
       mana: GAME_CONSTANTS.INITIAL_MANA,
       maxMana: GAME_CONSTANTS.INITIAL_MANA,
       defense: 0,
@@ -168,22 +169,89 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // 플레이어 스프라이트 (애니메이션용)
+  playerAnim?: Phaser.GameObjects.Sprite;
+  currentAnim: string = 'idle';
+
   createPlayer() {
     this.playerSprite = this.add.container(this.PLAYER_X, this.GROUND_Y - 30);
     
-    // 플레이어 스프라이트
-    const body = this.add.rectangle(0, 0, 40, 60, COLORS.background.medium, 0.9);
-    body.setStrokeStyle(2, COLORS.border.medium);
-    
-    const emoji = this.add.text(0, -10, '🧑‍🦱', { font: '32px Arial' }).setOrigin(0.5);
-    const label = this.add.text(0, 35, '검객', {
-      font: 'bold 12px monospace',
-      color: COLORS_STR.primary.dark,
-    }).setOrigin(0.5);
-    
-    this.playerSprite.add([body, emoji, label]);
+    if (USE_SPRITES && this.textures.exists('player-idle')) {
+      // 스프라이트 기반 플레이어
+      this.playerAnim = this.add.sprite(0, 0, 'player-idle');
+      this.playerAnim.setScale(SPRITE_SCALE);
+      this.playerAnim.play('idle');
+      this.playerSprite.add(this.playerAnim);
+      
+      const label = this.add.text(0, 50 * SPRITE_SCALE, '검객', {
+        font: 'bold 12px monospace',
+        color: COLORS_STR.primary.dark,
+      }).setOrigin(0.5);
+      this.playerSprite.add(label);
+    } else {
+      // 기존 이모지/텍스트 기반 플레이어
+      const body = this.add.rectangle(0, 0, 40, 60, COLORS.background.medium, 0.9);
+      body.setStrokeStyle(2, COLORS.border.medium);
+      
+      const emoji = this.add.text(0, -10, '🧑‍🦱', { font: '32px Arial' }).setOrigin(0.5);
+      const label = this.add.text(0, 35, '검객', {
+        font: 'bold 12px monospace',
+        color: COLORS_STR.primary.dark,
+      }).setOrigin(0.5);
+      
+      this.playerSprite.add([body, emoji, label]);
+    }
     
     this.updatePlayerWeaponDisplay();
+  }
+
+  /**
+   * 플레이어 애니메이션 재생
+   * @param animKey 애니메이션 키 (idle, walk, attack, skill, equip)
+   * @param onComplete 애니메이션 완료 콜백
+   */
+  playPlayerAnimation(animKey: string, onComplete?: () => void) {
+    if (!USE_SPRITES || !this.playerAnim) return;
+    
+    // 이미 같은 애니메이션 재생 중이면 스킵 (반복 애니메이션의 경우)
+    if (this.currentAnim === animKey && (animKey === 'idle' || animKey === 'walk')) {
+      return;
+    }
+    
+    this.currentAnim = animKey;
+    
+    // 해당 애니메이션의 스프라이트시트로 변경
+    const textureKey = this.getTextureForAnimation(animKey);
+    if (textureKey && this.textures.exists(textureKey)) {
+      this.playerAnim.setTexture(textureKey);
+    }
+    
+    // 애니메이션이 존재하는지 확인
+    if (this.anims.exists(animKey)) {
+      this.playerAnim.play(animKey);
+      
+      if (onComplete) {
+        this.playerAnim.once('animationcomplete', onComplete);
+      }
+    }
+  }
+
+  /**
+   * 애니메이션 키에 맞는 텍스처 키 반환
+   */
+  private getTextureForAnimation(animKey: string): string {
+    switch (animKey) {
+      case 'idle':
+        return 'player-idle';
+      case 'walk':
+        return 'player-walk';
+      case 'attack':
+      case 'skill':
+      case 'equip':
+        return 'player-action';
+      default:
+        return 'player-idle';
+    }
   }
 
   updatePlayerWeaponDisplay() {
@@ -529,11 +597,21 @@ export class GameScene extends Phaser.Scene {
       });
       
       // 플레이어 달리기 애니메이션
-      this.playerSprite.y = this.GROUND_Y - 30 + Math.sin(this.time.now / 100) * 3;
+      if (USE_SPRITES && this.playerAnim) {
+        this.playPlayerAnimation('walk');
+      } else {
+        // 기존 방식: y 좌표 흔들림
+        this.playerSprite.y = this.GROUND_Y - 30 + Math.sin(this.time.now / 100) * 3;
+      }
       
       // 일정 거리마다 적 조우
       if (this.moveDistance >= 200 + Math.random() * 100) {
         this.encounterEnemies();
+      }
+    } else {
+      // 전투/대기 중에는 idle 애니메이션
+      if (USE_SPRITES && this.playerAnim && this.currentAnim === 'walk') {
+        this.playPlayerAnimation('idle');
       }
     }
   }

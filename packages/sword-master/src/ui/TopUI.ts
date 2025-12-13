@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { GAME_CONSTANTS } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { FONTS } from '../constants/typography';
 
 /**
  * 상단 UI - HP바, 마나, 턴/웨이브/점수 표시
@@ -45,20 +46,20 @@ export class TopUI {
     
     // HP 텍스트
     this.hpText = this.scene.add.text(160, 42, '', {
-      font: 'bold 18px monospace',
+      font: FONTS.titleSmall,
       color: '#ffffff',
     }).setOrigin(0.5);
     
     // HP 라벨
     this.scene.add.text(20, 5, '❤ 체력', {
-      font: 'bold 16px monospace',
+      font: FONTS.button,
       color: COLORS_STR.secondary.main,
     });
   }
   
   private createManaUI() {
     this.scene.add.text(20, 68, '◈ 기력', {
-      font: 'bold 14px monospace',
+      font: FONTS.labelBold,
       color: COLORS_STR.primary.main,
     });
     
@@ -77,31 +78,31 @@ export class TopUI {
     
     // 웨이브 표시
     this.waveText = this.scene.add.text(width / 2, 10, '', {
-      font: 'bold 26px monospace',
+      font: 'bold 27px monospace',
       color: COLORS_STR.secondary.main,
     }).setOrigin(0.5, 0);
     
     // 페이즈 표시
     this.phaseText = this.scene.add.text(width / 2, 42, '', {
-      font: 'bold 18px monospace',
+      font: FONTS.titleSmall,
       color: COLORS_STR.primary.main,
     }).setOrigin(0.5, 0);
     
     // 턴 표시
     this.turnText = this.scene.add.text(width - 20, 10, '', {
-      font: 'bold 20px monospace',
+      font: FONTS.message,
       color: COLORS_STR.primary.dark,
     }).setOrigin(1, 0);
     
     // 점수 표시
     this.scoreText = this.scene.add.text(width - 20, 38, '', {
-      font: 'bold 16px monospace',
+      font: FONTS.button,
       color: COLORS_STR.primary.main,
     }).setOrigin(1, 0);
     
     // 스탯 표시
     this.statsText = this.scene.add.text(20, 100, '', {
-      font: 'bold 14px monospace',
+      font: FONTS.labelBold,
       color: COLORS_STR.text.muted,
     });
   }

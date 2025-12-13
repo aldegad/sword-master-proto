@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { FONTS } from '../constants/typography';
 
 /**
  * 툴팁 UI - 카드 상세 정보 표시
@@ -61,21 +62,21 @@ export class TooltipUI {
     const bg = this.scene.add.rectangle(0, 0, 300, tooltipHeight, COLORS.background.dark, 0.98);
     bg.setStrokeStyle(3, borderColor);
     
-    const emoji = this.scene.add.text(-130, -tooltipHeight/2 + 15, data.emoji, { font: '32px Arial' });
+    const emoji = this.scene.add.text(-130, -tooltipHeight/2 + 15, data.emoji, { font: '33px Arial' });
     
     // 검은 displayName 사용
     const displayName = isSword ? ((data as SwordCard).displayName || data.name) : data.name;
     const nameColor = isSword ? COLORS_STR.rarity[(data as SwordCard).rarity as keyof typeof COLORS_STR.rarity || 'common'] : COLORS_STR.success.dark;
     
     const name = this.scene.add.text(-90, -tooltipHeight/2 + 18, displayName, {
-      font: 'bold 16px monospace',
+      font: FONTS.button,
       color: nameColor,
     });
     
     // 무기 카드는 설명만, 스킬 카드는 설명 + 데미지 정보
     const descText = isSword ? data.description : data.description + damageInfo;
     const desc = this.scene.add.text(0, -tooltipHeight/2 + 50, descText, {
-      font: '13px monospace',
+      font: FONTS.bodyMedium,
       color: COLORS_STR.text.primary,
       wordWrap: { width: 280 },
       align: 'center',
@@ -114,7 +115,7 @@ export class TooltipUI {
       `🎯 범위: ${reachMap[sword.reach]}  |  🛡️ 방어율: ${sword.defense}%`,
       `🔧 내구도: ${sword.currentDurability}/${sword.durability}`,
     ].join('\n'), {
-      font: '12px monospace',
+      font: FONTS.bodySmall,
       color: COLORS_STR.text.primary,
       align: 'center',
       lineSpacing: 6,
@@ -127,7 +128,7 @@ export class TooltipUI {
       `━━━ 발도: ${drawAtk.name} ━━━`,
       `배율: x${drawAtk.multiplier} | 범위: ${reachMap[drawAtk.reach]}`,
     ].join('\n'), {
-      font: 'bold 11px monospace',
+      font: 'bold 12px monospace',
       color: COLORS_STR.primary.dark,
       align: 'center',
       lineSpacing: 4,
@@ -139,7 +140,7 @@ export class TooltipUI {
     // 인첸트 효과 표시
     if (sword.prefix) {
       const prefixText = this.scene.add.text(0, effectY, `🔮 ${sword.prefix.name}`, {
-        font: '12px monospace',
+        font: FONTS.bodySmall,
         color: COLORS_STR.primary.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(prefixText);
@@ -148,7 +149,7 @@ export class TooltipUI {
     
     if (sword.suffix) {
       const suffixText = this.scene.add.text(0, effectY, `🔮 ${sword.suffix.name}`, {
-        font: '12px monospace',
+        font: FONTS.bodySmall,
         color: COLORS_STR.primary.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(suffixText);
@@ -157,7 +158,7 @@ export class TooltipUI {
     
     if (sword.specialEffect) {
       const effect = this.scene.add.text(0, effectY, `✨ ${sword.specialEffect}`, {
-        font: '12px monospace',
+        font: FONTS.bodySmall,
         color: COLORS_STR.success.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(effect);
@@ -167,7 +168,7 @@ export class TooltipUI {
     // 내구도 1이면 경고
     if (sword.durability === 1) {
       const warnText = this.scene.add.text(0, effectY, '⚠️ 일회용!', {
-        font: 'bold 12px monospace',
+        font: FONTS.badge,
         color: COLORS_STR.secondary.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(warnText);

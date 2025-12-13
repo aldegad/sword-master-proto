@@ -1,19 +1,16 @@
 {
-  "name": "sword-master",
+  "name": "sword-master-monorepo",
   "version": "1.0.0",
-  "description": "액션 카드 러너 게임 - 검과 검술의 마스터가 되어라!",
-  "type": "module",
+  "private": true,
+  "description": "Sword Master 모노레포 - 게임 및 도구 프로젝트",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev:game": "pnpm --filter sword-master dev",
+    "build:game": "pnpm --filter sword-master build",
+    "deploy:game": "pnpm --filter sword-master build && pnpm --filter sword-master deploy",
+    "dev:sprite": "pnpm --filter sprite-generator dev",
+    "build:sprite": "pnpm --filter sprite-generator build"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "vite": "^5.0.10"
-  },
-  "dependencies": {
-    "phaser": "^3.70.0"
+    "typescript": "^5.3.3"
   }
 }
-

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { FONTS } from '../constants/typography';
 
 /**
  * 카드 UI - 손패 표시 및 카드 렌더링
@@ -37,7 +38,7 @@ export class CardUI {
       height - 205,
       '─ 손패 (1~0 키) ─',
       {
-        font: 'bold 13px monospace',
+        font: FONTS.labelBold,
         color: COLORS_STR.primary.main,
       }
     ).setOrigin(0.5);
@@ -95,14 +96,14 @@ export class CardUI {
     // 카드 번호
     const numKey = index < 9 ? `${index + 1}` : '0';
     const numText = this.scene.add.text(-36, -60, `[${numKey}]`, {
-      font: 'bold 12px monospace',
+      font: FONTS.cardKey,
       color: isUsable ? COLORS_STR.primary.main : COLORS_STR.text.disabled,
     });
     container.add(numText);
     
     // 마나 비용
     const manaText = this.scene.add.text(18, -60, `◈${manaCost}`, {
-      font: '12px monospace',
+      font: FONTS.cardMana,
       color: isUsable ? COLORS_STR.primary.main : COLORS_STR.text.disabled,
     });
     container.add(manaText);
@@ -180,14 +181,14 @@ export class CardUI {
     
     // 이모지
     const emoji = this.scene.add.text(0, -45, sword.emoji, {
-      font: '26px Arial',
+      font: '27px Arial',
     }).setOrigin(0.5);
     
     // 검 이름 (displayName 사용)
     const displayName = sword.displayName || sword.name;
     const shortName = displayName.length > 6 ? displayName.slice(0, 5) + '..' : displayName;
     const nameText = this.scene.add.text(0, -18, shortName, {
-      font: 'bold 13px monospace',
+      font: FONTS.cardName,
       color: textColor,
       stroke: '#000000',
       strokeThickness: 2,
@@ -201,8 +202,8 @@ export class CardUI {
       all: '∞',
     };
     
-    const statsText = this.scene.add.text(0, 5, `ATK${sword.attack} ${sword.attackCount}타 ${reachMap[sword.reach]}`, {
-      font: '10px monospace',
+    const statsText = this.scene.add.text(0, 5, `공${sword.attack} ${sword.attackCount}타 ${reachMap[sword.reach]}`, {
+      font: FONTS.cardStat,
       color: subColor,
       align: 'center',
     }).setOrigin(0.5);
@@ -210,7 +211,7 @@ export class CardUI {
     // 내구도 (1이면 경고 색상)
     const durColor = sword.durability === 1 ? COLORS_STR.secondary.main : (canAfford ? COLORS_STR.primary.main : COLORS_STR.text.disabled);
     const durText = this.scene.add.text(0, 23, `내구${sword.durability} 방${sword.defense}`, {
-      font: '10px monospace',
+      font: FONTS.cardStat,
       color: durColor,
     }).setOrigin(0.5);
     
@@ -219,7 +220,7 @@ export class CardUI {
                         sword.rarity === 'rare' ? '◆' : 
                         sword.rarity === 'uncommon' ? '◇' : '';
     const typeLabel = this.scene.add.text(0, 45, `${rarityLabel}검`, {
-      font: 'bold 10px monospace',
+      font: FONTS.badge,
       color: textColor,
     }).setOrigin(0.5);
     
@@ -237,12 +238,12 @@ export class CardUI {
     
     // 이모지
     const emoji = this.scene.add.text(0, -45, skill.emoji, {
-      font: '26px Arial',
+      font: '27px Arial',
     }).setOrigin(0.5);
     
     // 스킬 이름
     const nameText = this.scene.add.text(0, -18, skill.name, {
-      font: 'bold 13px monospace',
+      font: FONTS.cardName,
       color: textColor,
       stroke: '#000000',
       strokeThickness: 2,
@@ -274,7 +275,7 @@ export class CardUI {
     }
     
     const statsText = this.scene.add.text(0, 5, statLine, {
-      font: '10px monospace',
+      font: FONTS.cardStat,
       color: subColor,
       align: 'center',
     }).setOrigin(0.5);
@@ -294,14 +295,14 @@ export class CardUI {
     }
     
     const costText = this.scene.add.text(0, 23, subLine, {
-      font: '10px monospace',
+      font: FONTS.cardStat,
       color: canAfford ? COLORS_STR.primary.dark : COLORS_STR.text.disabled,
     }).setOrigin(0.5);
     
     // 타입 라벨 (신속 스킬은 ⚡ 표시)
     const typeText = isSwift ? '⚡신속' : '스킬';
     const typeLabel = this.scene.add.text(0, 45, typeText, {
-      font: 'bold 10px monospace',
+      font: FONTS.badge,
       color: textColor,
     }).setOrigin(0.5);
     

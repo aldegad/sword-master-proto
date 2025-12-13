@@ -1,15 +1,36 @@
 import Phaser from 'phaser';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { PLAYER_SPRITES, USE_SPRITES, loadedSpriteMeta, type SpriteSheetMeta } from '../constants/sprites';
+import { FONTS } from '../constants/typography';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BootScene' });
   }
 
+  /**
+   * init: JSON 메타데이터를 먼저 fetch로 로드
+   */
+  async init() {
+    if (!USE_SPRITES) return;
+
+    // 모든 JSON 파일을 병렬로 fetch
+    const fetchPromises = PLAYER_SPRITES.map(async (sprite) => {
+      try {
+        const response = await fetch(sprite.jsonPath);
+        if (response.ok) {
+          const meta: SpriteSheetMeta = await response.json();
+          loadedSpriteMeta.set(sprite.key, meta);
+        }
+      } catch (e) {
+        console.warn(`스프라이트 메타데이터 로드 실패: ${sprite.jsonPath}`);
+      }
+    });
+
+    await Promise.all(fetchPromises);
+  }
+
   preload() {
-    // 텍스트 기반이라 이미지 로드 없음
-    // 나중에 도트 그래픽 추가 시 여기서 로드
-    
     // 로딩 진행 표시
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -22,7 +43,7 @@ export class BootScene extends Phaser.Scene {
     progressBox.strokeRect(width / 2 - 160, height / 2 - 25, 320, 50);
     
     const loadingText = this.add.text(width / 2, height / 2 - 50, '준비중...', {
-      font: '20px monospace',
+      font: FONTS.message,
       color: COLORS_STR.primary.dark
     }).setOrigin(0.5);
     
@@ -38,13 +59,66 @@ export class BootScene extends Phaser.Scene {
       loadingText.destroy();
     });
     
-    // 더미 로드 (바로 넘어가지 않게)
-    for (let i = 0; i < 10; i++) {
-      this.load.image(`dummy${i}`, 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+    // 스프라이트 로드
+    if (USE_SPRITES) {
+      PLAYER_SPRITES.forEach(sprite => {
+        const meta = loadedSpriteMeta.get(sprite.key);
+        if (meta) {
+          // JSON에서 프레임 크기 자동 로드
+          this.load.spritesheet(sprite.key, sprite.imagePath, {
+            frameWidth: meta.meta.frameWidth,
+            frameHeight: meta.meta.frameHeight,
+          });
+        } else {
+          // JSON 없으면 기본값 사용 (64x64)
+          this.load.spritesheet(sprite.key, sprite.imagePath, {
+            frameWidth: 64,
+            frameHeight: 64,
+          });
+        }
+      });
+    } else {
+      // 더미 로드 (바로 넘어가지 않게)
+      for (let i = 0; i < 10; i++) {
+        this.load.image(`dummy${i}`, 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+      }
     }
   }
 
+  /**
+   * 스프라이트 애니메이션 생성
+   */
+  private createAnimations() {
+    if (!USE_SPRITES) return;
+
+    PLAYER_SPRITES.forEach(sprite => {
+      const meta = loadedSpriteMeta.get(sprite.key);
+      const totalFrames = meta?.meta.totalFrames ?? 1;
+
+      sprite.animations.forEach(anim => {
+        if (!this.anims.exists(anim.key)) {
+          // startFrame/endFrame이 없으면 JSON의 totalFrames 사용
+          const start = anim.startFrame ?? 0;
+          const end = anim.endFrame ?? (totalFrames - 1);
+
+          this.anims.create({
+            key: anim.key,
+            frames: this.anims.generateFrameNumbers(sprite.key, {
+              start,
+              end,
+            }),
+            frameRate: anim.frameRate,
+            repeat: anim.repeat,
+          });
+        }
+      });
+    });
+  }
+
   create() {
+    // 스프라이트 애니메이션 생성
+    this.createAnimations();
+    
     // 타이틀 화면
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -56,13 +130,13 @@ export class BootScene extends Phaser.Scene {
     
     // 일본어 서브타이틀 (위)
     this.add.text(width / 2, height / 3 - 60, '剣を纏いて歩く', {
-      font: '18px monospace',
+      font: FONTS.titleSmall,
       color: COLORS_STR.secondary.dark,
     }).setOrigin(0.5).setAlpha(0.8);
     
     // 메인 타이틀
     const mainTitle = this.add.text(width / 2, height / 3, '검을 두른 채 걷다', {
-      font: 'bold 42px monospace',
+      font: FONTS.titleHero,
       color: COLORS_STR.text.primary,
     }).setOrigin(0.5);
     
@@ -78,7 +152,7 @@ export class BootScene extends Phaser.Scene {
     
     // 영문 서브타이틀
     this.add.text(width / 2, height / 3 + 50, 'WALK WITH THE BLADE', {
-      font: '14px monospace',
+      font: FONTS.label,
       color: COLORS_STR.primary.dark,
       letterSpacing: 8,
     }).setOrigin(0.5);
@@ -96,7 +170,7 @@ export class BootScene extends Phaser.Scene {
       '검과 검술 카드를 조합하여',
       '끝없이 달려오는 적들을 물리쳐라',
     ], {
-      font: '16px monospace',
+      font: FONTS.bodyLarge,
       color: COLORS_STR.text.muted,
       align: 'center',
       lineSpacing: 8,
@@ -107,7 +181,7 @@ export class BootScene extends Phaser.Scene {
     buttonBg.setStrokeStyle(2, COLORS.primary.dark);
     
     const startButton = this.add.text(width / 2, height * 0.72, '► 시작', {
-      font: 'bold 22px monospace',
+      font: FONTS.titleMedium,
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     
@@ -146,14 +220,14 @@ export class BootScene extends Phaser.Scene {
     this.add.text(width / 2, height - 70, [
       '1~0 카드사용 | SPACE 턴종료 | W 대기 | X 교환',
     ], {
-      font: '12px monospace',
+      font: FONTS.bodySmall,
       color: COLORS_STR.text.disabled,
       align: 'center',
     }).setOrigin(0.5);
     
     // 버전 정보
     this.add.text(width - 10, height - 10, 'v0.1.0', {
-      font: '10px monospace',
+      font: FONTS.hint,
       color: COLORS_STR.text.disabled,
     }).setOrigin(1, 1);
     
