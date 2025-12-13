@@ -19,8 +19,9 @@ export class AnimationHelper {
   }
   
   playerHit() {
-    // 피격 시 카메라 흔들림만 (캐릭터 흔들림 제거)
-    this.scene.cameras.main.shake(100, 0.01);
+    // 피격 시 damaged 애니메이션 재생 + 카메라 흔들림
+    this.scene.playDamagedAnimation();
+    this.scene.cameras.main.shake(150, 0.015);
   }
   
   // ========== 데미지 숫자 ==========
@@ -294,56 +295,96 @@ export class AnimationHelper {
   }
   
   showParryEffect() {
-    // 화면 전체 금색 플래시
+    // 화면 전체 금색 플래시 (더 강하게)
     const flash = this.scene.add.rectangle(
       this.scene.cameras.main.width / 2,
       this.scene.cameras.main.height / 2,
       this.scene.cameras.main.width,
       this.scene.cameras.main.height,
       COLORS.primary.dark,
-      0.4
+      0.5
     );
+    flash.setDepth(3000);
     
     this.scene.tweens.add({
       targets: flash,
       alpha: 0,
-      duration: 200,
+      duration: 300,
       onComplete: () => flash.destroy(),
     });
     
-    // 방패 이모지 이펙트
-    const shield = this.scene.add.text(
-      this.scene.PLAYER_X + 50,
-      this.scene.GROUND_Y - 80,
-      '🛡️',
-      { font: '48px Arial' }
-    ).setOrigin(0.5);
+    // 방패 이모티콘 띠잉 효과 (크게 + 튀어나오는 느낌)
+    const centerX = this.scene.cameras.main.width / 2;
+    const centerY = this.scene.cameras.main.height / 2 - 50;
     
+    const shield = this.scene.add.text(
+      centerX,
+      centerY,
+      '🛡️',
+      { font: '150px Arial' }
+    ).setOrigin(0.5);
+    shield.setDepth(3001);
+    shield.setScale(0.3);
+    shield.setAlpha(0);
+    
+    // 띠잉! 하고 튀어나오는 애니메이션
     this.scene.tweens.add({
       targets: shield,
-      scale: 1.5,
-      alpha: 0,
-      y: this.scene.GROUND_Y - 130,
-      duration: 500,
-      ease: 'Power2',
-      onComplete: () => shield.destroy(),
+      scale: { from: 0.3, to: 1.5 },
+      alpha: { from: 0, to: 1 },
+      duration: 150,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // 잠시 유지 후 사라짐
+        this.scene.tweens.add({
+          targets: shield,
+          scale: 2,
+          alpha: 0,
+          duration: 400,
+          ease: 'Power2',
+          onComplete: () => shield.destroy(),
+        });
+      },
     });
     
-    // 검이 빛나는 효과
-    const sparkle = this.scene.add.text(
-      this.scene.PLAYER_X,
-      this.scene.GROUND_Y - 60,
-      '✨',
-      { font: '32px Arial' }
-    ).setOrigin(0.5);
+    // 충격파 이펙트 (원형으로 퍼지는 링)
+    const ring = this.scene.add.graphics();
+    ring.setDepth(3000);
+    ring.lineStyle(8, COLORS.primary.dark, 1);
+    ring.strokeCircle(centerX, centerY, 50);
     
     this.scene.tweens.add({
-      targets: sparkle,
-      rotation: Math.PI * 2,
-      scale: 0,
+      targets: ring,
+      scaleX: 3,
+      scaleY: 3,
+      alpha: 0,
       duration: 400,
-      onComplete: () => sparkle.destroy(),
+      ease: 'Power2',
+      onComplete: () => ring.destroy(),
     });
+    
+    // 빛나는 파티클들
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 / 8) * i;
+      const sparkle = this.scene.add.text(
+        centerX,
+        centerY,
+        '✨',
+        { font: '40px Arial' }
+      ).setOrigin(0.5);
+      sparkle.setDepth(3002);
+      
+      this.scene.tweens.add({
+        targets: sparkle,
+        x: centerX + Math.cos(angle) * 150,
+        y: centerY + Math.sin(angle) * 150,
+        alpha: 0,
+        scale: 0.5,
+        duration: 500,
+        ease: 'Power2',
+        onComplete: () => sparkle.destroy(),
+      });
+    }
   }
   
   // ========== 카운트 효과 애니메이션 ==========

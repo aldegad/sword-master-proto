@@ -140,12 +140,10 @@ export class ActionButtonsUI {
     // 모든 적의 대기턴 -1
     this.scene.gameScene.reduceAllEnemyDelays(1);
     
-    // 카운트 효과 감소 (나중에 추가)
-    if (this.scene.gameScene.combatSystem.reduceCountEffects) {
-      this.scene.gameScene.combatSystem.reduceCountEffects();
-    }
+    // 아군 카운트 효과 -1 (강타, 패리 등)
+    this.scene.gameScene.combatSystem.reduceCountEffects();
     
-    this.scene.gameScene.showMessage('대기... 적 대기턴 -1', COLORS.success.main);
+    this.scene.gameScene.showMessage('대기... 적/아군 대기 -1', COLORS.success.main);
     
     this.scene.gameScene.events.emit('statsUpdated');
   }

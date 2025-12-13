@@ -77,7 +77,15 @@ export class CombatSystem {
       targets = this.getTargetsByReach(reach);
     }
     
-    this.scene.animationHelper.playerAttack();
+    // 연격 시 공격모션 2번 재생 (스킬 타수배율이 2 이상이면)
+    if (skill.attackCount >= 2) {
+      this.scene.animationHelper.playerAttack();
+      this.scene.time.delayedCall(200, () => {
+        this.scene.animationHelper.playerAttack();
+      });
+    } else {
+      this.scene.animationHelper.playerAttack();
+    }
     
     // 내구도 소모: 타수만큼 (부족하면 가능한 만큼만)
     const actualHits = this.consumeDurabilityAndGetHits(totalHits);
@@ -239,6 +247,7 @@ export class CombatSystem {
     } else if (skill.effect?.type === 'draw') {
       this.scene.cardSystem.drawCards(skill.effect.value);
     } else if (skill.effect?.type === 'sharpen') {
+      // 공격력 버프 추가
       this.scene.playerState.buffs.push({
         id: 'sharpen',
         name: '연마',
@@ -246,6 +255,22 @@ export class CombatSystem {
         value: skill.effect.value,
         duration: skill.effect.duration || 3,
       });
+      
+      // 덱의 모든 검 내구도 1 회복
+      let restoredCount = 0;
+      this.scene.playerState.deck.forEach(card => {
+        if (card.type === 'sword') {
+          const sword = card.data;
+          if (sword.currentDurability < sword.durability) {
+            sword.currentDurability = Math.min(sword.durability, sword.currentDurability + 1);
+            restoredCount++;
+          }
+        }
+      });
+      
+      if (restoredCount > 0) {
+        this.scene.animationHelper.showMessage(`🔧 검 ${restoredCount}자루 내구도 회복!`, COLORS.message.success);
+      }
     } else if (skill.effect?.type === 'searchSword') {
       // 덱에서 검 찾기
       const swords = this.scene.playerState.deck.filter(c => c.type === 'sword');
@@ -279,6 +304,48 @@ export class CombatSystem {
       this.scene.cardSystem.shuffleArray(graveSwords);
       const selectableSwords = graveSwords.slice(0, Math.min(3, graveSwords.length));
       this.scene.showSkillCardSelection('graveEquip', selectableSwords);
+    } else if (skill.effect?.type === 'drawSwords') {
+      // 덱에서 검 꺼내기 (상위 N개)
+      const count = skill.effect.value || 2;
+      let drawn = 0;
+      const tempDeck = [...this.scene.playerState.deck];
+      
+      for (let i = 0; i < tempDeck.length && drawn < count; i++) {
+        if (tempDeck[i].type === 'sword') {
+          // 덱에서 제거하고 손패로 추가
+          const cardIndex = this.scene.playerState.deck.indexOf(tempDeck[i]);
+          if (cardIndex !== -1) {
+            const [card] = this.scene.playerState.deck.splice(cardIndex, 1);
+            this.scene.playerState.hand.push(card);
+            drawn++;
+          }
+        }
+      }
+      
+      if (drawn > 0) {
+        this.scene.animationHelper.showMessage(`🎴 검 ${drawn}자루 획득!`, COLORS.message.success);
+      } else {
+        this.scene.animationHelper.showMessage('덱에 검이 없다!', COLORS.message.error);
+      }
+      this.scene.events.emit('handUpdated');
+    } else if (skill.effect?.type === 'graveDrawTop') {
+      // 무덤 상위 N장을 손패로 가져오기
+      const count = skill.effect.value || 2;
+      const discard = this.scene.playerState.discard;
+      
+      if (discard.length === 0) {
+        this.scene.animationHelper.showMessage('무덤이 비어있다!', COLORS.message.error);
+        return;
+      }
+      
+      const drawn = Math.min(count, discard.length);
+      for (let i = 0; i < drawn; i++) {
+        const card = discard.pop()!;  // 무덤 상위(마지막)부터 가져옴
+        this.scene.playerState.hand.push(card);
+      }
+      
+      this.scene.animationHelper.showMessage(`↩️ 카드 ${drawn}장 되찾음!`, COLORS.message.success);
+      this.scene.events.emit('handUpdated');
     }
   }
   
@@ -386,16 +453,25 @@ export class CombatSystem {
         this.scene.updatePlayerWeaponDisplay();
       }
       
-      this.scene.animationHelper.showMessage(`🛡️ 방어 성공! ${action.name} 흘려냄!`, COLORS.message.success);
+      // 패리/검얽기 효과별 메시지
+      if (activeCountEffect?.type === 'parry') {
+        this.scene.animationHelper.showMessage(`⚔️ 검얽기 성공! ${action.name} 흘려냄!`, COLORS.message.success);
+        // 검얽기 성공 시 공격모션 재생
+        this.scene.playAttakAnimation();
+      } else if (activeCountEffect?.type === 'ironWall') {
+        this.scene.animationHelper.showMessage(`🏰 철벽! ${action.name} 방어!`, COLORS.message.success);
+      } else {
+        this.scene.animationHelper.showMessage(`🛡️ 방어 성공! ${action.name} 흘려냄!`, COLORS.message.success);
+      }
       
-      // 패리 반격 체크 (방어 성공 시에만)
+      // 패리 반격 체크 (검얽기 성공 시에만)
       if (activeCountEffect?.type === 'parry' && this.scene.playerState.currentSword) {
         const swordAttack = this.scene.playerState.currentSword.attack;
         const parryMultiplier = activeCountEffect.data.attackMultiplier || 1.0;
         const counterDamage = (swordAttack * parryMultiplier) + (action.damage * 0.5);
         
         this.damageEnemy(enemy, counterDamage);
-        this.scene.animationHelper.showMessage(`⚔️ 패리 반격! ${Math.floor(counterDamage)} 데미지!`, COLORS.message.warning);
+        this.scene.animationHelper.showMessage(`⚔️ 반격! ${Math.floor(counterDamage)} 데미지!`, COLORS.message.warning);
       }
     } else {
       // 방어 실패 - 풀 데미지

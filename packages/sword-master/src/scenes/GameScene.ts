@@ -419,6 +419,36 @@ export class GameScene extends Phaser.Scene {
       if (onComplete) onComplete();
     }
   }
+  
+  /**
+   * 피격(Damaged) 애니메이션 재생
+   * 재생 후 자동으로 idle로 복귀
+   */
+  playDamagedAnimation(onComplete?: () => void) {
+    if (!USE_SPRITES || !this.playerAnim) {
+      if (onComplete) onComplete();
+      return;
+    }
+    
+    // 피격 애니메이션은 현재 진행 중인 애니메이션을 중단하고 재생
+    this.isAnimating = true;
+    this.currentAnim = 'damaged';
+    
+    const textureDamaged = 'player-damaged';
+    if (this.textures.exists(textureDamaged) && this.anims.exists('damaged')) {
+      this.playerAnim.setTexture(textureDamaged);
+      this.playerAnim.play('damaged');
+      
+      this.playerAnim.once('animationcomplete', () => {
+        this.playIdleAnimation();
+        this.isAnimating = false;
+        if (onComplete) onComplete();
+      });
+    } else {
+      this.isAnimating = false;
+      if (onComplete) onComplete();
+    }
+  }
 
   updatePlayerWeaponDisplay() {
     // 무기 아이콘은 상단 UI에 표시되므로 플레이어 옆에는 표시하지 않음

@@ -114,6 +114,18 @@ export const PLAYER_SPRITES: SpriteConfig[] = [
       },
     ],
   },
+  {
+    key: 'player-damaged',
+    imagePath: 'assets/sprites/damaged.png',
+    jsonPath: 'assets/sprites/damaged.json',
+    animations: [
+      {
+        key: 'damaged',
+        frameRate: 24,    // 24fps - 피격 시 재생
+        repeat: 0,        // 1회
+      },
+    ],
+  },
 ];
 
 /**

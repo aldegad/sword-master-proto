@@ -128,19 +128,22 @@ export class CardSystem {
       this.scene.playerState.discard.push(card);
     }
     
-    // 신속 스킬이면 적 대기턴 감소 없음
-    const isSwiftSkill = card.type === 'skill' && card.data.isSwift;
+    // 신속 여부 체크:
+    // - 스킬 카드: isSwift 속성 확인
+    // - 무기 카드: 발도 스킬의 isSwift 속성 확인
+    const isSwift = card.type === 'skill' 
+      ? card.data.isSwift 
+      : card.data.drawAttack?.isSwift;
     
-    if (!isSwiftSkill) {
+    if (!isSwift) {
       // 일반 카드: 적 대기턴 -1 (적 공격 발생 가능)
       this.scene.combatSystem.reduceAllEnemyDelays(1);
+      // 일반 카드: 아군 카운트 효과 -1 (강타, 패리 등)
+      this.scene.combatSystem.reduceCountEffects();
     } else {
-      // 신속 스킬: 대기턴 감소 없음 메시지 (파란색)
+      // 신속: 대기턴 감소 없음, 카운트 효과 감소 없음
       this.scene.animationHelper.showMessage('⚡ 신속!', COLORS.message.info);
     }
-    
-    // 카운트 효과 감소 (신속이든 아니든 항상 감소)
-    this.scene.combatSystem.reduceCountEffects();
     
     // UI 업데이트
     this.scene.events.emit('handUpdated');
@@ -199,7 +202,7 @@ export class CardSystem {
       this.scene.updatePlayerWeaponDisplay();
     }
     
-    const damage = sword.attack * drawAtk.multiplier;
+    let damage = sword.attack * drawAtk.multiplier;
     
     // 타겟이 지정되었으면 해당 타겟 기준으로 범위 공격, 아니면 기본 범위 공격
     let targets: Enemy[];
@@ -209,13 +212,42 @@ export class CardSystem {
       targets = this.scene.combatSystem.getTargetsByReach(drawAtk.reach);
     }
     
+    // 크리티컬 조건 체크
+    let isCritical = false;
+    if (drawAtk.criticalCondition === 'enemyDelay1') {
+      // 적 중 대기가 1인 적이 있는지 확인
+      const hasDelay1Enemy = targets.some(enemy => 
+        enemy.actionQueue.length > 0 && enemy.actionQueue[0].currentDelay === 1
+      );
+      if (hasDelay1Enemy) {
+        isCritical = true;
+        damage *= 2.0;  // 크리티컬 200%
+      }
+    }
+    
     this.scene.animationHelper.playerAttack();
-    this.scene.animationHelper.showMessage(`⚔️ ${drawAtk.name}!`, COLORS.message.warning);
+    
+    // 메시지 표시
+    if (drawAtk.isSwift) {
+      this.scene.animationHelper.showMessage(`⚡ ${drawAtk.name}!`, COLORS.message.info);
+    } else {
+      this.scene.animationHelper.showMessage(`⚔️ ${drawAtk.name}!`, COLORS.message.warning);
+    }
+    
+    if (isCritical) {
+      this.scene.animationHelper.showMessage('💥 크리티컬!', COLORS.message.error);
+    }
     
     targets.forEach(enemy => {
-      const actualDamage = Math.max(1, damage - enemy.defense);
+      // 크리티컬이면 방어 무시
+      const actualDamage = isCritical || drawAtk.pierce 
+        ? damage 
+        : Math.max(1, damage - enemy.defense);
       this.scene.combatSystem.damageEnemy(enemy, actualDamage);
     });
+    
+    // 참고: 적 대기턴/카운트 효과 감소는 executeCard에서 처리됨
+    // (발도가 신속이면 executeCard에서 이미 스킵됨)
     
     this.scene.events.emit('statsUpdated');
   }

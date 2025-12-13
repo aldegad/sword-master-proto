@@ -162,12 +162,14 @@ export class TopUI {
     this.levelText.setText(`LV.${player.level} [${player.exp}/${expNeeded}]`);
     
     // 버프만 표시 (방어율은 SwordInfoUI에서 표시)
-    let statsStr = '';
     const buffs = player.buffs;
     if (buffs.length > 0) {
-      statsStr = `✨ ${buffs.map(b => b.name).join(', ')}`;
+      this.statsText.setText(`✨ ${buffs.map(b => b.name).join(', ')}`);
+      this.statsText.setVisible(true);
+    } else {
+      this.statsText.setText('');
+      this.statsText.setVisible(false);  // 버프 없으면 숨김
     }
-    this.statsText.setText(statsStr);
     
     this.waveText.setText(`제 ${game.currentWave} 파`);
     this.turnText.setText(`${game.turn} 순`);

@@ -79,6 +79,9 @@ interface SwordTemplate {
     reach: ReachType;
     durabilityCost: number;
     effect?: string;  // 발도 특수 효과
+    isSwift?: boolean;  // 신속 발도 (단검류)
+    criticalCondition?: 'enemyDelay1';  // 크리티컬 조건
+    pierce?: boolean;  // 방어 무시
   };
 }
 
@@ -145,7 +148,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
       multiplier: 0.6, 
       reach: 'single', 
       durabilityCost: 2,  // 2타라 2 소모
-      effect: '2회 연속 타격' 
+      effect: '2회 연속 타격',
+      isSwift: true,  // 신속 발도 (단검류)
     },
   },
   bongukgeom: {
@@ -184,11 +188,11 @@ export const SWORDS: Record<string, SwordTemplate> = {
     description: '초승달 모양 장수도. 3적 범위.',
     specialEffect: '휩쓸기',
     drawAttack: { 
-      name: '월광참', 
-      multiplier: 1.5, 
-      reach: 'triple', 
+      name: '크게 베기', 
+      multiplier: 1.2, 
+      reach: 'all',  // 전체 공격!
       durabilityCost: 1,
-      effect: '초승달 궤적으로 3명 베기' 
+      effect: '월도를 크게 휘둘러 전체 베기!' 
     },
   },
 
@@ -228,11 +232,13 @@ export const SWORDS: Record<string, SwordTemplate> = {
     manaCost: 1,
     description: '보조검. 빠른 2타 공격.',
     drawAttack: { 
-      name: '소태도술', 
-      multiplier: 0.5, 
+      name: '먼저 찌르기', 
+      multiplier: 1.0, 
       reach: 'single', 
-      durabilityCost: 2,  // 2타라 2 소모
-      effect: '빠른 연속 자상' 
+      durabilityCost: 1,
+      effect: '적 대기 1일 때 크리티컬!',
+      isSwift: true,  // 신속 발도
+      criticalCondition: 'enemyDelay1',  // 적 대기 1일 때 크리티컬
     },
   },
   nodachi: {
@@ -278,93 +284,6 @@ export const SWORDS: Record<string, SwordTemplate> = {
       reach: 'all', 
       durabilityCost: 1,
       effect: '용의 기세로 전체 적 베기' 
-    },
-  },
-
-  // ===== 서양검 =====
-  longsword: {
-    id: 'longsword',
-    name: '롱소드',
-    emoji: '🗡️',
-    origin: 'western',
-    rarity: 'common',
-    attack: 14,
-    attackCount: 1,
-    reach: 'single',
-    defense: 15,
-    durability: 8,  // 5→8
-    manaCost: 1,
-    description: '양손검. 공방 균형.',
-    drawAttack: { 
-      name: '발검', 
-      multiplier: 1.0, 
-      reach: 'single', 
-      durabilityCost: 1,
-      effect: '균형 잡힌 일격' 
-    },
-  },
-  armingsword: {
-    id: 'armingsword',
-    name: '아밍 소드',
-    emoji: '⚔️',
-    origin: 'western',
-    rarity: 'common',
-    attack: 12,
-    attackCount: 1,
-    reach: 'single',
-    defense: 18,
-    durability: 10,  // 5→10 (가장 튼튼)
-    manaCost: 1,
-    description: '기사의 검. 최고 내구도와 방어.',
-    drawAttack: { 
-      name: '기사도', 
-      multiplier: 0.8, 
-      reach: 'single', 
-      durabilityCost: 1,
-      effect: '방어적 자세로 검을 뽑음' 
-    },
-  },
-  claymore: {
-    id: 'claymore',
-    name: '클레이모어',
-    emoji: '⚔️',
-    origin: 'western',
-    rarity: 'rare',
-    attack: 24,
-    attackCount: 1,
-    reach: 'double',
-    defense: 5,
-    durability: 4,  // 2→4
-    manaCost: 3,
-    description: '스코틀랜드 대검. 2적 범위.',
-    drawAttack: { 
-      name: '하이랜드 돌격', 
-      multiplier: 2.0, 
-      reach: 'double', 
-      durabilityCost: 1,
-      effect: '용맹한 돌격 일섬' 
-    },
-  },
-  rapier: {
-    id: 'rapier',
-    name: '레이피어',
-    emoji: '🤺',
-    origin: 'western',
-    rarity: 'uncommon',
-    attack: 10,
-    attackCount: 3,
-    reach: 'single',
-    defense: 12,
-    durability: 9,  // 3→9 (3타 무기라 높게)
-    manaCost: 1,
-    description: '찌르기 특화. 3타 연속 공격.',
-    specialEffect: '크리티컬 2배',
-    drawAttack: { 
-      name: '펜싱 돌진', 
-      multiplier: 0.5, 
-      reach: 'single', 
-      durabilityCost: 3,  // 3타라 3 소모
-      effect: '세 번 연속 찌르기' 
     },
   },
 

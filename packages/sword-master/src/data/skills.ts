@@ -306,8 +306,9 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '3턴간 기본 공격력 +5.',
+    description: '3턴간 공격력+5. 덱의 모든 검 내구도 1회복.',
     isSwift: true,
+    effect: { type: 'sharpen', value: 5, duration: 3 },
   },
   
   // ===== 특수 스킬 (신속) =====
@@ -343,6 +344,21 @@ export const SKILLS: Record<string, SkillCard> = {
   },
   
   // ===== 드로우/서치 스킬 (신속) =====
+  drawSword: {
+    id: 'drawSword',
+    name: '검 꺼내기',
+    emoji: '🎴',
+    type: 'buff',
+    attackMultiplier: 0,
+    attackCount: 0,
+    reach: 'single',
+    defenseBonus: 0,
+    durabilityCost: 0,
+    manaCost: 1,
+    description: '덱 상위에서 검 2자루를 손패로 가져온다.',
+    effect: { type: 'drawSwords', value: 2 },
+    isSwift: true,
+  },
   bladeSeeker: {
     id: 'bladeSeeker',
     name: '검 부르기',
@@ -360,17 +376,17 @@ export const SKILLS: Record<string, SkillCard> = {
   },
   soulRecall: {
     id: 'soulRecall',
-    name: '혼백귀환',
-    emoji: '👻',
+    name: '되짚기',
+    emoji: '↩️',
     type: 'buff',
     attackMultiplier: 0,
     attackCount: 0,
     reach: 'single',
     defenseBonus: 0,
     durabilityCost: 0,
-    manaCost: 2,
-    description: '무덤에서 카드 3장을 확인하고 1개 회수!',
-    effect: { type: 'graveRecall', value: 3 },
+    manaCost: 1,
+    description: '무덤 상위 카드 2장을 손패로 가져온다.',
+    effect: { type: 'graveDrawTop', value: 2 },
     isSwift: true,
   },
   ancestorBlade: {
@@ -455,12 +471,12 @@ export function getSkillsByType(type: SkillCard['type']): string[] {
     .map(([id]) => id);
 }
 
-// 기본 덱 구성 (총 20장)
+// 기본 덱 구성 (동양검만 사용)
 export function getStarterDeck(): { swords: string[]; skills: string[] } {
   return {
     swords: [
-      'katana', 'samjeongdo', 'longsword',  // 기본 3종
-      'wakizashi', 'yedogeom', 'armingsword',  // 추가 3종
+      'katana', 'samjeongdo', 'wakizashi',  // 기본 3종 (동양검)
+      'yedogeom', 'bongukgeom',  // 추가 2종 (동양검)
     ],
     skills: [
       'slash', 'slash', 'slash',
@@ -472,6 +488,7 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
       'powerStrike',
       'sweepingBlow',
       'ironWall',
+      'drawSword',  // 검 꺼내기 추가
     ],
   };
 }

@@ -132,10 +132,18 @@ export class TooltipUI {
     
     // 발도 스킬 정보 (스케일)
     const drawAtk = sword.drawAttack;
-    const drawText = this.scene.add.text(0, 47, [
-      `━━━ 발도: ${drawAtk.name} ━━━`,
+    const swiftTag = drawAtk.isSwift ? ' ⚡신속' : '';
+    const drawLines = [
+      `━━━ 발도: ${drawAtk.name}${swiftTag} ━━━`,
       `배율: x${drawAtk.multiplier} | 범위: ${reachMap[drawAtk.reach]}`,
-    ].join('\n'), {
+    ];
+    
+    // 발도 효과 설명 추가
+    if (drawAtk.effect) {
+      drawLines.push(`💫 ${drawAtk.effect}`);
+    }
+    
+    const drawText = this.scene.add.text(0, 47, drawLines.join('\n'), {
       font: 'bold 22px monospace',
       color: COLORS_STR.primary.dark,
       align: 'center',
@@ -143,7 +151,8 @@ export class TooltipUI {
     }).setOrigin(0.5, 0);
     this.tooltipContainer.add(drawText);
     
-    let effectY = 141;
+    // 발도 효과가 있으면 effectY 조정
+    let effectY = drawAtk.effect ? 168 : 141;
     
     // 인첸트 효과 표시 (스케일)
     if (sword.prefix) {

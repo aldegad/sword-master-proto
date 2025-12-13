@@ -48,6 +48,10 @@ export interface SwordCard {
     multiplier: number;    // 공격력 배수
     reach: ReachType;      // 공격 범위
     durabilityCost: number; // 내구도 소모
+    effect?: string;       // 발도 특수 효과 설명
+    isSwift?: boolean;     // 신속 발도 (단검류)
+    criticalCondition?: 'enemyDelay1';  // 크리티컬 조건
+    pierce?: boolean;      // 방어 무시
   };
   // 인첸트
   prefix?: SwordPrefix;
@@ -73,7 +77,7 @@ export interface SkillCard {
 
 // 스킬 특수 효과
 export interface SkillEffect {
-  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'parry' | 'ironWall' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' | 'followUp';
+  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'parry' | 'ironWall' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' | 'followUp' | 'drawSwords' | 'graveDrawTop';
   value: number;
   duration?: number;
 }
