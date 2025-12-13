@@ -1,5 +1,6 @@
 // 리치 타입 - 공격 범위
-export type ReachType = 'single' | 'double' | 'triple' | 'all';
+// swordDouble: 무기 범위의 2배 (single→2, double→4, triple→6)
+export type ReachType = 'single' | 'double' | 'triple' | 'all' | 'swordDouble';
 
 // 무기 등급
 export type SwordRarity = 'common' | 'uncommon' | 'rare' | 'unique';

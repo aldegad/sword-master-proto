@@ -123,10 +123,15 @@ export const PLAYER_SPRITES: SpriteConfig[] = [
 export const USE_SPRITES = true;
 
 /**
- * 스프라이트 스케일
- * 원본 560x560을 화면에 맞게 축소 (0.4 ≈ 224px)
+ * UI 스케일 (1920x1080 / 1024x768 = 약 1.875배)
  */
-export const SPRITE_SCALE = 0.4;
+export const UI_SCALE = 1.875;
+
+/**
+ * 스프라이트 스케일
+ * 원본 560x560을 화면에 맞게 (0.4 * 1.875 ≈ 0.75)
+ */
+export const SPRITE_SCALE = 0.75;
 
 /**
  * 로드된 스프라이트 메타데이터 저장소

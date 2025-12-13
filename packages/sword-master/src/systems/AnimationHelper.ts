@@ -163,21 +163,21 @@ export class AnimationHelper {
   cardToPlayer(startX: number, startY: number, targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
     return new Promise((resolve) => {
       const playerX = this.scene.PLAYER_X;
-      const playerY = this.scene.GROUND_Y - 60;
+      const playerY = this.scene.GROUND_Y - 112;
       
-      // 카드 모양 컨테이너
+      // 카드 모양 컨테이너 (스케일 적용)
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.medium, 0.95);
-      bg.setStrokeStyle(3, COLORS.message.error);
+      const bg = this.scene.add.rectangle(0, 0, 150, 188, COLORS.background.medium, 0.95);
+      bg.setStrokeStyle(5, COLORS.message.error);
       
-      const emojiText = this.scene.add.text(0, -15, emoji, {
-        font: '32px Arial',
+      const emojiText = this.scene.add.text(0, -28, emoji, {
+        font: '60px Arial',
       }).setOrigin(0.5);
       
-      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
-        font: 'bold 12px monospace',
+      const nameText = this.scene.add.text(0, 47, name.slice(0, 4), {
+        font: 'bold 22px monospace',
         color: '#c44536',
       }).setOrigin(0.5);
       
@@ -187,15 +187,15 @@ export class AnimationHelper {
       this.scene.tweens.add({
         targets: card,
         x: targetX,
-        y: targetY - 30,
+        y: targetY - 56,
         scale: 0.6,
         rotation: Math.PI,
         duration: 250,
         ease: 'Power3',
         onComplete: () => {
-          // 임팩트 효과
-          const impact = this.scene.add.text(targetX, targetY - 30, '⚔️💥', {
-            font: '48px Arial',
+          // 임팩트 효과 (스케일)
+          const impact = this.scene.add.text(targetX, targetY - 56, '⚔️💥', {
+            font: '90px Arial',
           }).setOrigin(0.5);
           impact.setDepth(2001);
           
@@ -217,9 +217,9 @@ export class AnimationHelper {
             duration: 300,
             ease: 'Power2',
             onComplete: () => {
-              // 장착 효과
+              // 장착 효과 (스케일)
               const flash = this.scene.add.text(playerX, playerY, '✨', {
-                font: '40px Arial',
+                font: '75px Arial',
               }).setOrigin(0.5);
               flash.setDepth(2001);
               
@@ -241,23 +241,23 @@ export class AnimationHelper {
   }
   
   /**
-   * 스킬 카드 사용 애니메이션 - 카드가 적에게 날아감
+   * 스킬 카드 사용 애니메이션 - 카드가 적에게 날아감 (스케일 적용)
    */
   cardToEnemy(startX: number, startY: number, targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
     return new Promise((resolve) => {
-      // 카드 모양 컨테이너
+      // 카드 모양 컨테이너 (스케일)
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.dark, 0.95);
-      bg.setStrokeStyle(3, COLORS.message.success);
+      const bg = this.scene.add.rectangle(0, 0, 150, 188, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(5, COLORS.message.success);
       
-      const emojiText = this.scene.add.text(0, -15, emoji, {
-        font: '32px Arial',
+      const emojiText = this.scene.add.text(0, -28, emoji, {
+        font: '60px Arial',
       }).setOrigin(0.5);
       
-      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
-        font: 'bold 12px monospace',
+      const nameText = this.scene.add.text(0, 47, name.slice(0, 4), {
+        font: 'bold 22px monospace',
         color: '#4a7c59',
       }).setOrigin(0.5);
       
@@ -267,14 +267,14 @@ export class AnimationHelper {
       this.scene.tweens.add({
         targets: card,
         x: targetX,
-        y: targetY - 30,
+        y: targetY - 56,
         scale: 0.3,
         duration: 300,
         ease: 'Power3',
         onComplete: () => {
-          // 임팩트 효과
-          const impact = this.scene.add.text(targetX, targetY - 30, '💥', {
-            font: '48px Arial',
+          // 임팩트 효과 (스케일)
+          const impact = this.scene.add.text(targetX, targetY - 56, '💥', {
+            font: '90px Arial',
           }).setOrigin(0.5);
           impact.setDepth(2001);
           
@@ -349,10 +349,10 @@ export class AnimationHelper {
   // ========== 카운트 효과 애니메이션 ==========
   
   /**
-   * 카운트 영역 위치 (CountEffectUI와 동일)
+   * 카운트 영역 위치 (CountEffectUI와 동일, 스케일)
    */
   private getCountAreaPosition() {
-    return { x: 110, y: 320 };  // 카운트 UI 영역 중앙
+    return { x: 206, y: 620 };  // 카운트 UI 영역 중앙 (아래로 내림)
   }
   
   /**
@@ -362,19 +362,19 @@ export class AnimationHelper {
     return new Promise((resolve) => {
       const countPos = this.getCountAreaPosition();
       
-      // 카드 모양 컨테이너
+      // 카드 모양 컨테이너 (스케일)
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.dark, 0.95);
-      bg.setStrokeStyle(3, COLORS.primary.dark);  // 강타는 금색
+      const bg = this.scene.add.rectangle(0, 0, 150, 188, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(5, COLORS.primary.dark);  // 강타는 금색
       
-      const emojiText = this.scene.add.text(0, -15, emoji, {
-        font: '32px Arial',
+      const emojiText = this.scene.add.text(0, -28, emoji, {
+        font: '60px Arial',
       }).setOrigin(0.5);
       
-      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
-        font: 'bold 12px monospace',
+      const nameText = this.scene.add.text(0, 47, name.slice(0, 4), {
+        font: 'bold 22px monospace',
         color: '#d4af37',
       }).setOrigin(0.5);
       
@@ -390,9 +390,9 @@ export class AnimationHelper {
         duration: 400,
         ease: 'Power2',
         onComplete: () => {
-          // 카운트 등록 효과
+          // 카운트 등록 효과 (스케일)
           const chargeText = this.scene.add.text(countPos.x, countPos.y, '⏳', {
-            font: '32px Arial',
+            font: '60px Arial',
           }).setOrigin(0.5);
           chargeText.setDepth(2001);
           
@@ -400,7 +400,7 @@ export class AnimationHelper {
             targets: chargeText,
             scale: 1.5,
             alpha: 0,
-            y: countPos.y - 30,
+            y: countPos.y - 56,
             duration: 400,
             onComplete: () => chargeText.destroy(),
           });
@@ -493,26 +493,26 @@ export class AnimationHelper {
   }
   
   /**
-   * 카운트 영역에서 적에게 날아가는 애니메이션 (강타 발동)
+   * 카운트 영역에서 적에게 날아가는 애니메이션 (강타 발동, 스케일)
    */
   cardFromCountToEnemy(targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
     return new Promise((resolve) => {
       const countPos = this.getCountAreaPosition();
       
-      // 카드 모양 컨테이너
+      // 카드 모양 컨테이너 (스케일)
       const card = this.scene.add.container(countPos.x, countPos.y);
       card.setDepth(2000);
       card.setScale(0.5);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.dark, 0.95);
-      bg.setStrokeStyle(3, COLORS.primary.dark);
+      const bg = this.scene.add.rectangle(0, 0, 150, 188, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(5, COLORS.primary.dark);
       
-      const emojiText = this.scene.add.text(0, -15, emoji, {
-        font: '32px Arial',
+      const emojiText = this.scene.add.text(0, -28, emoji, {
+        font: '60px Arial',
       }).setOrigin(0.5);
       
-      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
-        font: 'bold 12px monospace',
+      const nameText = this.scene.add.text(0, 47, name.slice(0, 4), {
+        font: 'bold 22px monospace',
         color: '#d4af37',
       }).setOrigin(0.5);
       
@@ -522,15 +522,15 @@ export class AnimationHelper {
       this.scene.tweens.add({
         targets: card,
         x: targetX,
-        y: targetY - 30,
+        y: targetY - 56,
         scale: 0.8,
         rotation: Math.PI * 2,
         duration: 250,
         ease: 'Power4',
         onComplete: () => {
-          // 강력한 임팩트 효과
-          const impact = this.scene.add.text(targetX, targetY - 30, '💥💥💥', {
-            font: '56px Arial',
+          // 강력한 임팩트 효과 (스케일)
+          const impact = this.scene.add.text(targetX, targetY - 56, '💥💥💥', {
+            font: '105px Arial',
           }).setOrigin(0.5);
           impact.setDepth(2001);
           

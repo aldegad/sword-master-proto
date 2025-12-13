@@ -18,8 +18,8 @@ export class CountEffectUI {
   }
   
   private create() {
-    // 카운트 효과 표시 컨테이너 (HP 바 아래)
-    this.container = this.scene.add.container(20, 300);
+    // 카운트 효과 표시 컨테이너 (아래로 내림, 스케일)
+    this.container = this.scene.add.container(38, 560);
     
     // 툴팁 컨테이너
     this.tooltipContainer = this.scene.add.container(0, 0);
@@ -42,7 +42,7 @@ export class CountEffectUI {
       this.container.add(itemContainer);
       this.effectItems.push(itemContainer);
       
-      yOffset += 32;
+      yOffset += 60;  // 간격 늘림
     });
   }
   
@@ -60,17 +60,17 @@ export class CountEffectUI {
       colorHex = COLORS.primary.dark;
     }
     
-    // 배경
-    const bg = this.scene.add.rectangle(80, 0, 180, 26, COLORS.background.dark, 0.95);
-    bg.setStrokeStyle(2, colorHex);
+    // 배경 (스케일)
+    const bg = this.scene.add.rectangle(150, 0, 338, 49, COLORS.background.dark, 0.95);
+    bg.setStrokeStyle(3, colorHex);
     bg.setOrigin(0.5, 0.5);
     
-    // 텍스트
-    const text = this.scene.add.text(0, 0, 
+    // 텍스트 (배경 중앙에 맞춤)
+    const text = this.scene.add.text(150, 0, 
       `${effect.emoji} ${effect.name} ⏳${effect.remainingDelays}`, {
-      font: 'bold 14px monospace',
+      font: 'bold 26px monospace',
       color: color,
-    });
+    }).setOrigin(0.5, 0.5);
     
     container.add([bg, text]);
     
@@ -78,12 +78,12 @@ export class CountEffectUI {
     bg.setInteractive({ useHandCursor: true });
     
     bg.on('pointerover', () => {
-      bg.setStrokeStyle(3, COLORS.primary.light);
-      this.showTooltip(effect, this.container.x + 200, this.container.y + yOffset);
+      bg.setStrokeStyle(4, COLORS.primary.light);
+      this.showTooltip(effect, this.container.x + 375, this.container.y + yOffset);
     });
     
     bg.on('pointerout', () => {
-      bg.setStrokeStyle(2, colorHex);
+      bg.setStrokeStyle(3, colorHex);
       this.hideTooltip();
     });
     
@@ -137,27 +137,27 @@ export class CountEffectUI {
         break;
     }
     
-    // 툴팁 크기 계산
+    // 툴팁 크기 계산 (스케일)
     const lines = description.split('\n').length;
-    const tooltipHeight = 60 + lines * 18;
-    const tooltipWidth = 200;
+    const tooltipHeight = 113 + lines * 34;
+    const tooltipWidth = 375;
     
-    // 배경
+    // 배경 (스케일)
     const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, COLORS.background.dark, 0.98);
-    bg.setStrokeStyle(3, titleColorHex);
+    bg.setStrokeStyle(5, titleColorHex);
     
-    // 제목
-    const titleText = this.scene.add.text(0, -tooltipHeight/2 + 15, title, {
-      font: 'bold 16px monospace',
+    // 제목 (스케일)
+    const titleText = this.scene.add.text(0, -tooltipHeight/2 + 28, title, {
+      font: 'bold 30px monospace',
       color: titleColor,
     }).setOrigin(0.5, 0);
     
-    // 설명
-    const descText = this.scene.add.text(0, -tooltipHeight/2 + 45, description, {
-      font: '12px monospace',
+    // 설명 (스케일)
+    const descText = this.scene.add.text(0, -tooltipHeight/2 + 84, description, {
+      font: '22px monospace',
       color: COLORS_STR.text.primary,
       align: 'center',
-      lineSpacing: 4,
+      lineSpacing: 8,
     }).setOrigin(0.5, 0);
     
     this.tooltipContainer.add([bg, titleText, descText]);
@@ -166,7 +166,7 @@ export class CountEffectUI {
     let tooltipX = x;
     let tooltipY = y;
     if (tooltipX + tooltipWidth/2 > this.scene.cameras.main.width) {
-      tooltipX = this.scene.cameras.main.width - tooltipWidth/2 - 10;
+      tooltipX = this.scene.cameras.main.width - tooltipWidth/2 - 20;
     }
     if (tooltipY + tooltipHeight/2 > this.scene.cameras.main.height) {
       tooltipY = y - tooltipHeight;

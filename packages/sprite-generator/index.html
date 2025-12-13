@@ -14,7 +14,21 @@
       </header>
 
       <main>
-        <!-- Step 1: 동영상 업로드 -->
+        <!-- 모드 선택 탭 -->
+        <section class="step" id="step-mode">
+          <div class="mode-tabs">
+            <button class="mode-tab active" id="mode-video-tab" data-mode="video">
+              <span class="tab-icon">🎬</span>
+              <span class="tab-text">동영상에서 생성</span>
+            </button>
+            <button class="mode-tab" id="mode-sprite-tab" data-mode="sprite">
+              <span class="tab-icon">🖼️</span>
+              <span class="tab-text">스프라이트 편집</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Step 1A: 동영상 업로드 -->
         <section class="step" id="step-upload">
           <h2>1. 동영상 업로드</h2>
           <div class="upload-area" id="upload-area">
@@ -26,6 +40,71 @@
             </label>
           </div>
           <video id="video-preview" controls hidden></video>
+        </section>
+
+        <!-- Step 1B: 스프라이트 시트 업로드 -->
+        <section class="step" id="step-sprite-upload" hidden>
+          <h2>1. 스프라이트 시트 업로드</h2>
+          <div class="upload-row">
+            <div class="upload-area" id="sprite-upload-area">
+              <input type="file" id="sprite-input" accept="image/*" hidden />
+              <label for="sprite-input" class="upload-label">
+                <span class="upload-icon">🖼️</span>
+                <span>스프라이트 시트 이미지 업로드</span>
+                <span class="supported-formats">지원 형식: PNG, JPG, WebP</span>
+              </label>
+            </div>
+            <div class="upload-area upload-area-optional" id="json-upload-area">
+              <input type="file" id="json-input" accept=".json" hidden />
+              <label for="json-input" class="upload-label">
+                <span class="upload-icon">📄</span>
+                <span>JSON 메타데이터 (선택사항)</span>
+                <span class="supported-formats">프레임 정보 자동 로드</span>
+              </label>
+            </div>
+          </div>
+          <div id="sprite-preview-container" hidden>
+            <img id="sprite-preview" alt="Sprite Preview" />
+            <div id="sprite-preview-info"></div>
+          </div>
+        </section>
+
+        <!-- Step 2B: 프레임 분할 설정 -->
+        <section class="step" id="step-sprite-config" hidden>
+          <h2>2. 프레임 분할 설정</h2>
+          <div id="frame-suggestions" hidden>
+            <p class="hint">💡 추천 프레임 크기:</p>
+            <div class="suggestions-list" id="suggestions-list"></div>
+          </div>
+          <div class="settings-grid">
+            <div class="setting">
+              <label for="sprite-frame-width">프레임 너비 (px)</label>
+              <input type="number" id="sprite-frame-width" value="64" min="1" />
+            </div>
+            <div class="setting">
+              <label for="sprite-frame-height">프레임 높이 (px)</label>
+              <input type="number" id="sprite-frame-height" value="64" min="1" />
+            </div>
+            <div class="setting">
+              <label for="sprite-columns">열 수 (자동: 0)</label>
+              <input type="number" id="sprite-columns" value="0" min="0" />
+            </div>
+            <div class="setting">
+              <label for="sprite-rows">행 수 (자동: 0)</label>
+              <input type="number" id="sprite-rows" value="0" min="0" />
+            </div>
+            <div class="setting">
+              <label for="sprite-total-frames">총 프레임 수 (자동: 0)</label>
+              <input type="number" id="sprite-total-frames" value="0" min="0" />
+            </div>
+            <div class="setting">
+              <label for="sprite-start-index">시작 인덱스</label>
+              <input type="number" id="sprite-start-index" value="0" min="0" />
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button id="split-sprite-btn" class="primary-btn">프레임 분할</button>
+          </div>
         </section>
 
         <!-- Step 2: 프레임 추출 설정 -->

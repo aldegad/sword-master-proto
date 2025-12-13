@@ -52,6 +52,130 @@ header p {
   font-size: 1.1rem;
 }
 
+/* 모드 선택 탭 */
+.mode-tabs {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-tab:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.mode-tab.active {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--text);
+}
+
+.tab-icon {
+  font-size: 1.5rem;
+}
+
+.tab-text {
+  white-space: nowrap;
+}
+
+/* 업로드 영역 가로 배치 */
+.upload-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.upload-area-optional {
+  border-style: dashed;
+  opacity: 0.8;
+}
+
+.upload-area-optional:hover {
+  opacity: 1;
+}
+
+.upload-area.has-file {
+  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+/* 스프라이트 미리보기 */
+#sprite-preview-container {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  text-align: center;
+}
+
+#sprite-preview {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+  background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 50% / 20px 20px;
+}
+
+#sprite-preview-info {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* 프레임 크기 추천 */
+#frame-suggestions {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.suggestion-btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suggestion-btn:hover {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.suggestion-btn .size {
+  font-weight: 600;
+}
+
+.suggestion-btn .grid {
+  color: var(--text-muted);
+  margin-left: 0.25rem;
+}
+
 .step {
   background: var(--bg-card);
   border-radius: 16px;

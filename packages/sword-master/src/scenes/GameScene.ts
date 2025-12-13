@@ -28,10 +28,10 @@ export class GameScene extends Phaser.Scene {
   enemySprites: Map<string, Phaser.GameObjects.Container> = new Map();
   backgroundTiles: Phaser.GameObjects.Graphics[] = [];
   
-  // 상수
-  readonly PLAYER_X = 150;
-  readonly GROUND_Y = 520;  // 더 아래로 내림
-  readonly SCROLL_SPEED = 2;
+  // 상수 (1920x1080 해상도 기준)
+  readonly PLAYER_X = 280;
+  readonly GROUND_Y = 780;  // 1080 기준
+  readonly SCROLL_SPEED = 3;
   
   // 이동 관련
   isMoving: boolean = false;
@@ -67,6 +67,15 @@ export class GameScene extends Phaser.Scene {
     
     // UI 씬 시작
     this.scene.launch('UIScene', { gameScene: this });
+    
+    // 스탯 업데이트 이벤트 리스너 (플레이어 스탯 표시 업데이트)
+    this.events.on('statsUpdated', this.updatePlayerStatsDisplay, this);
+    
+    // 씬 종료 시 정리 (재시작 시 이벤트 리스너 중복 방지)
+    this.events.once('shutdown', () => {
+      this.events.off('statsUpdated', this.updatePlayerStatsDisplay, this);
+      this.enemySprites.clear();
+    });
     
     this.cameras.main.fadeIn(500, 0, 0, 0);
     
@@ -173,8 +182,12 @@ export class GameScene extends Phaser.Scene {
   currentAnim: string = 'idle';
   isAnimating: boolean = false;  // 전환 애니메이션 중인지
 
+  // 플레이어 스탯 표시용
+  playerStatsText?: Phaser.GameObjects.Text;
+  
   createPlayer() {
-    this.playerSprite = this.add.container(this.PLAYER_X, this.GROUND_Y);
+    // 플레이어만 조금 더 아래로 (GROUND_Y + 50)
+    this.playerSprite = this.add.container(this.PLAYER_X, this.GROUND_Y + 50);
     
     if (USE_SPRITES && this.textures.exists('player-idle')) {
       // 스프라이트 기반 플레이어
@@ -183,27 +196,86 @@ export class GameScene extends Phaser.Scene {
       this.playerAnim.setOrigin(0.5, 1);  // 하단 중앙 기준 (발이 땅에 닿도록)
       this.playerAnim.play('idle');
       this.playerSprite.add(this.playerAnim);
-      
-      const label = this.add.text(0, 10, '검객', {
-        font: 'bold 12px monospace',
-        color: COLORS_STR.primary.dark,
-      }).setOrigin(0.5);
-      this.playerSprite.add(label);
     } else {
-      // 기존 이모지/텍스트 기반 플레이어
-      const body = this.add.rectangle(0, 0, 40, 60, COLORS.background.medium, 0.9);
-      body.setStrokeStyle(2, COLORS.border.medium);
+      // 기존 이모지/텍스트 기반 플레이어 (스케일 적용)
+      const body = this.add.rectangle(0, 0, 75, 112, COLORS.background.medium, 0.9);
+      body.setStrokeStyle(3, COLORS.border.medium);
       
-      const emoji = this.add.text(0, -10, '🧑‍🦱', { font: '32px Arial' }).setOrigin(0.5);
-      const label = this.add.text(0, 35, '검객', {
-        font: 'bold 12px monospace',
-        color: COLORS_STR.primary.dark,
-      }).setOrigin(0.5);
+      const emoji = this.add.text(0, -20, '🧑‍🦱', { font: '60px Arial' }).setOrigin(0.5);
       
-      this.playerSprite.add([body, emoji, label]);
+      this.playerSprite.add([body, emoji]);
     }
     
+    // 플레이어 위에 공격력/방어율 표시 (스케일 적용)
+    this.playerStatsText = this.add.text(0, -220, '', {
+      font: 'bold 20px monospace',
+      color: COLORS_STR.text.primary,
+      align: 'center',
+      backgroundColor: '#0a0a15cc',
+      padding: { x: 10, y: 5 },
+    }).setOrigin(0.5);
+    this.playerSprite.add(this.playerStatsText);
+    
     this.updatePlayerWeaponDisplay();
+    this.updatePlayerStatsDisplay();
+  }
+  
+  updatePlayerStatsDisplay() {
+    if (!this.playerStatsText) return;
+    
+    const sword = this.playerState.currentSword;
+    if (!sword) {
+      this.playerStatsText.setText('');
+      this.playerStatsText.setVisible(false);  // 무기 없으면 숨김
+      return;
+    }
+    
+    this.playerStatsText.setVisible(true);  // 무기 있으면 표시
+    
+    // 버프로 인한 공격력 보너스 계산
+    let attackBonus = 0;
+    for (const buff of this.playerState.buffs) {
+      if (buff.type === 'attack') {
+        attackBonus += buff.value;
+      }
+    }
+    
+    const totalAttack = sword.attack + attackBonus;
+    
+    // 방어율 계산 (버프)
+    let defenseBonus = 0;
+    for (const buff of this.playerState.buffs) {
+      if (buff.type === 'defense') {
+        defenseBonus += buff.value;
+      }
+    }
+    
+    // 카운트 효과 방어 배수 체크 (철벽, 패리)
+    let countDefenseMultiplier = 1;
+    const ironWallEffect = this.playerState.countEffects.find(e => e.type === 'ironWall');
+    const parryEffect = this.playerState.countEffects.find(e => e.type === 'parry');
+    
+    if (ironWallEffect) {
+      countDefenseMultiplier = ironWallEffect.data.defenseMultiplier || 10;
+    } else if (parryEffect) {
+      countDefenseMultiplier = parryEffect.data.defenseMultiplier || 5;
+    }
+    
+    // 카운트 효과가 있으면 방어율 배수 적용해서 표시
+    const baseDefense = sword.defense + defenseBonus;
+    const displayDefense = countDefenseMultiplier > 1 
+      ? baseDefense * countDefenseMultiplier 
+      : baseDefense;
+    
+    // 텍스트 표시
+    this.playerStatsText.setText(`⚔️${totalAttack}  🛡️${displayDefense}%`);
+    
+    // 버프나 카운트 효과가 있으면 전체 색상 변경
+    if (attackBonus > 0 || defenseBonus > 0 || countDefenseMultiplier > 1) {
+      this.playerStatsText.setColor('#05d9e8');
+    } else {
+      this.playerStatsText.setColor('#ffffff');
+    }
   }
 
   /**
@@ -350,6 +422,7 @@ export class GameScene extends Phaser.Scene {
 
   updatePlayerWeaponDisplay() {
     // 무기 아이콘은 상단 UI에 표시되므로 플레이어 옆에는 표시하지 않음
+    this.updatePlayerStatsDisplay();
     this.events.emit('statsUpdated');
   }
 
@@ -422,7 +495,13 @@ export class GameScene extends Phaser.Scene {
   async endTurn() {
     if (this.gameState.phase !== 'combat') return;
     
-    // 적 행동이 순차적으로 끝날 때까지 대기
+    // 1. 플레이어 카운트 효과 감소 및 발동 (강타 등) - 적 행동보다 먼저!
+    await this.combatSystem.reduceCountEffects();
+    
+    // 강타로 적이 모두 죽었을 수 있으므로 체크
+    if (this.checkCombatEnd()) return;
+    
+    // 2. 적 행동이 순차적으로 끝날 때까지 대기
     await this.enemyManager.executeRemainingEnemyActions();
     
     // 이번 턴 공격 여부 리셋 (다음 턴을 위해)
@@ -685,8 +764,8 @@ export class GameScene extends Phaser.Scene {
       if (USE_SPRITES && this.playerAnim && this.currentAnim !== 'work-loop') {
         this.playWorkLoopAnimation();
       } else if (!USE_SPRITES) {
-        // 기존 방식: y 좌표 흔들림
-        this.playerSprite.y = this.GROUND_Y + Math.sin(this.time.now / 100) * 3;
+        // 기존 방식: y 좌표 흔들림 (플레이어는 GROUND_Y + 50 기준)
+        this.playerSprite.y = this.GROUND_Y + 50 + Math.sin(this.time.now / 100) * 5;
       }
       
       // 일정 거리마다 적 조우
@@ -694,25 +773,100 @@ export class GameScene extends Phaser.Scene {
         this.encounterEnemies();
       }
     } else {
-      // 전투/대기 중에는 idle 애니메이션
+      // 전투/대기 중에는 idle 애니메이션으로 전환
       if (USE_SPRITES && this.playerAnim && (this.currentAnim === 'work-loop' || this.currentAnim === 'work')) {
-        this.playIdleAnimation();
+        this.playStopAnimation();
       }
     }
   }
   
   /**
-   * 이동 중 Work 반복 애니메이션
+   * 이동 시작: idle → idle-to-work → work-loop
    */
   playWorkLoopAnimation() {
     if (!USE_SPRITES || !this.playerAnim) return;
     
-    this.currentAnim = 'work-loop';
+    // 이미 전환 중이거나 work-loop면 스킵
+    if (this.isAnimating || this.currentAnim === 'work-loop') return;
     
-    const textureWork = 'player-work';
-    if (this.textures.exists(textureWork) && this.anims.exists('work-loop')) {
-      this.playerAnim.setTexture(textureWork);
-      this.playerAnim.play('work-loop');
+    // idle-to-work 전환 애니메이션 재생
+    const textureIdleWork = 'player-idle-work';
+    if (this.textures.exists(textureIdleWork) && this.anims.exists('idle-to-work')) {
+      this.isAnimating = true;
+      this.currentAnim = 'idle-to-work';
+      
+      this.playerAnim.setTexture(textureIdleWork);
+      this.playerAnim.play('idle-to-work');
+      
+      this.playerAnim.once('animationcomplete', () => {
+        this.isAnimating = false;
+        
+        // 아직 이동 중이면 work-loop 시작
+        if (this.isMoving) {
+          this.currentAnim = 'work-loop';
+          const textureWork = 'player-work';
+          if (this.textures.exists(textureWork) && this.anims.exists('work-loop')) {
+            this.playerAnim!.setTexture(textureWork);
+            this.playerAnim!.play('work-loop');
+          }
+        } else {
+          // 이동이 멈췄으면 idle로
+          this.playStopAnimation();
+        }
+      });
+    } else {
+      // 전환 애니메이션 없으면 바로 work-loop
+      this.currentAnim = 'work-loop';
+      const textureWork = 'player-work';
+      if (this.textures.exists(textureWork) && this.anims.exists('work-loop')) {
+        this.playerAnim.setTexture(textureWork);
+        this.playerAnim.play('work-loop');
+      }
+    }
+  }
+  
+  /**
+   * 이동 중지: work-loop → work-to-idle (역재생) → idle
+   */
+  playStopAnimation() {
+    if (!USE_SPRITES || !this.playerAnim) return;
+    
+    // 이미 전환 중이거나 idle이면 스킵
+    if (this.isAnimating || this.currentAnim === 'idle') return;
+    
+    // work-to-idle 전환 애니메이션 재생 (idle-work 역재생)
+    const textureIdleWork = 'player-idle-work';
+    if (this.textures.exists(textureIdleWork) && this.anims.exists('work-to-idle')) {
+      this.isAnimating = true;
+      this.currentAnim = 'work-to-idle';
+      
+      this.playerAnim.setTexture(textureIdleWork);
+      this.playerAnim.play('work-to-idle');
+      
+      this.playerAnim.once('animationcomplete', () => {
+        this.isAnimating = false;
+        
+        // 다시 이동 시작했으면 work-loop로
+        if (this.isMoving) {
+          this.playWorkLoopAnimation();
+        } else {
+          // idle 애니메이션 시작
+          this.currentAnim = 'idle';
+          const textureIdle = 'player-idle';
+          if (this.textures.exists(textureIdle) && this.anims.exists('idle')) {
+            this.playerAnim!.setTexture(textureIdle);
+            this.playerAnim!.play('idle');
+          }
+        }
+      });
+    } else {
+      // 전환 애니메이션 없으면 바로 idle
+      this.currentAnim = 'idle';
+      const textureIdle = 'player-idle';
+      if (this.textures.exists(textureIdle) && this.anims.exists('idle')) {
+        this.playerAnim.setTexture(textureIdle);
+        this.playerAnim.play('idle');
+      }
     }
   }
 }

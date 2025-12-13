@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
-import { FONTS } from '../constants/typography';
 
 /**
  * 보상 선택 UI - 전투 승리 후 보상 카드 선택
@@ -35,45 +34,45 @@ export class RewardSelectionUI {
     const overlay = this.scene.add.rectangle(width/2, height/2, width, height, COLORS.background.overlay, 0.85);
     this.rewardContainer.add(overlay);
     
-    // 제목
-    const title = this.scene.add.text(width/2, 80, '🎁 보상 카드를 선택하세요!', {
-      font: FONTS.titleLarge,
+    // 제목 (스케일)
+    const title = this.scene.add.text(width/2, 150, '🎁 보상 카드를 선택하세요!', {
+      font: 'bold 48px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
     this.rewardContainer.add(title);
     
-    // 카드 3장 표시
-    const cardWidth = 200;
-    const cardHeight = 300;
-    const spacing = 50;
+    // 카드 3장 표시 (스케일)
+    const cardWidth = 375;
+    const cardHeight = 563;
+    const spacing = 94;
     const totalWidth = rewardCards.length * cardWidth + (rewardCards.length - 1) * spacing;
     const startX = (width - totalWidth) / 2 + cardWidth / 2;
     
     rewardCards.forEach((card, index) => {
       const x = startX + index * (cardWidth + spacing);
-      const y = height / 2 - 20;
+      const y = height / 2 - 38;
       
       const cardContainer = this.createRewardCard(card, x, y, cardWidth, cardHeight, index);
       this.rewardContainer.add(cardContainer);
     });
     
-    // 건너뛰기 버튼
-    const skipBtn = this.scene.add.container(width/2, height - 100);
-    const skipBg = this.scene.add.rectangle(0, 0, 200, 50, COLORS.background.dark, 0.9);
-    skipBg.setStrokeStyle(2, COLORS.text.muted);
+    // 건너뛰기 버튼 (스케일)
+    const skipBtn = this.scene.add.container(width/2, height - 188);
+    const skipBg = this.scene.add.rectangle(0, 0, 375, 94, COLORS.background.dark, 0.9);
+    skipBg.setStrokeStyle(3, COLORS.text.muted);
     const skipText = this.scene.add.text(0, 0, '건너뛰기', {
-      font: FONTS.titleSmall,
+      font: 'bold 32px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     skipBtn.add([skipBg, skipText]);
     
     skipBg.setInteractive({ useHandCursor: true });
     skipBg.on('pointerover', () => {
-      skipBg.setStrokeStyle(3, COLORS.primary.light);
+      skipBg.setStrokeStyle(5, COLORS.primary.light);
       skipText.setColor(COLORS_STR.primary.light);
     });
     skipBg.on('pointerout', () => {
-      skipBg.setStrokeStyle(2, COLORS.text.muted);
+      skipBg.setStrokeStyle(3, COLORS.text.muted);
       skipText.setColor(COLORS_STR.text.muted);
     });
     skipBg.on('pointerdown', () => {
@@ -104,29 +103,29 @@ export class RewardSelectionUI {
       ? COLORS.rarity[(data as SwordCard).rarity as keyof typeof COLORS.rarity || 'common']
       : skillBorderColor;
     
-    // 카드 배경
+    // 카드 배경 (스케일)
     const bg = this.scene.add.rectangle(0, 0, cardWidth, cardHeight, COLORS.background.dark, 0.98);
-    bg.setStrokeStyle(4, borderColor);
+    bg.setStrokeStyle(6, borderColor);
     container.add(bg);
     
-    // 이모지
-    const emoji = this.scene.add.text(0, -100, data.emoji, {
-      font: '57px Arial',
+    // 이모지 (스케일)
+    const emoji = this.scene.add.text(0, -188, data.emoji, {
+      font: '107px Arial',
     }).setOrigin(0.5);
     container.add(emoji);
     
-    // 이름 (스킬 카드도 색상 일관성 유지)
+    // 이름 (스케일)
     const displayName = isSword ? ((data as SwordCard).displayName || data.name) : data.name;
     const nameColor = '#' + borderColor.toString(16).padStart(6, '0');
-    const name = this.scene.add.text(0, -40, displayName, {
-      font: FONTS.titleSmall,
+    const name = this.scene.add.text(0, -75, displayName, {
+      font: 'bold 36px monospace',
       color: nameColor,
     }).setOrigin(0.5);
     container.add(name);
     
-    // 타입 라벨
-    const typeLabel = this.scene.add.text(0, -10, isSword ? '⚔️ 무기' : '📜 스킬', {
-      font: FONTS.label,
+    // 타입 라벨 (스케일)
+    const typeLabel = this.scene.add.text(0, -19, isSword ? '⚔️ 무기' : '📜 스킬', {
+      font: '24px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     container.add(typeLabel);
@@ -141,20 +140,21 @@ export class RewardSelectionUI {
       infoText = `마나: ${skill.manaCost}\n${skill.description}`;
     }
     
-    const info = this.scene.add.text(0, 40, infoText, {
-      font: FONTS.bodySmall,
+    // 정보 텍스트 (스케일)
+    const info = this.scene.add.text(0, 75, infoText, {
+      font: '22px monospace',
       color: COLORS_STR.text.primary,
       align: 'center',
-      lineSpacing: 4,
-      wordWrap: { width: cardWidth - 24 },
+      lineSpacing: 8,
+      wordWrap: { width: cardWidth - 45 },
     }).setOrigin(0.5);
     container.add(info);
     
-    // 선택 버튼
-    const selectBtn = this.scene.add.rectangle(0, 115, 120, 40, COLORS.success.main, 0.9);
-    selectBtn.setStrokeStyle(2, COLORS.primary.light);
-    const selectText = this.scene.add.text(0, 115, '선택', {
-      font: FONTS.button,
+    // 선택 버튼 (스케일)
+    const selectBtn = this.scene.add.rectangle(0, 216, 225, 75, COLORS.success.main, 0.9);
+    selectBtn.setStrokeStyle(4, COLORS.primary.light);
+    const selectText = this.scene.add.text(0, 216, '선택', {
+      font: 'bold 28px monospace',
       color: COLORS_STR.primary.light,
     }).setOrigin(0.5);
     container.add([selectBtn, selectText]);
@@ -164,11 +164,11 @@ export class RewardSelectionUI {
     selectBtn.setInteractive({ useHandCursor: true });
     
     const onHover = () => {
-      bg.setStrokeStyle(5, COLORS.primary.light);
+      bg.setStrokeStyle(8, COLORS.primary.light);
       container.setScale(1.05);
     };
     const onOut = () => {
-      bg.setStrokeStyle(4, borderColor);
+      bg.setStrokeStyle(6, borderColor);
       container.setScale(1);
     };
     const onSelect = () => {

@@ -83,11 +83,11 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 0.8,
     attackCount: 1,
-    reach: 'double',  // 자체 범위: 2적
+    reach: 'swordDouble',  // 무기 범위의 2배
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '옆으로 크게 휘둘러 2적 공격.',
+    description: '옆으로 크게 휘둘러 무기 범위x2 공격.',
   },
   whirlwind: {
     id: 'whirlwind',

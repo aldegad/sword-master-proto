@@ -21,8 +21,8 @@ export class CombatSystem {
     // 타수 계산: 무기 타수 × 스킬 타수배율
     const totalHits = sword.attackCount * skill.attackCount;
     
-    // 범위 결정: 스킬이 'single'이면 무기 범위, 아니면 스킬 범위
-    const reach = skill.reach === 'single' ? sword.reach : skill.reach;
+    // 범위 결정: 스킬이 'single'이면 무기 범위, 'swordDouble'이면 무기 범위 2배, 아니면 스킬 범위
+    const reach = this.resolveReach(skill.reach, sword.reach);
     
     // 강타 (카운트 공격) - 바로 공격하지 않고 countEffects에 추가
     // 내구도는 발동 시 소모 (중간에 무기 교체 가능)
@@ -531,21 +531,49 @@ export class CombatSystem {
     return reachOrder[Math.max(swordIdx, skillIdx)];
   }
   
+  /**
+   * 범위 결정: 스킬 범위와 무기 범위를 기반으로 최종 범위 계산
+   */
+  resolveReach(skillReach: string, swordReach: string): string {
+    if (skillReach === 'single') {
+      return swordReach;  // 무기 범위 사용
+    }
+    if (skillReach === 'swordDouble') {
+      // 무기 범위의 2배 타겟 수
+      const reachToCount: Record<string, number> = { single: 1, double: 2, triple: 3, all: 999 };
+      const countToReach: [number, string][] = [[999, 'all'], [6, 'all'], [4, 'all'], [3, 'triple'], [2, 'double'], [1, 'single']];
+      const doubled = (reachToCount[swordReach] || 1) * 2;
+      for (const [count, reach] of countToReach) {
+        if (doubled >= count) return reach;
+      }
+      return 'single';
+    }
+    return skillReach;  // 스킬 자체 범위 사용
+  }
+  
   getTargetsByReach(reach: string): Enemy[] {
     const enemies = this.scene.gameState.enemies;
     if (enemies.length === 0) return [];
     
+    // 숫자로 된 타겟 수도 처리 (swordDouble 결과로 4, 6 등이 올 수 있음)
+    const targetCount = this.getTargetCountByReach(reach);
+    
+    if (targetCount >= enemies.length || reach === 'all') {
+      return [...enemies];
+    }
+    return enemies.slice(0, targetCount);
+  }
+  
+  /**
+   * 범위 타입을 타겟 수로 변환
+   */
+  getTargetCountByReach(reach: string): number {
     switch (reach) {
-      case 'single':
-        return [enemies[0]];
-      case 'double':
-        return enemies.slice(0, 2);
-      case 'triple':
-        return enemies.slice(0, 3);
-      case 'all':
-        return [...enemies];
-      default:
-        return [enemies[0]];
+      case 'single': return 1;
+      case 'double': return 2;
+      case 'triple': return 3;
+      case 'all': return 999;
+      default: return 1;
     }
   }
   
@@ -554,18 +582,14 @@ export class CombatSystem {
     const baseIndex = enemies.indexOf(baseEnemy);
     if (baseIndex === -1) return [baseEnemy];
     
-    switch (reach) {
-      case 'single':
-        return [baseEnemy];
-      case 'double':
-        return enemies.slice(Math.max(0, baseIndex), Math.min(enemies.length, baseIndex + 2));
-      case 'triple':
-        return enemies.slice(Math.max(0, baseIndex - 1), Math.min(enemies.length, baseIndex + 2));
-      case 'all':
-        return [...enemies];
-      default:
-        return [baseEnemy];
+    const targetCount = this.getTargetCountByReach(reach);
+    
+    if (targetCount >= enemies.length || reach === 'all') {
+      return [...enemies];
     }
+    
+    // 기준 적부터 targetCount만큼
+    return enemies.slice(baseIndex, Math.min(enemies.length, baseIndex + targetCount));
   }
   
   reduceAllEnemyDelays(amount: number) {
@@ -581,7 +605,7 @@ export class CombatSystem {
    * 카운트 효과 감소 - 카드 사용 또는 대기 시 호출
    * isNew 효과는 첫 번째 감소 시 isNew = false로만 변경하고 감소하지 않음
    */
-  reduceCountEffects() {
+  async reduceCountEffects() {
     const expiredEffects: typeof this.scene.playerState.countEffects = [];
     
     this.scene.playerState.countEffects.forEach(effect => {
@@ -598,16 +622,16 @@ export class CombatSystem {
       }
     });
     
-    // 만료된 효과 처리
-    expiredEffects.forEach(effect => {
+    // 만료된 효과 처리 (순차적으로 await)
+    for (const effect of expiredEffects) {
       // 강타 (chargeAttack) - 카운트 만료 시 공격 발동!
       if (effect.type === 'chargeAttack') {
-        this.executeChargeAttack(effect);
+        await this.executeChargeAttack(effect);
       } else {
         // 방어 효과 만료 메시지
         this.scene.animationHelper.showMessage('⏳ 효과 만료!', COLORS.message.muted);
       }
-    });
+    }
     
     // 만료된 효과 제거
     if (expiredEffects.length > 0) {
@@ -637,7 +661,7 @@ export class CombatSystem {
     
     // 현재 무기로 타수/범위 계산
     const totalHits = sword.attackCount * skillAttackCount;
-    const reach = skillReach === 'single' ? sword.reach : skillReach;
+    const reach = this.resolveReach(skillReach, sword.reach);
     
     // 타겟 선정 (내구도 소모 전에 타겟 확인)
     let targets: Enemy[];

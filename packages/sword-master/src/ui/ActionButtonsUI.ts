@@ -20,28 +20,26 @@ export class ActionButtonsUI {
   }
   
   private create() {
-    const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
     
-    // 버튼을 가로로 나열 (오른쪽 하단)
-    const btnY = height - 90;
-    const btnSpacing = 95;
-    const startX = width - 280;
+    // 버튼을 가로로 나열 (왼쪽 하단, 1920x1080 스케일)
+    const btnY = height - 316;  // 더 위로 올림
+    const btnWidth = 168;  // 버튼 너비
+    const btnSpacing = btnWidth + 15;  // 버튼 간격 (버튼 너비 + 여백)
+    const startX = 112;  // 왼쪽 여백 (플레이어 쪽)
     
-    // 턴 종료 버튼
-    this.createButton(
+    // 순서: 교환 → 대기 → 턴종료 (역순)
+    
+    // 교환 버튼 (첫번째)
+    this.exchangeBtn = this.createButton(
       startX, btnY,
-      '▶ 턴종료',
-      'SPACE',
-      COLORS.secondary.main,
-      () => {
-        if (this.scene.gameScene.gameState.phase === 'combat') {
-          this.scene.gameScene.endTurn();
-        }
-      }
+      '↻ 교환',
+      'X',
+      COLORS.primary.main,
+      () => this.tryExchange()
     );
     
-    // 대기 버튼
+    // 대기 버튼 (두번째)
     this.waitBtn = this.createButton(
       startX + btnSpacing, btnY,
       '‖ 대기',
@@ -50,13 +48,17 @@ export class ActionButtonsUI {
       () => this.useWait()
     );
     
-    // 교환 버튼
-    this.exchangeBtn = this.createButton(
+    // 턴 종료 버튼 (세번째)
+    this.createButton(
       startX + btnSpacing * 2, btnY,
-      '↻ 교환',
-      'X',
-      COLORS.primary.main,
-      () => this.tryExchange()
+      '▶ 턴종료',
+      'SPACE',
+      COLORS.secondary.main,
+      () => {
+        if (this.scene.gameScene.gameState.phase === 'combat') {
+          this.scene.gameScene.endTurn();
+        }
+      }
     );
     
     this.setupKeyboardShortcuts();
@@ -93,17 +95,17 @@ export class ActionButtonsUI {
   ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(x, y);
     
-    // 버튼 크기 축소 (220x55 → 140x38)
-    const bg = this.scene.add.rectangle(0, 0, 140, 38, COLORS.background.dark, 0.95);
-    bg.setStrokeStyle(2, color);
+    // 버튼 크기 (높이 줄임)
+    const bg = this.scene.add.rectangle(0, 0, 168, 56, COLORS.background.dark, 0.95);
+    bg.setStrokeStyle(3, color);
     
-    const text = this.scene.add.text(0, -5, label, {
-      font: 'bold 13px monospace',
+    const text = this.scene.add.text(0, -8, label, {
+      font: 'bold 20px monospace',
       color: `#${color.toString(16).padStart(6, '0')}`,
     }).setOrigin(0.5);
     
-    const sub = this.scene.add.text(0, 12, subLabel, {
-      font: '9px monospace',
+    const sub = this.scene.add.text(0, 16, subLabel, {
+      font: '16px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     
@@ -111,12 +113,12 @@ export class ActionButtonsUI {
     
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => {
-      bg.setStrokeStyle(3, COLORS.primary.light);
+      bg.setStrokeStyle(4, COLORS.primary.light);
       bg.setFillStyle(color, 0.1);
       container.setScale(1.03);
     });
     bg.on('pointerout', () => {
-      bg.setStrokeStyle(2, color);
+      bg.setStrokeStyle(3, color);
       bg.setFillStyle(COLORS.background.dark, 0.95);
       container.setScale(1);
     });

@@ -29,47 +29,47 @@ export class EnemyManager {
   }
   
   createEnemySprite(enemy: Enemy) {
-    // 적 인덱스에 따라 간격을 두고 배치 (120px 간격)
+    // 적 인덱스에 따라 간격을 두고 배치 (1920x1080 스케일)
     const enemies = this.scene.gameState.enemies;
     const enemyIndex = enemies.indexOf(enemy);
-    const spacing = 120; // 적 간격
-    const baseX = this.scene.cameras.main.width - 180;
-    const x = baseX - (enemyIndex * spacing) + (Math.random() * 20 - 10); // 약간의 랜덤 오프셋
-    const y = this.scene.GROUND_Y - 30;
+    const spacing = 225; // 적 간격 (스케일)
+    const baseX = this.scene.cameras.main.width - 340;
+    const x = baseX - (enemyIndex * spacing) + (Math.random() * 35 - 18); // 약간의 랜덤 오프셋
+    const y = this.scene.GROUND_Y - 130;  // 더 위로 올림
     
     const container = this.scene.add.container(x, y);
     
-    // 적 이모지
-    const emoji = this.scene.add.text(0, -20, enemy.emoji, {
-      font: '48px Arial',
+    // 적 이모지 (스케일)
+    const emoji = this.scene.add.text(0, -38, enemy.emoji, {
+      font: '90px Arial',
     }).setOrigin(0.5);
     
-    // 적 이름
-    const nameText = this.scene.add.text(0, 25, enemy.name, {
-      font: 'bold 14px monospace',
+    // 적 이름 (스케일)
+    const nameText = this.scene.add.text(0, 47, enemy.name, {
+      font: 'bold 26px monospace',
       color: COLORS_STR.secondary.dark,
     }).setOrigin(0.5);
     
-    // HP 바
-    const hpBarBg = this.scene.add.rectangle(0, 45, 60, 8, COLORS.background.medium);
-    hpBarBg.setStrokeStyle(1, COLORS.border.medium);
-    const hpBar = this.scene.add.rectangle(-30, 45, 60, 8, COLORS.secondary.dark);
+    // HP 바 (스케일)
+    const hpBarBg = this.scene.add.rectangle(0, 84, 112, 15, COLORS.background.medium);
+    hpBarBg.setStrokeStyle(2, COLORS.border.medium);
+    const hpBar = this.scene.add.rectangle(-56, 84, 112, 15, COLORS.secondary.dark);
     hpBar.setOrigin(0, 0.5);
     (container as any).hpBar = hpBar;
     
-    // HP 텍스트
-    const hpText = this.scene.add.text(0, 58, `${enemy.hp}/${enemy.maxHp}`, {
-      font: '12px monospace',
+    // HP 텍스트 (스케일)
+    const hpText = this.scene.add.text(0, 109, `${enemy.hp}/${enemy.maxHp}`, {
+      font: '22px monospace',
       color: '#ffffff',
     }).setOrigin(0.5);
     (container as any).hpText = hpText;
     
-    // 방어력 표시 (버프 형태)
-    const defenseContainer = this.scene.add.container(-35, 20);
-    const defenseBg = this.scene.add.rectangle(0, 0, 36, 20, COLORS.background.dark, 0.85);
-    defenseBg.setStrokeStyle(1, COLORS.secondary.light);
+    // 방어력 표시 (버프 형태, 스케일)
+    const defenseContainer = this.scene.add.container(-66, 38);
+    const defenseBg = this.scene.add.rectangle(0, 0, 68, 38, COLORS.background.dark, 0.85);
+    defenseBg.setStrokeStyle(2, COLORS.secondary.light);
     const defenseText = this.scene.add.text(0, 0, `🛡️${enemy.defense}`, {
-      font: 'bold 11px monospace',
+      font: 'bold 20px monospace',
       color: COLORS_STR.secondary.light,
     }).setOrigin(0.5);
     defenseContainer.add([defenseBg, defenseText]);
@@ -82,15 +82,15 @@ export class EnemyManager {
     
     container.add([emoji, nameText, hpBarBg, hpBar, hpText, defenseContainer]);
     
-    // 타겟 강조 효과 (숨김 상태)
-    const targetHighlight = this.scene.add.rectangle(0, -10, 90, 110, COLORS.secondary.dark, 0);
-    targetHighlight.setStrokeStyle(3, COLORS.primary.dark);
+    // 타겟 강조 효과 (숨김 상태, 스케일)
+    const targetHighlight = this.scene.add.rectangle(0, -19, 169, 206, COLORS.secondary.dark, 0);
+    targetHighlight.setStrokeStyle(5, COLORS.primary.dark);
     targetHighlight.setVisible(false);
     (container as any).targetHighlight = targetHighlight;
     container.add(targetHighlight);
     
-    // 인터랙션 (타겟 선택용)
-    const hitArea = this.scene.add.rectangle(0, 0, 90, 120, COLORS.background.black, 0);
+    // 인터랙션 (타겟 선택용, 스케일)
+    const hitArea = this.scene.add.rectangle(0, 0, 169, 225, COLORS.background.black, 0);
     hitArea.setInteractive({ useHandCursor: false, cursor: 'pointer' });
     
     // 호버 효과 - 타겟팅 모드일 때만 강조
@@ -392,16 +392,16 @@ export class EnemyManager {
       const existingActions = container.getAll().filter((c: any) => c.name === 'actionText');
       existingActions.forEach((a: any) => a.destroy());
       
-      // 새 행동 표시
-      const baseYOffset = -70;
+      // 새 행동 표시 (스케일 적용)
+      const baseYOffset = -131;
       enemy.actionQueue.slice(0, 3).forEach((action, idx) => {
-        const currentYOffset = baseYOffset - (idx * 20);
+        const currentYOffset = baseYOffset - (idx * 38);
         const actionText = this.scene.add.text(0, currentYOffset, 
           `${enemy.emoji} ${action.name} (${action.currentDelay})`, {
-          font: 'bold 11px monospace',
+          font: 'bold 20px monospace',
           color: idx === 0 ? COLORS_STR.primary.dark : COLORS_STR.text.muted,
           backgroundColor: COLORS_STR.background.dark,
-          padding: { x: 4, y: 2 },
+          padding: { x: 8, y: 4 },
         }).setOrigin(0.5);
         actionText.name = 'actionText';
         
@@ -421,7 +421,7 @@ export class EnemyManager {
           
           // 툴팁 표시 (컨테이너의 월드 좌표 계산)
           const worldX = capturedContainer.x;
-          const worldY = capturedContainer.y + capturedYOffset - 40;
+          const worldY = capturedContainer.y + capturedYOffset - 75;
           this.showActionTooltip(capturedEnemy, capturedAction, worldX, worldY);
         });
         
@@ -477,7 +477,7 @@ export class EnemyManager {
       }
     }
     
-    // 배경
+    // 배경 (스케일)
     const lines = [
       `${enemy.emoji} ${enemy.name}`,
       `📌 ${action.name}`,
@@ -486,26 +486,26 @@ export class EnemyManager {
     ];
     if (effectText) lines.push(effectText);
     
-    const tooltipHeight = 20 + lines.length * 18;
-    const tooltipWidth = 180;
+    const tooltipHeight = 38 + lines.length * 34;
+    const tooltipWidth = 338;
     
     const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, COLORS.background.dark, 0.95);
-    bg.setStrokeStyle(2, COLORS.border.medium);
+    bg.setStrokeStyle(3, COLORS.border.medium);
     bg.setOrigin(0.5, 1);
     tooltip.add(bg);
     
-    // 텍스트들
-    let textY = -tooltipHeight + 14;
+    // 텍스트들 (스케일)
+    let textY = -tooltipHeight + 26;
     lines.forEach((line, idx) => {
       if (!line) return;
       const color = idx === 0 ? COLORS_STR.secondary.dark : idx === 1 ? COLORS_STR.primary.dark : COLORS_STR.text.primary;
       const text = this.scene.add.text(0, textY, line, {
-        font: idx < 2 ? 'bold 12px monospace' : '11px monospace',
+        font: idx < 2 ? 'bold 22px monospace' : '20px monospace',
         color: color,
-        wordWrap: { width: tooltipWidth - 16 },
+        wordWrap: { width: tooltipWidth - 30 },
       }).setOrigin(0.5, 0);
       tooltip.add(text);
-      textY += 18;
+      textY += 34;
     });
     
     this.actionTooltip = tooltip;

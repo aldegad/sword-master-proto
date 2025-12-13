@@ -24,6 +24,7 @@ export class TopUI {
   private scoreText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
+  private levelText!: Phaser.GameObjects.Text;
   
   constructor(scene: UIScene) {
     this.scene = scene;
@@ -37,37 +38,43 @@ export class TopUI {
   }
   
   private createHpBar() {
-    // HP 바 배경 (더 가늘게: 35 → 18)
-    const hpBg = this.scene.add.rectangle(20, 22, 280, 18, COLORS.background.dark).setOrigin(0);
-    hpBg.setStrokeStyle(1, COLORS.border.medium);
+    // HP 바 배경 (1920x1080 스케일)
+    const hpBg = this.scene.add.rectangle(38, 42, 525, 34, COLORS.background.dark).setOrigin(0);
+    hpBg.setStrokeStyle(2, COLORS.border.medium);
     
     // HP 바
     this.hpBar = this.scene.add.graphics();
     
     // HP 텍스트
-    this.hpText = this.scene.add.text(160, 31, '', {
-      font: 'bold 11px monospace',
+    this.hpText = this.scene.add.text(300, 58, '', {
+      font: 'bold 20px monospace',
       color: '#ffffff',
     }).setOrigin(0.5);
     
-    // HP 라벨
-    this.scene.add.text(20, 5, '❤ 체력', {
-      font: FONTS.button,
+    // HP 라벨 + LV (체력 옆으로 이동)
+    this.scene.add.text(38, 10, '❤ 체력', {
+      font: 'bold 22px monospace',
       color: COLORS_STR.secondary.main,
+    });
+    
+    // 레벨 표시 (체력 라벨 옆)
+    this.levelText = this.scene.add.text(170, 10, '', {
+      font: 'bold 22px monospace',
+      color: COLORS_STR.primary.dark,
     });
   }
   
   private createManaUI() {
-    this.scene.add.text(20, 48, '◈ 기력', {
-      font: FONTS.labelBold,
+    this.scene.add.text(38, 90, '◈ 기력', {
+      font: 'bold 20px monospace',
       color: COLORS_STR.primary.main,
     });
     
-    this.manaContainer = this.scene.add.container(105, 60);
+    this.manaContainer = this.scene.add.container(200, 112);
     
     for (let i = 0; i < GAME_CONSTANTS.MAX_MANA; i++) {
-      const orb = this.scene.add.circle(i * 24, 0, 9, COLORS.primary.main);
-      orb.setStrokeStyle(2, COLORS.primary.dark);
+      const orb = this.scene.add.circle(i * 45, 0, 17, COLORS.primary.main);
+      orb.setStrokeStyle(3, COLORS.primary.dark);
       this.manaOrbs.push(orb);
       this.manaContainer.add(orb);
     }
@@ -77,33 +84,36 @@ export class TopUI {
     const width = this.scene.cameras.main.width;
     
     // 웨이브 표시
-    this.waveText = this.scene.add.text(width / 2, 10, '', {
-      font: 'bold 27px monospace',
+    this.waveText = this.scene.add.text(width / 2, 20, '', {
+      font: 'bold 50px monospace',
       color: COLORS_STR.secondary.main,
     }).setOrigin(0.5, 0);
     
     // 페이즈 표시
-    this.phaseText = this.scene.add.text(width / 2, 42, '', {
-      font: FONTS.titleSmall,
+    this.phaseText = this.scene.add.text(width / 2, 78, '', {
+      font: 'bold 28px monospace',
       color: COLORS_STR.primary.main,
     }).setOrigin(0.5, 0);
     
     // 턴 표시
-    this.turnText = this.scene.add.text(width - 20, 10, '', {
-      font: FONTS.message,
+    this.turnText = this.scene.add.text(width - 38, 20, '', {
+      font: 'bold 28px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(1, 0);
     
     // 점수 표시
-    this.scoreText = this.scene.add.text(width - 20, 38, '', {
-      font: FONTS.button,
+    this.scoreText = this.scene.add.text(width - 38, 56, '', {
+      font: 'bold 22px monospace',
       color: COLORS_STR.primary.main,
     }).setOrigin(1, 0);
     
     // 스탯 표시 (버프만, 방어율은 SwordInfoUI에 표시)
-    this.statsText = this.scene.add.text(20, 235, '', {
-      font: FONTS.labelBold,
+    // 반투명 배경과 함께 아래로 배치
+    this.statsText = this.scene.add.text(38, 560, '', {
+      font: 'bold 20px monospace',
       color: COLORS_STR.text.muted,
+      backgroundColor: '#0a0a1580',  // 반투명 배경
+      padding: { x: 15, y: 8 },
     });
   }
   
@@ -118,7 +128,7 @@ export class TopUI {
     if (ratio < 0.25) color = COLORS.status.hp.low;
     
     this.hpBar.fillStyle(color);
-    this.hpBar.fillRect(22, 24, 276 * ratio, 14);  // 더 가늘게
+    this.hpBar.fillRect(42, 46, 517 * ratio, 26);  // 스케일 적용
     
     if (this.hpText) {
       this.hpText.setText(`${Math.max(0, player.hp)} / ${player.maxHp}`);
@@ -146,6 +156,10 @@ export class TopUI {
     
     this.updateHpBar();
     this.updateManaDisplay();
+    
+    // 레벨 표시 업데이트
+    const expNeeded = player.level * 50;
+    this.levelText.setText(`LV.${player.level} [${player.exp}/${expNeeded}]`);
     
     // 버프만 표시 (방어율은 SwordInfoUI에서 표시)
     let statsStr = '';

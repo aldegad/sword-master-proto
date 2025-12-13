@@ -18,33 +18,33 @@ export class SwordInfoUI {
   }
   
   private create() {
-    // 무기 정보 패널 (위로 올림: 125 → 85)
-    const infoPanel = this.scene.add.rectangle(20, 85, 260, 100, COLORS.background.dark, 0.95).setOrigin(0);
-    infoPanel.setStrokeStyle(2, COLORS.border.medium);
+    // 무기 정보 패널 (1920x1080 스케일)
+    const infoPanel = this.scene.add.rectangle(38, 160, 488, 188, COLORS.background.dark, 0.95).setOrigin(0);
+    infoPanel.setStrokeStyle(3, COLORS.border.medium);
     
-    this.scene.add.text(30, 92, '◈ 장착 무기', {
-      font: 'bold 14px monospace',
+    this.scene.add.text(56, 172, '◈ 장착 무기', {
+      font: 'bold 26px monospace',
       color: COLORS_STR.secondary.main,
     });
     
-    this.swordEmoji = this.scene.add.text(230, 135, '', {
-      font: '40px Arial',
+    this.swordEmoji = this.scene.add.text(432, 253, '', {
+      font: '75px Arial',
     }).setOrigin(0.5);
     
-    this.swordInfoText = this.scene.add.text(30, 112, '', {
-      font: '12px monospace',
+    this.swordInfoText = this.scene.add.text(56, 210, '', {
+      font: '22px monospace',
       color: COLORS_STR.text.secondary,
-      lineSpacing: 4,
+      lineSpacing: 8,
     });
     
-    // 덱 정보 패널 (위로 올림)
-    const deckPanel = this.scene.add.rectangle(20, 190, 260, 40, COLORS.background.dark, 0.95).setOrigin(0);
-    deckPanel.setStrokeStyle(1, COLORS.border.dark);
-    
-    this.deckText = this.scene.add.text(30, 200, '', {
-      font: 'bold 12px monospace',
+    // 덱 정보 - 손패 우측 하단에 배치
+    const width = this.scene.cameras.main.width;
+    const height = this.scene.cameras.main.height;
+    this.deckText = this.scene.add.text(width - 56, height - 34, '', {
+      font: 'bold 26px monospace',
       color: COLORS_STR.text.muted,
-    });
+    }).setOrigin(1, 0);
+    this.deckText.setDepth(100);  // 손패 배경보다 앞으로
   }
   
   update() {
@@ -83,9 +83,7 @@ export class SwordInfoUI {
   
   private updateDeckInfo() {
     const player = this.scene.gameScene.playerState;
-    const expNeeded = player.level * 50;
-    this.deckText.setText(
-      `LV.${player.level} [${player.exp}/${expNeeded}]  DECK:${player.deck.length} GRAVE:${player.discard.length}`
-    );
+    // 덱 정보만 표시 (LV은 TopUI로 이동)
+    this.deckText.setText(`📚 DECK: ${player.deck.length}`);
   }
 }

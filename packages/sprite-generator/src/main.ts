@@ -1,11 +1,38 @@
 import { VideoProcessor, type ExtractedFrame } from './lib/video-processor';
 import { SpriteGenerator, type SpriteSheetMetadata } from './lib/sprite-generator';
 import { BackgroundRemover } from './lib/background-remover';
+import { SpriteImporter } from './lib/sprite-importer';
 
 // DOM Elements
 const videoInput = document.getElementById('video-input') as HTMLInputElement;
 const uploadArea = document.getElementById('upload-area') as HTMLDivElement;
 const videoPreview = document.getElementById('video-preview') as HTMLVideoElement;
+
+// 모드 선택 탭
+const modeVideoTab = document.getElementById('mode-video-tab') as HTMLButtonElement;
+const modeSpriteTab = document.getElementById('mode-sprite-tab') as HTMLButtonElement;
+
+// 스프라이트 업로드 관련
+const stepSpriteUpload = document.getElementById('step-sprite-upload') as HTMLElement;
+const spriteUploadArea = document.getElementById('sprite-upload-area') as HTMLDivElement;
+const spriteInput = document.getElementById('sprite-input') as HTMLInputElement;
+const jsonUploadArea = document.getElementById('json-upload-area') as HTMLDivElement;
+const jsonInput = document.getElementById('json-input') as HTMLInputElement;
+const spritePreviewContainer = document.getElementById('sprite-preview-container') as HTMLDivElement;
+const spritePreview = document.getElementById('sprite-preview') as HTMLImageElement;
+const spritePreviewInfo = document.getElementById('sprite-preview-info') as HTMLDivElement;
+
+// 스프라이트 설정 관련
+const stepSpriteConfig = document.getElementById('step-sprite-config') as HTMLElement;
+const frameSuggestions = document.getElementById('frame-suggestions') as HTMLDivElement;
+const suggestionsList = document.getElementById('suggestions-list') as HTMLDivElement;
+const spriteFrameWidth = document.getElementById('sprite-frame-width') as HTMLInputElement;
+const spriteFrameHeight = document.getElementById('sprite-frame-height') as HTMLInputElement;
+const spriteColumns = document.getElementById('sprite-columns') as HTMLInputElement;
+const spriteRows = document.getElementById('sprite-rows') as HTMLInputElement;
+const spriteTotalFrames = document.getElementById('sprite-total-frames') as HTMLInputElement;
+const spriteStartIndex = document.getElementById('sprite-start-index') as HTMLInputElement;
+const splitSpriteBtn = document.getElementById('split-sprite-btn') as HTMLButtonElement;
 
 const stepExtract = document.getElementById('step-extract') as HTMLElement;
 const fpsInput = document.getElementById('fps') as HTMLInputElement;
@@ -44,12 +71,15 @@ const progressFill = document.getElementById('progress-fill') as HTMLDivElement;
 let videoProcessor: VideoProcessor | null = null;
 let spriteGenerator: SpriteGenerator | null = null;
 let backgroundRemover: BackgroundRemover | null = null;
+let spriteImporter: SpriteImporter | null = null;
 let extractedFrames: ExtractedFrame[] = [];
 let disabledFrames: Set<number> = new Set(); // 비활성화된 프레임 인덱스
 let disabledReverseFrames: Set<number> = new Set(); // 비활성화된 역방향 프레임 인덱스
 let frameOffsets: Map<number, { x: number; y: number }> = new Map(); // 프레임별 오프셋
 let reverseFrameOffsets: Map<number, { x: number; y: number }> = new Map(); // 역방향 프레임별 오프셋
 let currentMetadata: SpriteSheetMetadata | null = null;
+let loadedSpriteMetadata: SpriteSheetMetadata | null = null;
+let currentMode: 'video' | 'sprite' = 'video';
 
 // 애니메이션 미리보기 상태
 let isPlaying = false;
@@ -62,12 +92,17 @@ function init() {
   videoProcessor = new VideoProcessor();
   spriteGenerator = new SpriteGenerator();
   backgroundRemover = new BackgroundRemover();
+  spriteImporter = new SpriteImporter();
 
   setupEventListeners();
 }
 
 function setupEventListeners() {
-  // 드래그 앤 드롭
+  // 모드 탭 전환
+  modeVideoTab.addEventListener('click', () => switchMode('video'));
+  modeSpriteTab.addEventListener('click', () => switchMode('sprite'));
+
+  // 드래그 앤 드롭 (동영상)
   uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.classList.add('dragover');
@@ -86,13 +121,70 @@ function setupEventListeners() {
     }
   });
 
-  // 파일 선택
+  // 파일 선택 (동영상)
   videoInput.addEventListener('change', () => {
     const file = videoInput.files?.[0];
     if (file) {
       handleVideoFile(file);
     }
   });
+
+  // 스프라이트 업로드 - 드래그 앤 드롭
+  spriteUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    spriteUploadArea.classList.add('dragover');
+  });
+
+  spriteUploadArea.addEventListener('dragleave', () => {
+    spriteUploadArea.classList.remove('dragover');
+  });
+
+  spriteUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    spriteUploadArea.classList.remove('dragover');
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      handleSpriteFile(files[0]);
+    }
+  });
+
+  // 스프라이트 파일 선택
+  spriteInput.addEventListener('change', () => {
+    const file = spriteInput.files?.[0];
+    if (file) {
+      handleSpriteFile(file);
+    }
+  });
+
+  // JSON 업로드 - 드래그 앤 드롭
+  jsonUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    jsonUploadArea.classList.add('dragover');
+  });
+
+  jsonUploadArea.addEventListener('dragleave', () => {
+    jsonUploadArea.classList.remove('dragover');
+  });
+
+  jsonUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    jsonUploadArea.classList.remove('dragover');
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      handleJsonFile(files[0]);
+    }
+  });
+
+  // JSON 파일 선택
+  jsonInput.addEventListener('change', () => {
+    const file = jsonInput.files?.[0];
+    if (file) {
+      handleJsonFile(file);
+    }
+  });
+
+  // 스프라이트 분할
+  splitSpriteBtn.addEventListener('click', handleSplitSprite);
 
   // 프레임 추출
   extractBtn.addEventListener('click', handleExtractFrames);
@@ -594,6 +686,180 @@ function updateProgress(text: string, progress: number) {
 function hideProgress() {
   progressOverlay.hidden = true;
   progressFill.style.width = '0%';
+}
+
+// ========== 모드 전환 ==========
+
+function switchMode(mode: 'video' | 'sprite') {
+  currentMode = mode;
+
+  // 탭 활성화 상태 업데이트
+  modeVideoTab.classList.toggle('active', mode === 'video');
+  modeSpriteTab.classList.toggle('active', mode === 'sprite');
+
+  // 관련 섹션 표시/숨김
+  const stepUpload = document.getElementById('step-upload') as HTMLElement;
+  const stepExtract = document.getElementById('step-extract') as HTMLElement;
+
+  if (mode === 'video') {
+    stepUpload.hidden = false;
+    stepSpriteUpload.hidden = true;
+    stepSpriteConfig.hidden = true;
+  } else {
+    stepUpload.hidden = true;
+    stepExtract.hidden = true;
+    stepSpriteUpload.hidden = false;
+    // 이미지가 로드되어 있으면 설정 패널도 표시
+    if (spriteImporter && spritePreviewContainer.hidden === false) {
+      stepSpriteConfig.hidden = false;
+    }
+  }
+
+  // 미리보기 초기화
+  stepPreview.hidden = true;
+  stepResult.hidden = true;
+}
+
+// ========== 스프라이트 시트 처리 ==========
+
+async function handleSpriteFile(file: File) {
+  if (!file.type.startsWith('image/')) {
+    alert('이미지 파일만 업로드할 수 있습니다.');
+    return;
+  }
+
+  try {
+    showProgress('스프라이트 시트 로딩 중...');
+
+    await spriteImporter!.loadImage(file);
+    const info = spriteImporter!.getImageInfo();
+
+    // 미리보기 표시
+    spritePreview.src = URL.createObjectURL(file);
+    spritePreviewInfo.textContent = `크기: ${info.width} x ${info.height} px`;
+    spritePreviewContainer.hidden = false;
+    spriteUploadArea.classList.add('has-file');
+
+    // 프레임 크기 추천
+    const suggestions = spriteImporter!.estimateFrameSize();
+    if (suggestions.length > 0) {
+      renderSuggestions(suggestions);
+      frameSuggestions.hidden = false;
+
+      // 첫 번째 추천값으로 설정
+      const first = suggestions[0];
+      spriteFrameWidth.value = first.width.toString();
+      spriteFrameHeight.value = first.height.toString();
+    } else {
+      frameSuggestions.hidden = true;
+    }
+
+    // 설정 패널 표시
+    stepSpriteConfig.hidden = false;
+
+    hideProgress();
+  } catch (error) {
+    hideProgress();
+    alert('이미지 로드 실패: ' + (error as Error).message);
+  }
+}
+
+async function handleJsonFile(file: File) {
+  try {
+    showProgress('JSON 메타데이터 로딩 중...');
+
+    loadedSpriteMetadata = await spriteImporter!.loadMetadata(file);
+    jsonUploadArea.classList.add('has-file');
+
+    // 메타데이터에서 프레임 정보 추출하여 설정
+    if (loadedSpriteMetadata.meta) {
+      spriteFrameWidth.value = loadedSpriteMetadata.meta.frameWidth.toString();
+      spriteFrameHeight.value = loadedSpriteMetadata.meta.frameHeight.toString();
+      spriteColumns.value = loadedSpriteMetadata.meta.columns.toString();
+      spriteRows.value = loadedSpriteMetadata.meta.rows.toString();
+      spriteTotalFrames.value = loadedSpriteMetadata.meta.totalFrames.toString();
+    }
+
+    hideProgress();
+    alert('JSON 메타데이터가 로드되었습니다. 프레임 분할 버튼을 클릭하세요.');
+  } catch (error) {
+    hideProgress();
+    alert('JSON 로드 실패: ' + (error as Error).message);
+  }
+}
+
+function renderSuggestions(suggestions: { width: number; height: number; columns: number; rows: number }[]) {
+  suggestionsList.innerHTML = '';
+
+  suggestions.forEach((s) => {
+    const btn = document.createElement('button');
+    btn.className = 'suggestion-btn';
+    btn.innerHTML = `<span class="size">${s.width}x${s.height}</span><span class="grid">(${s.columns}열 x ${s.rows}행)</span>`;
+    btn.addEventListener('click', () => {
+      spriteFrameWidth.value = s.width.toString();
+      spriteFrameHeight.value = s.height.toString();
+      spriteColumns.value = s.columns.toString();
+      spriteRows.value = s.rows.toString();
+    });
+    suggestionsList.appendChild(btn);
+  });
+}
+
+async function handleSplitSprite() {
+  try {
+    showProgress('프레임 분할 중...', 0);
+
+    // JSON 메타데이터가 있으면 사용, 없으면 수동 설정 사용
+    if (loadedSpriteMetadata && loadedSpriteMetadata.frames.length > 0) {
+      extractedFrames = spriteImporter!.extractFramesFromMetadata(
+        loadedSpriteMetadata,
+        (progress, current, total) => {
+          updateProgress(`프레임 분할 중... (${current}/${total})`, progress);
+        }
+      );
+    } else {
+      const options = {
+        frameWidth: parseInt(spriteFrameWidth.value) || 64,
+        frameHeight: parseInt(spriteFrameHeight.value) || 64,
+        columns: parseInt(spriteColumns.value) || undefined,
+        rows: parseInt(spriteRows.value) || undefined,
+        totalFrames: parseInt(spriteTotalFrames.value) || undefined,
+        startIndex: parseInt(spriteStartIndex.value) || 0,
+      };
+
+      extractedFrames = spriteImporter!.extractFramesManual(
+        options,
+        (progress, current, total) => {
+          updateProgress(`프레임 분할 중... (${current}/${total})`, progress);
+        }
+      );
+    }
+
+    if (extractedFrames.length === 0) {
+      hideProgress();
+      alert('프레임을 분할할 수 없습니다. 설정을 확인해주세요.');
+      return;
+    }
+
+    // 비활성화 목록 및 오프셋 초기화
+    disabledFrames.clear();
+    disabledReverseFrames.clear();
+    frameOffsets.clear();
+    reverseFrameOffsets.clear();
+
+    // 프레임 미리보기 렌더링
+    renderFramesPreviews();
+    initPreviewCanvas();
+
+    stepPreview.hidden = false;
+    hideProgress();
+
+    // 미리보기로 스크롤
+    stepPreview.scrollIntoView({ behavior: 'smooth' });
+  } catch (error) {
+    hideProgress();
+    alert('프레임 분할 실패: ' + (error as Error).message);
+  }
 }
 
 // Start
