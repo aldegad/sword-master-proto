@@ -1,0 +1,177 @@
+import Phaser from 'phaser';
+import type { UIScene } from '../scenes/UIScene';
+import { GAME_CONSTANTS } from '../types';
+
+/**
+ * 상단 UI - HP바, 마나, 턴/웨이브/점수 표시
+ */
+export class TopUI {
+  private scene: UIScene;
+  
+  // HP UI
+  private hpBar!: Phaser.GameObjects.Graphics;
+  private hpText!: Phaser.GameObjects.Text;
+  
+  // 마나 UI
+  private manaContainer!: Phaser.GameObjects.Container;
+  private manaOrbs: Phaser.GameObjects.Arc[] = [];
+  
+  // 상태 텍스트
+  private statsText!: Phaser.GameObjects.Text;
+  private turnText!: Phaser.GameObjects.Text;
+  private scoreText!: Phaser.GameObjects.Text;
+  private waveText!: Phaser.GameObjects.Text;
+  private phaseText!: Phaser.GameObjects.Text;
+  
+  constructor(scene: UIScene) {
+    this.scene = scene;
+    this.create();
+  }
+  
+  private create() {
+    this.createHpBar();
+    this.createManaUI();
+    this.createStatusTexts();
+  }
+  
+  private createHpBar() {
+    // HP 바 배경
+    const hpBg = this.scene.add.rectangle(20, 25, 280, 35, 0x333333).setOrigin(0);
+    hpBg.setStrokeStyle(3, 0xffffff);
+    
+    // HP 바
+    this.hpBar = this.scene.add.graphics();
+    
+    // HP 텍스트
+    this.hpText = this.scene.add.text(160, 42, '', {
+      font: 'bold 18px monospace',
+      color: '#ffffff',
+    }).setOrigin(0.5);
+    
+    // HP 라벨
+    this.scene.add.text(20, 5, '❤️ HP', {
+      font: 'bold 16px monospace',
+      color: '#e94560',
+    });
+  }
+  
+  private createManaUI() {
+    this.scene.add.text(20, 68, '💧 MANA', {
+      font: 'bold 14px monospace',
+      color: '#4dabf7',
+    });
+    
+    this.manaContainer = this.scene.add.container(100, 82);
+    
+    for (let i = 0; i < GAME_CONSTANTS.MAX_MANA; i++) {
+      const orb = this.scene.add.circle(i * 24, 0, 9, 0x4dabf7);
+      orb.setStrokeStyle(2, 0xffffff);
+      this.manaOrbs.push(orb);
+      this.manaContainer.add(orb);
+    }
+  }
+  
+  private createStatusTexts() {
+    const width = this.scene.cameras.main.width;
+    
+    // 웨이브 표시
+    this.waveText = this.scene.add.text(width / 2, 10, '', {
+      font: 'bold 28px monospace',
+      color: '#ffcc00',
+    }).setOrigin(0.5, 0);
+    
+    // 페이즈 표시
+    this.phaseText = this.scene.add.text(width / 2, 45, '', {
+      font: 'bold 20px monospace',
+      color: '#4ecca3',
+    }).setOrigin(0.5, 0);
+    
+    // 턴 표시
+    this.turnText = this.scene.add.text(width - 20, 10, '', {
+      font: 'bold 22px monospace',
+      color: '#ffcc00',
+    }).setOrigin(1, 0);
+    
+    // 점수 표시
+    this.scoreText = this.scene.add.text(width - 20, 40, '', {
+      font: 'bold 18px monospace',
+      color: '#4ecca3',
+    }).setOrigin(1, 0);
+    
+    // 스탯 표시
+    this.statsText = this.scene.add.text(20, 100, '', {
+      font: 'bold 14px monospace',
+      color: '#aaaaaa',
+    });
+  }
+  
+  updateHpBar() {
+    const player = this.scene.gameScene.playerState;
+    const ratio = Math.max(0, player.hp) / player.maxHp;
+    
+    this.hpBar.clear();
+    
+    let color = 0x4ecca3;
+    if (ratio < 0.5) color = 0xffcc00;
+    if (ratio < 0.25) color = 0xe94560;
+    
+    this.hpBar.fillStyle(color);
+    this.hpBar.fillRect(23, 28, 274 * ratio, 29);
+    
+    if (this.hpText) {
+      this.hpText.setText(`${Math.max(0, player.hp)} / ${player.maxHp}`);
+    }
+  }
+  
+  updateManaDisplay() {
+    const mana = this.scene.gameScene.playerState.mana;
+    const maxMana = this.scene.gameScene.playerState.maxMana;
+    
+    this.manaOrbs.forEach((orb, idx) => {
+      if (idx < maxMana) {
+        orb.setVisible(true);
+        orb.setFillStyle(idx < mana ? 0x4dabf7 : 0x333333);
+      } else {
+        orb.setVisible(false);
+      }
+    });
+  }
+  
+  updateStats() {
+    const player = this.scene.gameScene.playerState;
+    const game = this.scene.gameScene.gameState;
+    
+    this.updateHpBar();
+    this.updateManaDisplay();
+    
+    let statsStr = '';
+    // 방어율 표시 (검의 방어력 = 방어율%)
+    if (player.currentSword && player.currentSword.defense > 0) {
+      let totalParryRate = player.currentSword.defense;
+      // 방어 버프 추가
+      player.buffs.forEach(b => {
+        if (b.type === 'defense') totalParryRate += b.value;
+      });
+      statsStr += `🛡 방어율: ${totalParryRate}%  `;
+    }
+    // 방어 외 버프만 표시
+    const otherBuffs = player.buffs.filter(b => b.type !== 'defense');
+    if (otherBuffs.length > 0) {
+      statsStr += `✨ ${otherBuffs.map(b => b.name).join(', ')}`;
+    }
+    this.statsText.setText(statsStr);
+    
+    this.waveText.setText(`⚔️ 웨이브 ${game.currentWave}`);
+    this.turnText.setText(`턴 ${game.turn}`);
+    this.scoreText.setText(`🏆 ${game.score}`);
+    
+    const phaseText: Record<string, string> = {
+      running: '🏃 이동중...',
+      combat: '⚔️ 전투중!',
+      victory: '🎉 승리!',
+      paused: '⏸️ 일시정지',
+      gameOver: '💀 게임오버',
+    };
+    this.phaseText.setText(phaseText[game.phase] || '');
+  }
+}

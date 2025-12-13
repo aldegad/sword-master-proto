@@ -1,0 +1,360 @@
+import type { GameScene } from '../scenes/GameScene';
+
+/**
+ * 애니메이션 헬퍼 - 모든 애니메이션 효과 담당
+ */
+export class AnimationHelper {
+  private scene: GameScene;
+  
+  constructor(scene: GameScene) {
+    this.scene = scene;
+  }
+  
+  // ========== 플레이어 애니메이션 ==========
+  
+  playerAttack() {
+    this.scene.tweens.add({
+      targets: this.scene.playerSprite,
+      x: this.scene.PLAYER_X + 40,
+      duration: 100,
+      yoyo: true,
+      ease: 'Power2',
+    });
+  }
+  
+  playerHit() {
+    this.scene.tweens.add({
+      targets: this.scene.playerSprite,
+      x: this.scene.PLAYER_X - 15,
+      duration: 50,
+      yoyo: true,
+      repeat: 2,
+    });
+    
+    this.scene.cameras.main.shake(100, 0.01);
+  }
+  
+  // ========== 데미지 숫자 ==========
+  
+  showDamageNumber(x: number, y: number, damage: number, color: number) {
+    const prefix = color === 0x4ecca3 ? '+' : '-';
+    const text = this.scene.add.text(x, y, `${prefix}${Math.floor(damage)}`, {
+      font: 'bold 20px monospace',
+      color: `#${color.toString(16).padStart(6, '0')}`,
+    }).setOrigin(0.5);
+    
+    this.scene.tweens.add({
+      targets: text,
+      y: y - 50,
+      alpha: 0,
+      duration: 800,
+      onComplete: () => text.destroy(),
+    });
+  }
+  
+  // ========== 메시지 ==========
+  
+  showMessage(msg: string, color: number) {
+    const text = this.scene.add.text(
+      this.scene.cameras.main.width / 2,
+      150,
+      msg,
+      {
+        font: 'bold 24px monospace',
+        color: `#${color.toString(16).padStart(6, '0')}`,
+      }
+    ).setOrigin(0.5);
+    
+    this.scene.tweens.add({
+      targets: text,
+      y: 100,
+      alpha: 0,
+      duration: 1200,
+      onComplete: () => text.destroy(),
+    });
+  }
+  
+  // ========== 방어 이펙트 ==========
+  
+  /**
+   * 적 스킬 이름을 화면 중앙에 크게 표시
+   * @returns Promise - 표시 완료 후 resolve
+   */
+  showEnemySkillName(enemyName: string, skillName: string, skillEmoji: string): Promise<void> {
+    return new Promise((resolve) => {
+      const centerX = this.scene.cameras.main.width / 2;
+      const centerY = this.scene.cameras.main.height / 2 - 50;
+      
+      // 배경 어둡게
+      const overlay = this.scene.add.rectangle(
+        centerX,
+        centerY,
+        400,
+        100,
+        0x000000,
+        0.7
+      ).setOrigin(0.5);
+      overlay.setDepth(1000);
+      
+      // 테두리
+      overlay.setStrokeStyle(3, 0xe94560);
+      
+      // 적 이름 + 스킬 이름
+      const text = this.scene.add.text(
+        centerX,
+        centerY,
+        `${skillEmoji} ${enemyName}의 ${skillName}!`,
+        {
+          font: 'bold 28px monospace',
+          color: '#e94560',
+        }
+      ).setOrigin(0.5);
+      text.setDepth(1001);
+      
+      // 등장 애니메이션
+      overlay.setScale(0.5);
+      overlay.setAlpha(0);
+      text.setScale(0.5);
+      text.setAlpha(0);
+      
+      this.scene.tweens.add({
+        targets: [overlay, text],
+        scale: 1,
+        alpha: 1,
+        duration: 200,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          // 잠시 유지 후 사라짐
+          this.scene.time.delayedCall(600, () => {
+            this.scene.tweens.add({
+              targets: [overlay, text],
+              alpha: 0,
+              y: centerY - 30,
+              duration: 300,
+              onComplete: () => {
+                overlay.destroy();
+                text.destroy();
+                resolve();
+              },
+            });
+          });
+        },
+      });
+    });
+  }
+  
+  /**
+   * 적 스킬 사용 시 대기 표시에서 스킬이 사라지는 애니메이션
+   */
+  showEnemySkillUsed(enemyX: number, enemyY: number, skillName: string, emoji: string) {
+    // 적 머리 위에서 스킬 이름이 슉~ 하고 날아감
+    const skillText = this.scene.add.text(enemyX, enemyY - 80, `${emoji} ${skillName}`, {
+      font: 'bold 16px monospace',
+      color: '#ffcc00',
+      backgroundColor: '#1a1a2e',
+      padding: { x: 6, y: 3 },
+    }).setOrigin(0.5);
+    skillText.setDepth(500);
+    
+    // 위로 올라가며 사라짐
+    this.scene.tweens.add({
+      targets: skillText,
+      y: enemyY - 150,
+      alpha: 0,
+      scale: 1.3,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => skillText.destroy(),
+    });
+  }
+  
+  /**
+   * 무기 카드 장착 애니메이션 - 적에게 날아가서 때리고 플레이어에게 돌아옴 (발도!)
+   */
+  cardToPlayer(startX: number, startY: number, targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
+    return new Promise((resolve) => {
+      const playerX = this.scene.PLAYER_X;
+      const playerY = this.scene.GROUND_Y - 60;
+      
+      // 카드 모양 컨테이너
+      const card = this.scene.add.container(startX, startY);
+      card.setDepth(2000);
+      
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x2d3436, 0.95);
+      bg.setStrokeStyle(3, 0xe94560);
+      
+      const emojiText = this.scene.add.text(0, -15, emoji, {
+        font: '32px Arial',
+      }).setOrigin(0.5);
+      
+      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
+        font: 'bold 12px monospace',
+        color: '#e94560',
+      }).setOrigin(0.5);
+      
+      card.add([bg, emojiText, nameText]);
+      
+      // 1단계: 적에게 날아감 (발도 공격!)
+      this.scene.tweens.add({
+        targets: card,
+        x: targetX,
+        y: targetY - 30,
+        scale: 0.6,
+        rotation: Math.PI,
+        duration: 250,
+        ease: 'Power3',
+        onComplete: () => {
+          // 임팩트 효과
+          const impact = this.scene.add.text(targetX, targetY - 30, '⚔️💥', {
+            font: '48px Arial',
+          }).setOrigin(0.5);
+          impact.setDepth(2001);
+          
+          this.scene.tweens.add({
+            targets: impact,
+            scale: 1.5,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => impact.destroy(),
+          });
+          
+          // 2단계: 플레이어에게 돌아옴 (장착)
+          this.scene.tweens.add({
+            targets: card,
+            x: playerX,
+            y: playerY,
+            scale: 0.4,
+            rotation: Math.PI * 2,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              // 장착 효과
+              const flash = this.scene.add.text(playerX, playerY, '✨', {
+                font: '40px Arial',
+              }).setOrigin(0.5);
+              flash.setDepth(2001);
+              
+              this.scene.tweens.add({
+                targets: flash,
+                scale: 2,
+                alpha: 0,
+                duration: 400,
+                onComplete: () => flash.destroy(),
+              });
+              
+              card.destroy();
+              resolve();
+            },
+          });
+        },
+      });
+    });
+  }
+  
+  /**
+   * 스킬 카드 사용 애니메이션 - 카드가 적에게 날아감
+   */
+  cardToEnemy(startX: number, startY: number, targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
+    return new Promise((resolve) => {
+      // 카드 모양 컨테이너
+      const card = this.scene.add.container(startX, startY);
+      card.setDepth(2000);
+      
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1a2e, 0.95);
+      bg.setStrokeStyle(3, 0x4ecca3);
+      
+      const emojiText = this.scene.add.text(0, -15, emoji, {
+        font: '32px Arial',
+      }).setOrigin(0.5);
+      
+      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
+        font: 'bold 12px monospace',
+        color: '#4ecca3',
+      }).setOrigin(0.5);
+      
+      card.add([bg, emojiText, nameText]);
+      
+      // 적에게 날아가는 애니메이션
+      this.scene.tweens.add({
+        targets: card,
+        x: targetX,
+        y: targetY - 30,
+        scale: 0.3,
+        duration: 300,
+        ease: 'Power3',
+        onComplete: () => {
+          // 임팩트 효과
+          const impact = this.scene.add.text(targetX, targetY - 30, '💥', {
+            font: '48px Arial',
+          }).setOrigin(0.5);
+          impact.setDepth(2001);
+          
+          this.scene.tweens.add({
+            targets: impact,
+            scale: 1.5,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => impact.destroy(),
+          });
+          
+          card.destroy();
+          resolve();
+        },
+      });
+    });
+  }
+  
+  showParryEffect() {
+    // 화면 전체 파란색 플래시
+    const flash = this.scene.add.rectangle(
+      this.scene.cameras.main.width / 2,
+      this.scene.cameras.main.height / 2,
+      this.scene.cameras.main.width,
+      this.scene.cameras.main.height,
+      0x4ecca3,
+      0.4
+    );
+    
+    this.scene.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => flash.destroy(),
+    });
+    
+    // 방패 이모지 이펙트
+    const shield = this.scene.add.text(
+      this.scene.PLAYER_X + 50,
+      this.scene.GROUND_Y - 80,
+      '🛡️',
+      { font: '48px Arial' }
+    ).setOrigin(0.5);
+    
+    this.scene.tweens.add({
+      targets: shield,
+      scale: 1.5,
+      alpha: 0,
+      y: this.scene.GROUND_Y - 130,
+      duration: 500,
+      ease: 'Power2',
+      onComplete: () => shield.destroy(),
+    });
+    
+    // 검이 빛나는 효과
+    const sparkle = this.scene.add.text(
+      this.scene.PLAYER_X,
+      this.scene.GROUND_Y - 60,
+      '✨',
+      { font: '32px Arial' }
+    ).setOrigin(0.5);
+    
+    this.scene.tweens.add({
+      targets: sparkle,
+      rotation: Math.PI * 2,
+      scale: 0,
+      duration: 400,
+      onComplete: () => sparkle.destroy(),
+    });
+  }
+}
+
