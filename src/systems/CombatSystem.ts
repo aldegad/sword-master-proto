@@ -17,7 +17,14 @@ export class CombatSystem {
     const sword = this.scene.playerState.currentSword;
     if (!sword) return;
     
+    // 타수 계산: 무기 타수 × 스킬 타수배율
+    const totalHits = sword.attackCount * skill.attackCount;
+    
+    // 범위 결정: 스킬이 'single'이면 무기 범위, 아니면 스킬 범위
+    const reach = skill.reach === 'single' ? sword.reach : skill.reach;
+    
     // 강타 (카운트 공격) - 바로 공격하지 않고 countEffects에 추가
+    // 내구도는 발동 시 소모 (중간에 무기 교체 가능)
     if (skill.effect?.type === 'chargeAttack') {
       const duration = skill.effect.duration || 1;
       
@@ -30,13 +37,14 @@ export class CombatSystem {
         isNew: true,
         data: {
           attackMultiplier: skill.attackMultiplier,
-          attackCount: skill.attackCount,
-          reach: skill.reach,
+          skillAttackCount: skill.attackCount,  // 스킬 타수배율만 저장 (발동 시 현재 무기로 계산)
+          reach: skill.reach,                    // 스킬 범위 (발동 시 현재 무기로 결정)
           targetId: targetEnemy?.id,
         },
       });
       
       this.scene.animationHelper.showMessage(`${skill.emoji} ${skill.name} 준비! (${duration}대기)`, 0xffcc00);
+      // 내구도는 발동 시 소모
       return;  // 바로 공격하지 않음
     }
     
@@ -54,11 +62,9 @@ export class CombatSystem {
     });
     
     const baseDamage = (sword.attack + attackBonus) * (skill.attackMultiplier + multiplierBonus);
-    const totalHits = sword.attackCount + skill.attackCount;
     
     // 타겟 선정
     let targets: Enemy[];
-    const reach = this.combineReach(sword.reach, skill.reach);
     
     if (targetEnemy) {
       if (reach === 'single') {
@@ -72,27 +78,48 @@ export class CombatSystem {
     
     this.scene.animationHelper.playerAttack();
     
-    // 데미지 적용
+    // 내구도 소모: 타수만큼 (부족하면 가능한 만큼만)
+    const actualHits = this.consumeDurabilityAndGetHits(totalHits);
+    
+    // 내구도 부족으로 공격 불가
+    if (actualHits <= 0) {
+      this.scene.animationHelper.showMessage('무기가 부서졌다!', 0xc44536);
+      return;
+    }
+    
+    // 데미지 계산 및 즉시 적용 (적이 죽으면 행동 못하도록)
     targets.forEach(enemy => {
-      for (let i = 0; i < totalHits; i++) {
-        this.scene.time.delayedCall(i * 100, () => {
-          let damage = baseDamage;
-          
-          // 관통 효과
-          if (skill.effect?.type === 'pierce') {
-            damage = baseDamage - (enemy.defense * (1 - skill.effect.value));
-          } else {
-            damage = Math.max(1, baseDamage - enemy.defense);
+      let damage = baseDamage;
+      
+      // 관통 효과
+      if (skill.effect?.type === 'pierce') {
+        damage = baseDamage - (enemy.defense * (1 - skill.effect.value));
+      } else {
+        damage = Math.max(1, baseDamage - enemy.defense);
+      }
+      
+      // 총 데미지 = 타격당 데미지 × 실제 타수
+      const totalDamage = damage * actualHits;
+      
+      // 흡혈 효과
+      if (skill.effect?.type === 'lifesteal') {
+        const heal = Math.floor(totalDamage * skill.effect.value);
+        this.scene.playerState.hp = Math.min(this.scene.playerState.maxHp, this.scene.playerState.hp + heal);
+        this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, heal, 0x4a7c59);
+      }
+      
+      // 데미지 즉시 적용 (적 HP 감소 및 사망 처리)
+      this.damageEnemy(enemy, totalDamage);
+      
+      // 시각적 효과: 타수만큼 데미지 숫자 표시 (비동기) - 천천히 따닥 느낌
+      for (let i = 1; i < actualHits; i++) {
+        this.scene.time.delayedCall(i * 250, () => {
+          if (enemy.hp > 0) {
+            const sprite = this.scene.enemySprites.get(enemy.id);
+            if (sprite) {
+              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), 0xff6b6b);
+            }
           }
-          
-          // 흡혈 효과
-          if (skill.effect?.type === 'lifesteal') {
-            const heal = Math.floor(damage * skill.effect.value);
-            this.scene.playerState.hp = Math.min(this.scene.playerState.maxHp, this.scene.playerState.hp + heal);
-            this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, heal, 0x4ecca3);
-          }
-          
-          this.damageEnemy(enemy, damage);
         });
       }
       
@@ -114,6 +141,31 @@ export class CombatSystem {
     this.scene.playerState.buffs = this.scene.playerState.buffs.filter(b => b.id !== 'focus');
   }
   
+  /**
+   * 내구도 소모 및 실제 타격 가능 횟수 반환
+   * 내구도가 부족하면 가능한 만큼만 타격하고 무기 파괴
+   */
+  private consumeDurabilityAndGetHits(requestedHits: number): number {
+    const sword = this.scene.playerState.currentSword;
+    if (!sword) return 0;
+    
+    // 실제 타격 가능 횟수 = 내구도와 요청 타수 중 작은 값
+    const actualHits = Math.min(sword.currentDurability, requestedHits);
+    
+    if (actualHits <= 0) return 0;
+    
+    sword.currentDurability -= actualHits;
+    this.scene.updatePlayerWeaponDisplay();
+    
+    if (sword.currentDurability <= 0) {
+      this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, 0xc44536);
+      this.scene.playerState.currentSword = null;
+      this.scene.updatePlayerWeaponDisplay();
+    }
+    
+    return actualHits;
+  }
+  
   executeDefense(skill: SkillCard) {
     const sword = this.scene.playerState.currentSword;
     
@@ -132,7 +184,7 @@ export class CombatSystem {
           value: bonusRate,
           duration: 1,
         });
-        this.scene.animationHelper.showMessage(`🛡️ 반격 준비! 방어율 +${bonusRate}%!`, 0x4ecca3);
+        this.scene.animationHelper.showMessage(`🛡️ 반격 준비! 방어율 +${bonusRate}%!`, 0x4a7c59);
       }
       return;
     }
@@ -155,7 +207,7 @@ export class CombatSystem {
         },
       });
       
-      this.scene.animationHelper.showMessage(`🛡️ 패리 준비! (${duration}대기)`, 0x4ecca3);
+      this.scene.animationHelper.showMessage(`🛡️ 패리 준비! (${duration}대기)`, 0x4a7c59);
       return;
     }
     
@@ -190,7 +242,7 @@ export class CombatSystem {
         value: bonusRate,
         duration: 1,
       });
-      this.scene.animationHelper.showMessage(`🛡️ 방어율 +${bonusRate}%!`, 0x4ecca3);
+      this.scene.animationHelper.showMessage(`🛡️ 방어율 +${bonusRate}%!`, 0x4a7c59);
     }
   }
   
@@ -217,7 +269,7 @@ export class CombatSystem {
       // 덱에서 검 찾기
       const swords = this.scene.playerState.deck.filter(c => c.type === 'sword');
       if (swords.length === 0) {
-        this.scene.animationHelper.showMessage('덱에 검이 없다!', 0xe94560);
+        this.scene.animationHelper.showMessage('덱에 검이 없다!', 0xc44536);
         return;
       }
       // 랜덤하게 최대 3개 선택
@@ -228,7 +280,7 @@ export class CombatSystem {
       // 무덤에서 카드 찾기
       const graveCards = [...this.scene.playerState.discard];
       if (graveCards.length === 0) {
-        this.scene.animationHelper.showMessage('무덤이 비어있다!', 0xe94560);
+        this.scene.animationHelper.showMessage('무덤이 비어있다!', 0xc44536);
         return;
       }
       // 랜덤하게 최대 3개 선택
@@ -239,7 +291,7 @@ export class CombatSystem {
       // 무덤에서 검 찾기
       const graveSwords = this.scene.playerState.discard.filter(c => c.type === 'sword');
       if (graveSwords.length === 0) {
-        this.scene.animationHelper.showMessage('무덤에 검이 없다!', 0xe94560);
+        this.scene.animationHelper.showMessage('무덤에 검이 없다!', 0xc44536);
         return;
       }
       // 랜덤하게 최대 3개 선택
@@ -270,7 +322,7 @@ export class CombatSystem {
         
       case 'defend':
         enemy.defense += 5;
-        this.scene.animationHelper.showMessage(`${enemy.name} 방어 자세!`, 0x4ecca3);
+        this.scene.animationHelper.showMessage(`${enemy.name} 방어 자세!`, 0x4a7c59);
         break;
         
       case 'buff':
@@ -279,7 +331,7 @@ export class CombatSystem {
             e.hp = Math.min(e.maxHp, e.hp + action.effect!.value);
             this.scene.enemyManager.updateEnemySprite(e);
           });
-          this.scene.animationHelper.showMessage(`${enemy.name} 회복!`, 0x4ecca3);
+          this.scene.animationHelper.showMessage(`${enemy.name} 회복!`, 0x4a7c59);
         }
         break;
         
@@ -348,12 +400,12 @@ export class CombatSystem {
       this.scene.updatePlayerWeaponDisplay();
       
       if (sword!.currentDurability <= 0) {
-        this.scene.animationHelper.showMessage(`${sword!.name}이(가) 부서졌다!`, 0xe94560);
+        this.scene.animationHelper.showMessage(`${sword!.name}이(가) 부서졌다!`, 0xc44536);
         this.scene.playerState.currentSword = null;
         this.scene.updatePlayerWeaponDisplay();
       }
       
-      this.scene.animationHelper.showMessage(`🛡️ 방어 성공! ${action.name} 흘려냄!`, 0x4ecca3);
+      this.scene.animationHelper.showMessage(`🛡️ 방어 성공! ${action.name} 흘려냄!`, 0x4a7c59);
       
       // 패리 반격 체크 (방어 성공 시에만)
       if (activeCountEffect?.type === 'parry' && this.scene.playerState.currentSword) {
@@ -378,7 +430,7 @@ export class CombatSystem {
       
       this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, damage, 0xff0000);
       this.scene.animationHelper.playerHit();
-      this.scene.animationHelper.showMessage(`${enemy.name}의 ${action.name}! -${damage}`, 0xe94560);
+      this.scene.animationHelper.showMessage(`${enemy.name}의 ${action.name}! -${damage}`, 0xc44536);
       
       if (action.effect?.type === 'bleed') {
         this.scene.playerState.hp -= action.effect.value;
@@ -416,20 +468,34 @@ export class CombatSystem {
     if (sprite) {
       this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, actualDamage, 0xff6b6b);
       
-      this.scene.tweens.add({
-        targets: sprite,
-        alpha: 0.5,
-        duration: 50,
-        yoyo: true,
-        repeat: 2,
-      });
+      // 적이 죽을 경우 더 강렬한 깜빡임 후 사망
+      if (enemy.hp <= 0) {
+        this.scene.tweens.add({
+          targets: sprite,
+          alpha: 0.3,
+          duration: 80,
+          yoyo: true,
+          repeat: 4,  // 더 많이 깜빡임
+          onComplete: () => {
+            this.killEnemy(enemy);
+          },
+        });
+      } else {
+        // 생존 시 일반 깜빡임
+        this.scene.tweens.add({
+          targets: sprite,
+          alpha: 0.5,
+          duration: 50,
+          yoyo: true,
+          repeat: 2,
+        });
+      }
+    } else if (enemy.hp <= 0) {
+      // 스프라이트 없어도 사망 처리
+      this.killEnemy(enemy);
     }
     
     this.scene.enemyManager.updateEnemySprite(enemy);
-    
-    if (enemy.hp <= 0) {
-      this.killEnemy(enemy);
-    }
   }
   
   killEnemy(enemy: Enemy) {
@@ -582,35 +648,24 @@ export class CombatSystem {
   
   /**
    * 강타 발동 - 카운트 만료 시 실제 공격 실행
+   * (내구도는 이미 스킬 사용 시 소모됨)
    */
-  private executeChargeAttack(effect: typeof this.scene.playerState.countEffects[0]) {
+  private async executeChargeAttack(effect: typeof this.scene.playerState.countEffects[0]) {
     const sword = this.scene.playerState.currentSword;
     if (!sword) {
-      this.scene.animationHelper.showMessage('무기 없음! 강타 실패', 0xe94560);
+      this.scene.animationHelper.showMessage('무기 없음! 강타 실패', 0xc44536);
       return;
     }
     
     const attackMultiplier = effect.data.attackMultiplier || 1.0;
-    const attackCount = effect.data.attackCount || 0;
-    const reach = effect.data.reach || 'single';
+    const skillAttackCount = effect.data.skillAttackCount || 1;  // 스킬 타수배율
+    const skillReach = effect.data.reach || 'single';            // 스킬 범위
     
-    // 버프 적용
-    let attackBonus = 0;
-    let multiplierBonus = 0;
-    this.scene.playerState.buffs.forEach(buff => {
-      if (buff.type === 'attack') {
-        if (buff.id === 'focus') {
-          multiplierBonus += buff.value;
-        } else {
-          attackBonus += buff.value;
-        }
-      }
-    });
+    // 현재 무기로 타수/범위 계산
+    const totalHits = sword.attackCount * skillAttackCount;
+    const reach = skillReach === 'single' ? sword.reach : skillReach;
     
-    const baseDamage = (sword.attack + attackBonus) * (attackMultiplier + multiplierBonus);
-    const totalHits = sword.attackCount + attackCount;
-    
-    // 타겟 선정
+    // 타겟 선정 (내구도 소모 전에 타겟 확인)
     let targets: Enemy[];
     const targetEnemy = effect.data.targetId 
       ? this.scene.gameState.enemies.find(e => e.id === effect.data.targetId)
@@ -631,28 +686,71 @@ export class CombatSystem {
       return;
     }
     
-    this.scene.animationHelper.showMessage(`${effect.emoji} ${effect.name} 발동!`, 0xffcc00);
-    this.scene.animationHelper.playerAttack();
+    // 1단계: 화면 중앙에 스킬 설명 툴팁 표시
+    const description = `${Math.floor(attackMultiplier * 100)}% 데미지 | ${totalHits}타`;
+    await this.scene.animationHelper.showChargeSkillEffect(
+      effect.emoji,
+      effect.name,
+      description
+    );
     
-    // 데미지 적용
-    targets.forEach(enemy => {
-      for (let i = 0; i < totalHits; i++) {
-        this.scene.time.delayedCall(i * 100, () => {
-          const damage = Math.max(1, baseDamage - enemy.defense);
-          this.damageEnemy(enemy, damage);
-        });
+    // 2단계: 카운트에서 적에게 날아가는 애니메이션
+    const targetSprite = this.scene.enemySprites.get(targets[0].id);
+    const targetX = targetSprite ? targetSprite.x : this.scene.cameras.main.width - 180;
+    const targetY = targetSprite ? targetSprite.y : this.scene.GROUND_Y - 30;
+    
+    await this.scene.animationHelper.cardFromCountToEnemy(
+      targetX,
+      targetY,
+      effect.emoji,
+      effect.name
+    );
+    
+    // 3단계: 내구도 소모 및 실제 타격 횟수 계산
+    const actualHits = this.consumeDurabilityAndGetHits(totalHits);
+    
+    if (actualHits <= 0) {
+      this.scene.animationHelper.showMessage('무기가 부서졌다! 강타 실패', 0xc44536);
+      return;
+    }
+    
+    // 버프 적용
+    let attackBonus = 0;
+    let multiplierBonus = 0;
+    this.scene.playerState.buffs.forEach(buff => {
+      if (buff.type === 'attack') {
+        if (buff.id === 'focus') {
+          multiplierBonus += buff.value;
+        } else {
+          attackBonus += buff.value;
+        }
       }
     });
     
-    // 내구도 소모
-    sword.currentDurability -= 1;
-    this.scene.updatePlayerWeaponDisplay();
+    const baseDamage = (sword.attack + attackBonus) * (attackMultiplier + multiplierBonus);
     
-    if (sword.currentDurability <= 0) {
-      this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, 0xe94560);
-      this.scene.playerState.currentSword = null;
-      this.scene.updatePlayerWeaponDisplay();
-    }
+    this.scene.animationHelper.playerAttack();
+    
+    // 데미지 계산 및 즉시 적용
+    targets.forEach(enemy => {
+      const damage = Math.max(1, baseDamage - enemy.defense);
+      const totalDamage = damage * actualHits;
+      
+      // 데미지 즉시 적용
+      this.damageEnemy(enemy, totalDamage);
+      
+      // 시각적 효과: 타수만큼 데미지 숫자 표시 (비동기) - 천천히 따닥 느낌
+      for (let i = 1; i < actualHits; i++) {
+        this.scene.time.delayedCall(i * 250, () => {
+          if (enemy.hp > 0) {
+            const sprite = this.scene.enemySprites.get(enemy.id);
+            if (sprite) {
+              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), 0xff6b6b);
+            }
+          }
+        });
+      }
+    });
   }
   
   applyBleedDamage() {

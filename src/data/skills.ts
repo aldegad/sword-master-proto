@@ -1,6 +1,9 @@
 import type { SkillCard } from '../types';
 
 // 스킬 데이터베이스 (마나 0~3 범위로 밸런스 조정)
+// attackCount: 무기 타수에 곱해지는 배율 (1 = 무기 타수 그대로, 2 = 2배)
+// reach: 'single'이면 무기 범위 사용, 그 외(double/triple/all)는 스킬 자체 범위
+// durabilityCost: 0 (실제 소모는 타수만큼 자동 계산)
 export const SKILLS: Record<string, SkillCard> = {
   // ===== 기본 공격기 =====
   slash: {
@@ -9,12 +12,12 @@ export const SKILLS: Record<string, SkillCard> = {
     emoji: '⚔️',
     type: 'attack',
     attackMultiplier: 1.0,
-    attackCount: 1,
-    reach: 'single',
+    attackCount: 1,  // 무기 타수 x1
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,  // 타수만큼 자동 소모
     manaCost: 1,
-    description: '기본 베기 공격.',
+    description: '기본 베기 공격. 무기 타수/범위 사용.',
   },
   thrust: {
     id: 'thrust',
@@ -22,28 +25,28 @@ export const SKILLS: Record<string, SkillCard> = {
     emoji: '🗡️',
     type: 'attack',
     attackMultiplier: 1.2,
-    attackCount: 1,
-    reach: 'single',
+    attackCount: 1,  // 무기 타수 x1
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
     description: '관통력 있는 찌르기. 방어 30% 무시.',
     effect: { type: 'pierce', value: 0.3 },
   },
 
-  // ===== 연속기 (1~2) =====
+  // ===== 연속기 (타수 배율 증가) =====
   doubleSlash: {
     id: 'doubleSlash',
     name: '이연격',
     emoji: '⚡',
     type: 'attack',
     attackMultiplier: 0.7,
-    attackCount: 2,
-    reach: 'single',
+    attackCount: 2,  // 무기 타수 x2
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
-    description: '빠른 두 번 베기. x0.7 x2타.',
+    description: '두 번 베기. 무기 타수x2!',
   },
   tripleThrust: {
     id: 'tripleThrust',
@@ -51,12 +54,12 @@ export const SKILLS: Record<string, SkillCard> = {
     emoji: '💨',
     type: 'attack',
     attackMultiplier: 0.5,
-    attackCount: 3,
-    reach: 'single',
+    attackCount: 3,  // 무기 타수 x3
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
-    description: '세 번 연속 찌르기. x0.5 x3타.',
+    description: '세 번 연속 찌르기. 무기 타수x3!',
   },
   flurry: {
     id: 'flurry',
@@ -64,15 +67,15 @@ export const SKILLS: Record<string, SkillCard> = {
     emoji: '🌪️',
     type: 'attack',
     attackMultiplier: 0.3,
-    attackCount: 5,
-    reach: 'single',
+    attackCount: 5,  // 무기 타수 x5
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 2,
+    durabilityCost: 0,
     manaCost: 2,
-    description: '정신없이 휘두르기. x0.3 x5타!',
+    description: '정신없이 휘두르기. 무기 타수x5!',
   },
 
-  // ===== 범위 공격기 (1~3) =====
+  // ===== 범위 공격기 (자체 범위 사용) =====
   sweepingBlow: {
     id: 'sweepingBlow',
     name: '횡베기',
@@ -80,9 +83,9 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 0.8,
     attackCount: 1,
-    reach: 'double',
+    reach: 'double',  // 자체 범위: 2적
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
     description: '옆으로 크게 휘둘러 2적 공격.',
   },
@@ -93,9 +96,9 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 0.6,
     attackCount: 1,
-    reach: 'all',
+    reach: 'all',  // 자체 범위: 전체
     defenseBonus: 0,
-    durabilityCost: 2,
+    durabilityCost: 0,
     manaCost: 3,
     description: '회전하며 모든 적을 공격!',
   },
@@ -106,9 +109,9 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 1.0,
     attackCount: 1,
-    reach: 'triple',
+    reach: 'triple',  // 자체 범위: 3적
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 2,
     description: '초승달 궤적으로 3적 베기.',
   },
@@ -121,12 +124,12 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 2.0,
     attackCount: 1,
-    reach: 'single',
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 2,
     description: '1대기 후 강력한 일격! x2.0 데미지.',
-    effect: { type: 'chargeAttack', value: 2.0, duration: 1 },  // value: 공격배수, duration: 대기
+    effect: { type: 'chargeAttack', value: 2.0, duration: 1 },
   },
   heavenSplitter: {
     id: 'heavenSplitter',
@@ -135,15 +138,15 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 3.5,
     attackCount: 1,
-    reach: 'single',
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 2,
+    durabilityCost: 0,
     manaCost: 3,
     description: '궁극의 일격! x3.5 + 스턴.',
     effect: { type: 'stun', value: 1, duration: 1 },
   },
 
-  // ===== 특수 공격기 (1~2) =====
+  // ===== 특수 공격기 =====
   bleedingEdge: {
     id: 'bleedingEdge',
     name: '출혈검',
@@ -151,9 +154,9 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 0.8,
     attackCount: 1,
-    reach: 'single',
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
     description: '깊은 상처로 출혈 유발. 3턴간 3피해.',
     effect: { type: 'bleed', value: 3, duration: 3 },
@@ -165,9 +168,9 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 0.9,
     attackCount: 1,
-    reach: 'single',
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 2,
     description: '피해의 30%를 HP로 흡수!',
     effect: { type: 'lifesteal', value: 0.3 },
@@ -179,9 +182,9 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'attack',
     attackMultiplier: 1.5,
     attackCount: 1,
-    reach: 'single',
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
     description: '방어 완전 무시! x1.5 관통.',
     effect: { type: 'pierce', value: 1.0 },
@@ -190,14 +193,14 @@ export const SKILLS: Record<string, SkillCard> = {
   // ===== 신속 공격 (적 대기턴 감소 없음) =====
   quickSlash: {
     id: 'quickSlash',
-    name: '속공',
+    name: '빈틈!',
     emoji: '💨',
     type: 'attack',
     attackMultiplier: 0.6,
     attackCount: 1,
-    reach: 'single',
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
     description: '신속 공격! 적 대기턴을 줄이지 않음.',
     isSwift: true,
@@ -208,10 +211,10 @@ export const SKILLS: Record<string, SkillCard> = {
     emoji: '⚡',
     type: 'attack',
     attackMultiplier: 0.8,
-    attackCount: 2,
-    reach: 'single',
+    attackCount: 2,  // 무기 타수 x2
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 1,
     description: '신속 2연타! 적 대기턴을 줄이지 않음.',
     isSwift: true,
@@ -236,7 +239,7 @@ export const SKILLS: Record<string, SkillCard> = {
   // ===== 방어기 (카운트 기반) =====
   parry: {
     id: 'parry',
-    name: '패리',
+    name: '검 얽기',
     emoji: '🛡️',
     type: 'defense',
     attackMultiplier: 1.0,  // 반격 배수
@@ -372,7 +375,7 @@ export const SKILLS: Record<string, SkillCard> = {
   },
   ancestorBlade: {
     id: 'ancestorBlade',
-    name: '선조의 검',
+    name: '검 차올리기',
     emoji: '⚰️',
     type: 'buff',
     attackMultiplier: 0,
@@ -381,12 +384,12 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '무덤의 검 중 하나를 즉시 장착!',
+    description: '무덤에 있는 검 중 랜덤 장착 및 발도스킬 시전.',
     effect: { type: 'graveEquip', value: 1 },
     isSwift: true,
   },
 
-  // ===== 특수기 (강한 스킬: 2~3) =====
+  // ===== 특수기 (강한 스킬: 자체 범위 사용) =====
   chargeSlash: {
     id: 'chargeSlash',
     name: '돌격참',
@@ -394,9 +397,9 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'special',
     attackMultiplier: 2.0,
     attackCount: 1,
-    reach: 'triple',
+    reach: 'triple',  // 자체 범위: 3적
     defenseBonus: 0,
-    durabilityCost: 1,
+    durabilityCost: 0,
     manaCost: 2,
     description: '돌진하며 3적을 x2.0으로 벤다!',
     effect: { type: 'charge', value: 3 },
@@ -407,12 +410,12 @@ export const SKILLS: Record<string, SkillCard> = {
     emoji: '🌪️',
     type: 'special',
     attackMultiplier: 0.8,
-    attackCount: 3,
-    reach: 'all',
+    attackCount: 3,  // 무기 타수 x3
+    reach: 'all',  // 자체 범위: 전체
     defenseBonus: 0,
-    durabilityCost: 2,
+    durabilityCost: 0,
     manaCost: 3,
-    description: '검기 방출! 전체 x0.8 x3타!',
+    description: '검기 방출! 전체 x무기타수x3!',
   },
   finalJudgment: {
     id: 'finalJudgment',
@@ -421,11 +424,11 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'special',
     attackMultiplier: 5.0,
     attackCount: 1,
-    reach: 'single',
+    reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
-    durabilityCost: 3,
+    durabilityCost: 0,
     manaCost: 3,
-    description: '궁극기! x5.0! 검이 파괴될 수 있다.',
+    description: '궁극기! x5.0! 관통 50%.',
     effect: { type: 'pierce', value: 0.5 },
   },
 };

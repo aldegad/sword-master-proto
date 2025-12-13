@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
+import { COLORS, COLORS_STR } from '../constants/colors';
 
 /**
  * 타겟 인디케이터 UI - 적 타겟 선택 표시
@@ -30,12 +31,12 @@ export class TargetIndicatorUI {
       }).setOrigin(0.5);
       
       // 선택 버튼
-      const selectBg = this.scene.add.rectangle(0, 35, 80, 30, 0xe94560, 0.9);
-      selectBg.setStrokeStyle(2, 0xffffff);
+      const selectBg = this.scene.add.rectangle(0, 35, 80, 30, COLORS.secondary.dark, 0.9);
+      selectBg.setStrokeStyle(2, COLORS.primary.light);
       
       const selectText = this.scene.add.text(0, 35, '공격', {
         font: 'bold 14px monospace',
-        color: '#ffffff',
+        color: COLORS_STR.primary.light,
       }).setOrigin(0.5);
       
       container.add([arrow, selectBg, selectText]);
@@ -43,11 +44,11 @@ export class TargetIndicatorUI {
       // 인터랙션
       selectBg.setInteractive({ useHandCursor: true });
       selectBg.on('pointerover', () => {
-        selectBg.setFillStyle(0xff6b6b);
+        selectBg.setFillStyle(COLORS.secondary.main);
         container.setScale(1.1);
       });
       selectBg.on('pointerout', () => {
-        selectBg.setFillStyle(0xe94560);
+        selectBg.setFillStyle(COLORS.secondary.dark);
         container.setScale(1);
       });
       selectBg.on('pointerdown', () => {

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { GAME_CONSTANTS } from '../types';
+import { COLORS, COLORS_STR } from '../constants/colors';
 
 /**
  * 상단 UI - HP바, 마나, 턴/웨이브/점수 표시
@@ -36,8 +37,8 @@ export class TopUI {
   
   private createHpBar() {
     // HP 바 배경
-    const hpBg = this.scene.add.rectangle(20, 25, 280, 35, 0x333333).setOrigin(0);
-    hpBg.setStrokeStyle(3, 0xffffff);
+    const hpBg = this.scene.add.rectangle(20, 25, 280, 35, COLORS.background.dark).setOrigin(0);
+    hpBg.setStrokeStyle(2, COLORS.border.medium);
     
     // HP 바
     this.hpBar = this.scene.add.graphics();
@@ -49,23 +50,23 @@ export class TopUI {
     }).setOrigin(0.5);
     
     // HP 라벨
-    this.scene.add.text(20, 5, '❤️ HP', {
+    this.scene.add.text(20, 5, '❤ 체력', {
       font: 'bold 16px monospace',
-      color: '#e94560',
+      color: COLORS_STR.secondary.main,
     });
   }
   
   private createManaUI() {
-    this.scene.add.text(20, 68, '💧 MANA', {
+    this.scene.add.text(20, 68, '◈ 기력', {
       font: 'bold 14px monospace',
-      color: '#4dabf7',
+      color: COLORS_STR.primary.main,
     });
     
-    this.manaContainer = this.scene.add.container(100, 82);
+    this.manaContainer = this.scene.add.container(105, 82);
     
     for (let i = 0; i < GAME_CONSTANTS.MAX_MANA; i++) {
-      const orb = this.scene.add.circle(i * 24, 0, 9, 0x4dabf7);
-      orb.setStrokeStyle(2, 0xffffff);
+      const orb = this.scene.add.circle(i * 24, 0, 9, COLORS.primary.main);
+      orb.setStrokeStyle(2, COLORS.primary.dark);
       this.manaOrbs.push(orb);
       this.manaContainer.add(orb);
     }
@@ -76,32 +77,32 @@ export class TopUI {
     
     // 웨이브 표시
     this.waveText = this.scene.add.text(width / 2, 10, '', {
-      font: 'bold 28px monospace',
-      color: '#ffcc00',
+      font: 'bold 26px monospace',
+      color: COLORS_STR.secondary.main,
     }).setOrigin(0.5, 0);
     
     // 페이즈 표시
-    this.phaseText = this.scene.add.text(width / 2, 45, '', {
-      font: 'bold 20px monospace',
-      color: '#4ecca3',
+    this.phaseText = this.scene.add.text(width / 2, 42, '', {
+      font: 'bold 18px monospace',
+      color: COLORS_STR.primary.main,
     }).setOrigin(0.5, 0);
     
     // 턴 표시
     this.turnText = this.scene.add.text(width - 20, 10, '', {
-      font: 'bold 22px monospace',
-      color: '#ffcc00',
+      font: 'bold 20px monospace',
+      color: COLORS_STR.primary.dark,
     }).setOrigin(1, 0);
     
     // 점수 표시
-    this.scoreText = this.scene.add.text(width - 20, 40, '', {
-      font: 'bold 18px monospace',
-      color: '#4ecca3',
+    this.scoreText = this.scene.add.text(width - 20, 38, '', {
+      font: 'bold 16px monospace',
+      color: COLORS_STR.primary.main,
     }).setOrigin(1, 0);
     
     // 스탯 표시
     this.statsText = this.scene.add.text(20, 100, '', {
       font: 'bold 14px monospace',
-      color: '#aaaaaa',
+      color: COLORS_STR.text.muted,
     });
   }
   
@@ -111,9 +112,9 @@ export class TopUI {
     
     this.hpBar.clear();
     
-    let color = 0x4ecca3;
-    if (ratio < 0.5) color = 0xffcc00;
-    if (ratio < 0.25) color = 0xe94560;
+    let color: number = COLORS.status.hp.full;
+    if (ratio < 0.5) color = COLORS.status.hp.half;
+    if (ratio < 0.25) color = COLORS.status.hp.low;
     
     this.hpBar.fillStyle(color);
     this.hpBar.fillRect(23, 28, 274 * ratio, 29);
@@ -130,7 +131,8 @@ export class TopUI {
     this.manaOrbs.forEach((orb, idx) => {
       if (idx < maxMana) {
         orb.setVisible(true);
-        orb.setFillStyle(idx < mana ? 0x4dabf7 : 0x333333);
+        orb.setFillStyle(idx < mana ? COLORS.status.mana.active : COLORS.status.mana.empty);
+        orb.setStrokeStyle(2, idx < mana ? COLORS.primary.dark : COLORS.border.dark);
       } else {
         orb.setVisible(false);
       }
@@ -161,16 +163,16 @@ export class TopUI {
     }
     this.statsText.setText(statsStr);
     
-    this.waveText.setText(`⚔️ 웨이브 ${game.currentWave}`);
-    this.turnText.setText(`턴 ${game.turn}`);
-    this.scoreText.setText(`🏆 ${game.score}`);
+    this.waveText.setText(`제 ${game.currentWave} 파`);
+    this.turnText.setText(`${game.turn} 순`);
+    this.scoreText.setText(`공 ${game.score}`);
     
     const phaseText: Record<string, string> = {
-      running: '🏃 이동중...',
-      combat: '⚔️ 전투중!',
-      victory: '🎉 승리!',
-      paused: '⏸️ 일시정지',
-      gameOver: '💀 게임오버',
+      running: '▶ 이동중...',
+      combat: '⚔ 전투!',
+      victory: '★ 승리!',
+      paused: '‖ 일시정지',
+      gameOver: '✕ 패배',
     };
     this.phaseText.setText(phaseText[game.phase] || '');
   }

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
+import { COLORS, COLORS_STR } from '../constants/colors';
 
 /**
  * 카드 UI - 손패 표시 및 카드 렌더링
@@ -25,19 +26,19 @@ export class CardUI {
       height - 95,
       980,
       190,
-      0x1a1a2e,
+      COLORS.background.dark,
       0.95
     );
-    cardAreaBg.setStrokeStyle(3, 0x4ecca3);
+    cardAreaBg.setStrokeStyle(2, COLORS.border.medium);
     
     // 손패 라벨
     this.scene.add.text(
       this.scene.cameras.main.width / 2,
       height - 205,
-      '🃏 손 패 (숫자키 1~0 사용, 최대 10장)',
+      '─ 손패 (1~0 키) ─',
       {
-        font: 'bold 14px monospace',
-        color: '#4ecca3',
+        font: 'bold 13px monospace',
+        color: COLORS_STR.primary.main,
       }
     ).setOrigin(0.5);
     
@@ -75,58 +76,74 @@ export class CardUI {
     const manaCost = data.manaCost;
     const canAfford = this.scene.gameScene.playerState.mana >= manaCost;
     
-    const bgColor = isSword ? 0x2d3436 : 0x1a1a2e;
-    // 신속 스킬은 시안색 테두리
-    const skillBorderColor = isSwiftSkill ? 0x00ccff : 0x4ecca3;
-    const borderColor = canAfford ? (isSword ? 0xe94560 : skillBorderColor) : 0x444444;
+    // 무기가 없을 때 공격/특수 스킬은 사용 불가
+    const hasWeapon = this.scene.gameScene.playerState.currentSword !== null;
+    const needsWeapon = !isSword && ((card.data as SkillCard).type === 'attack' || (card.data as SkillCard).type === 'special');
+    const isDisabledByNoWeapon = needsWeapon && !hasWeapon;
+    const isUsable = canAfford && !isDisabledByNoWeapon;
+    
+    const bgColor = isSword ? COLORS.background.light : COLORS.background.dark;
+    // 신속 스킬은 금색, 일반 스킬은 청록색
+    const skillBorderColor = isSwiftSkill ? COLORS.card.swift : COLORS.card.skill;
+    const borderColor = isUsable ? (isSword ? COLORS.card.sword : skillBorderColor) : COLORS.border.dark;
     
     // 카드 배경
     const bg = this.scene.add.rectangle(0, 0, 88, 135, bgColor);
-    bg.setStrokeStyle(canAfford ? 3 : 2, borderColor);
+    bg.setStrokeStyle(isUsable ? 3 : 2, borderColor);
     container.add(bg);
     
     // 카드 번호
     const numKey = index < 9 ? `${index + 1}` : '0';
     const numText = this.scene.add.text(-36, -60, `[${numKey}]`, {
       font: 'bold 12px monospace',
-      color: canAfford ? '#ffcc00' : '#444444',
+      color: isUsable ? COLORS_STR.primary.main : COLORS_STR.text.disabled,
     });
     container.add(numText);
     
     // 마나 비용
-    const manaText = this.scene.add.text(18, -60, `💧${manaCost}`, {
+    const manaText = this.scene.add.text(18, -60, `◈${manaCost}`, {
       font: '12px monospace',
-      color: canAfford ? '#4dabf7' : '#444444',
+      color: isUsable ? COLORS_STR.primary.main : COLORS_STR.text.disabled,
     });
     container.add(manaText);
     
     // 카드 내용
     if (isSword) {
-      this.renderSwordCard(container, card.data as SwordCard, canAfford);
+      this.renderSwordCard(container, card.data as SwordCard, isUsable);
     } else {
-      this.renderSkillCard(container, card.data as SkillCard, canAfford);
+      this.renderSkillCard(container, card.data as SkillCard, isUsable, isDisabledByNoWeapon);
+    }
+    
+    // 무기 없음으로 비활성화된 경우 오버레이 표시
+    if (isDisabledByNoWeapon) {
+      const disabledOverlay = this.scene.add.rectangle(0, 0, 88, 135, 0x000000, 0.5);
+      const noWeaponIcon = this.scene.add.text(0, 0, '🚫', {
+        font: '28px Arial',
+      }).setOrigin(0.5);
+      container.add([disabledOverlay, noWeaponIcon]);
     }
     
     // 교환 모드일 때 교환 표시
     if (this.scene.gameScene.isExchangeMode) {
-      const exchangeOverlay = this.scene.add.rectangle(0, 0, 88, 135, 0xffcc00, 0.3);
-      const exchangeIcon = this.scene.add.text(0, 0, '🔄', {
-        font: '32px Arial',
+      const exchangeOverlay = this.scene.add.rectangle(0, 0, 88, 135, COLORS.primary.dark, 0.3);
+      const exchangeIcon = this.scene.add.text(0, 0, '↻', {
+        font: 'bold 32px monospace',
+        color: COLORS_STR.primary.dark,
       }).setOrigin(0.5);
       container.add([exchangeOverlay, exchangeIcon]);
       
-      bg.setStrokeStyle(3, 0xffcc00);
+      bg.setStrokeStyle(3, COLORS.primary.dark);
     }
     
     // 호버 효과
-    bg.setInteractive({ useHandCursor: canAfford || this.scene.gameScene.isExchangeMode });
+    bg.setInteractive({ useHandCursor: isUsable || this.scene.gameScene.isExchangeMode });
     bg.on('pointerover', () => {
       if (this.scene.gameScene.isExchangeMode) {
         container.y = y - 20;
-        bg.setStrokeStyle(4, 0xffffff);
-      } else if (canAfford) {
+        bg.setStrokeStyle(3, COLORS.primary.light);
+      } else if (isUsable) {
         container.y = y - 20;
-        bg.setStrokeStyle(4, 0xffffff);
+        bg.setStrokeStyle(3, COLORS.primary.light);
       }
       this.scene.tooltipUI.show(
         this.cardContainer.x + x,
@@ -137,9 +154,9 @@ export class CardUI {
     bg.on('pointerout', () => {
       container.y = y;
       if (this.scene.gameScene.isExchangeMode) {
-        bg.setStrokeStyle(3, 0xffcc00);
+        bg.setStrokeStyle(3, COLORS.primary.dark);
       } else {
-        bg.setStrokeStyle(canAfford ? 3 : 2, borderColor);
+        bg.setStrokeStyle(isUsable ? 2 : 1, borderColor);
       }
       this.scene.tooltipUI.hide();
     });
@@ -147,7 +164,7 @@ export class CardUI {
       if (this.scene.gameScene.isExchangeMode) {
         this.scene.gameScene.exchangeCard(index);
         this.scene.tooltipUI.hide();
-      } else if (canAfford) {
+      } else if (isUsable) {
         this.scene.gameScene.useCard(index);
         this.scene.tooltipUI.hide();
       }
@@ -158,14 +175,8 @@ export class CardUI {
   
   private renderSwordCard(container: Phaser.GameObjects.Container, sword: SwordCard, canAfford: boolean) {
     // 등급별 색상
-    const rarityColors: Record<string, string> = {
-      common: '#e94560',
-      uncommon: '#4ecca3',
-      rare: '#4dabf7',
-      unique: '#ffcc00',
-    };
-    const textColor = canAfford ? (rarityColors[sword.rarity || 'common']) : '#444444';
-    const subColor = canAfford ? '#ffffff' : '#333333';
+    const textColor = canAfford ? COLORS_STR.rarity[sword.rarity as keyof typeof COLORS_STR.rarity || 'common'] : COLORS_STR.text.disabled;
+    const subColor = canAfford ? COLORS_STR.text.secondary : COLORS_STR.text.disabled;
     
     // 이모지
     const emoji = this.scene.add.text(0, -45, sword.emoji, {
@@ -190,15 +201,15 @@ export class CardUI {
       all: '∞',
     };
     
-    const statsText = this.scene.add.text(0, 5, `공${sword.attack} ${sword.attackCount}타 ${reachMap[sword.reach]}`, {
+    const statsText = this.scene.add.text(0, 5, `ATK${sword.attack} ${sword.attackCount}타 ${reachMap[sword.reach]}`, {
       font: '10px monospace',
       color: subColor,
       align: 'center',
     }).setOrigin(0.5);
     
     // 내구도 (1이면 경고 색상)
-    const durColor = sword.durability === 1 ? '#ff6b6b' : (canAfford ? '#ffcc00' : '#444444');
-    const durText = this.scene.add.text(0, 23, `🔧${sword.durability} 🛡${sword.defense}`, {
+    const durColor = sword.durability === 1 ? COLORS_STR.secondary.main : (canAfford ? COLORS_STR.primary.main : COLORS_STR.text.disabled);
+    const durText = this.scene.add.text(0, 23, `내구${sword.durability} 방${sword.defense}`, {
       font: '10px monospace',
       color: durColor,
     }).setOrigin(0.5);
@@ -207,7 +218,7 @@ export class CardUI {
     const rarityLabel = sword.rarity === 'unique' ? '★' : 
                         sword.rarity === 'rare' ? '◆' : 
                         sword.rarity === 'uncommon' ? '◇' : '';
-    const typeLabel = this.scene.add.text(0, 45, `${rarityLabel}무기`, {
+    const typeLabel = this.scene.add.text(0, 45, `${rarityLabel}검`, {
       font: 'bold 10px monospace',
       color: textColor,
     }).setOrigin(0.5);
@@ -215,15 +226,14 @@ export class CardUI {
     container.add([emoji, nameText, statsText, durText, typeLabel]);
   }
   
-  private renderSkillCard(container: Phaser.GameObjects.Container, skill: SkillCard, canAfford: boolean) {
-    // 신속 스킬은 시안색, 일반 스킬은 녹색
+  private renderSkillCard(container: Phaser.GameObjects.Container, skill: SkillCard, canAfford: boolean, isDisabledByNoWeapon: boolean = false) {
+    // 신속 스킬은 금색, 일반 스킬은 청록
     const isSwift = skill.isSwift === true;
-    const normalColor = '#4ecca3';  // 녹색 (일반 스킬)
-    const swiftColor = '#00ccff';   // 시안색 (신속 스킬)
-    const skillColor = isSwift ? swiftColor : normalColor;
+    const skillColor = isSwift ? COLORS_STR.card.swift : COLORS_STR.card.skill;
     
-    const textColor = canAfford ? skillColor : '#444444';
-    const subColor = canAfford ? '#ffffff' : '#333333';
+    // 무기 없음으로 비활성화된 경우 더 어둡게
+    const textColor = canAfford ? skillColor : (isDisabledByNoWeapon ? COLORS_STR.background.medium : COLORS_STR.text.disabled);
+    const subColor = canAfford ? COLORS_STR.text.secondary : (isDisabledByNoWeapon ? COLORS_STR.background.medium : COLORS_STR.text.disabled);
     
     // 이모지
     const emoji = this.scene.add.text(0, -45, skill.emoji, {
@@ -258,7 +268,6 @@ export class CardUI {
     let statLine = typeMap[skill.type];
     if (skill.attackMultiplier > 0) {
       statLine += ` x${skill.attackMultiplier}`;
-      if (skill.attackCount > 0) statLine += ` +${skill.attackCount}`;
     }
     if (skill.defenseBonus > 0) {
       statLine += ` +${skill.defenseBonus}`;
@@ -270,16 +279,23 @@ export class CardUI {
       align: 'center',
     }).setOrigin(0.5);
     
-    // 범위 & 내구도 소모
+    // 범위 & 타수배율 표시
     let subLine = '';
     if (skill.type === 'attack' || skill.type === 'special') {
-      subLine = `${reachMap[skill.reach]} `;
+      // 범위: single이면 '무기', 아니면 자체 범위
+      const rangeText = skill.reach === 'single' ? '무기' : reachMap[skill.reach];
+      // 타수배율: 1이면 '무기', 아니면 x배율
+      const hitsText = skill.attackCount === 1 ? '무기' : `x${skill.attackCount}`;
+      subLine = `${rangeText} ${hitsText}타`;
+    } else if (skill.type === 'defense') {
+      subLine = '방어 스킬';
+    } else if (skill.type === 'buff') {
+      subLine = '버프 스킬';
     }
-    subLine += skill.durabilityCost > 0 ? `🔧-${skill.durabilityCost}` : '🔧0';
     
     const costText = this.scene.add.text(0, 23, subLine, {
       font: '10px monospace',
-      color: canAfford ? '#ff9f43' : '#444444',
+      color: canAfford ? COLORS_STR.primary.dark : COLORS_STR.text.disabled,
     }).setOrigin(0.5);
     
     // 타입 라벨 (신속 스킬은 ⚡ 표시)

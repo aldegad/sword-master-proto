@@ -94,7 +94,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 8,
-    durability: 4,
+    durability: 6,  // 4→6
     manaCost: 1,
     description: '조선 군관의 표준 도검.',
     drawAttack: { 
@@ -115,7 +115,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 3,
-    durability: 3,
+    durability: 5,  // 3→5
     manaCost: 2,
     description: '갑옷을 뚫는 관통력.',
     specialEffect: '관통 20%',
@@ -137,14 +137,14 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 2,
     reach: 'single',
     defense: 12,
-    durability: 5,
+    durability: 8,  // 5→8 (2타 무기라 더 높게)
     manaCost: 1,
-    description: '예법과 실전을 겸비한 검.',
+    description: '예법과 실전을 겸비한 검. 2타.',
     drawAttack: { 
       name: '쌍발도', 
       multiplier: 0.6, 
       reach: 'single', 
-      durabilityCost: 1,
+      durabilityCost: 2,  // 2타라 2 소모
       effect: '2회 연속 타격' 
     },
   },
@@ -158,9 +158,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'double',
     defense: 15,
-    durability: 4,
+    durability: 6,  // 4→6
     manaCost: 2,
-    description: '본국검법의 정수.',
+    description: '본국검법의 정수. 2적 범위.',
     drawAttack: { 
       name: '본국세', 
       multiplier: 1.0, 
@@ -179,9 +179,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'triple',
     defense: 5,
-    durability: 2,
+    durability: 4,  // 2→4
     manaCost: 3,
-    description: '초승달 모양 장수도.',
+    description: '초승달 모양 장수도. 3적 범위.',
     specialEffect: '휩쓸기',
     drawAttack: { 
       name: '월광참', 
@@ -203,7 +203,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 10,
-    durability: 4,
+    durability: 6,  // 4→6
     manaCost: 1,
     description: '일본도의 대표. 날카로운 베기.',
     drawAttack: { 
@@ -224,14 +224,14 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 2,
     reach: 'single',
     defense: 12,
-    durability: 5,
+    durability: 8,  // 5→8 (2타 무기)
     manaCost: 1,
-    description: '보조검. 빠른 공격.',
+    description: '보조검. 빠른 2타 공격.',
     drawAttack: { 
       name: '소태도술', 
       multiplier: 0.5, 
       reach: 'single', 
-      durabilityCost: 1,
+      durabilityCost: 2,  // 2타라 2 소모
       effect: '빠른 연속 자상' 
     },
   },
@@ -245,7 +245,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'double',
     defense: 3,
-    durability: 2,
+    durability: 4,  // 2→4
     manaCost: 3,
     description: '거대한 장검. 압도적 파괴력.',
     drawAttack: { 
@@ -268,7 +268,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'all',
     defense: 0,
-    durability: 3,
+    durability: 5,  // 3→5
     manaCost: 4,
     description: '청룡언월도. 전체 공격!',
     specialEffect: '위압: 적 공격력 -10%',
@@ -292,7 +292,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 15,
-    durability: 5,
+    durability: 8,  // 5→8
     manaCost: 1,
     description: '양손검. 공방 균형.',
     drawAttack: { 
@@ -313,9 +313,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'single',
     defense: 18,
-    durability: 5,
+    durability: 10,  // 5→10 (가장 튼튼)
     manaCost: 1,
-    description: '기사의 검. 높은 내구도와 방어.',
+    description: '기사의 검. 최고 내구도와 방어.',
     drawAttack: { 
       name: '기사도', 
       multiplier: 0.8, 
@@ -334,9 +334,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 1,
     reach: 'double',
     defense: 5,
-    durability: 2,
+    durability: 4,  // 2→4
     manaCost: 3,
-    description: '스코틀랜드 대검.',
+    description: '스코틀랜드 대검. 2적 범위.',
     drawAttack: { 
       name: '하이랜드 돌격', 
       multiplier: 2.0, 
@@ -355,15 +355,15 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 3,
     reach: 'single',
     defense: 12,
-    durability: 3,
+    durability: 9,  // 3→9 (3타 무기라 높게)
     manaCost: 1,
-    description: '찌르기 특화. 연속 공격.',
+    description: '찌르기 특화. 3타 연속 공격.',
     specialEffect: '크리티컬 2배',
     drawAttack: { 
       name: '펜싱 돌진', 
       multiplier: 0.5, 
       reach: 'single', 
-      durabilityCost: 1,
+      durabilityCost: 3,  // 3타라 3 소모
       effect: '세 번 연속 찌르기' 
     },
   },
@@ -379,7 +379,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 2,
     reach: 'double',
     defense: 0,
-    durability: 1,
+    durability: 1,  // 유니크는 1 유지 (일회용)
     manaCost: 0,
     description: '사라지는 빛의 검. 단 한 번의 섬광.',
     specialEffect: '일회용! 모든 공격 관통.',

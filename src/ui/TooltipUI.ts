@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
+import { COLORS, COLORS_STR } from '../constants/colors';
 
 /**
  * 툴팁 UI - 카드 상세 정보 표시
@@ -33,9 +34,15 @@ export class TooltipUI {
       const sword = this.scene.gameScene.playerState.currentSword;
       if (sword && (skill.type === 'attack' || skill.type === 'special')) {
         const baseDmg = sword.attack * skill.attackMultiplier;
-        const hits = sword.attackCount + skill.attackCount;
+        const hits = sword.attackCount * skill.attackCount;  // 곱셈! (무기타수 × 스킬배율)
         const totalDmg = baseDmg * hits;
-        damageInfo = `\n\n💥 예상 데미지: ${Math.floor(baseDmg)} x ${hits}타 = ${Math.floor(totalDmg)}`;
+        
+        // 범위/타수 정보
+        const reachMap: Record<string, string> = { single: '무기범위', double: '2명', triple: '3명', all: '전체' };
+        const rangeText = skill.reach === 'single' ? `무기범위(${sword.reach === 'single' ? '1명' : sword.reach === 'double' ? '2명' : sword.reach === 'triple' ? '3명' : '전체'})` : reachMap[skill.reach];
+        const hitsText = skill.attackCount === 1 ? `무기타수(${sword.attackCount}타)` : `무기${sword.attackCount}타 x${skill.attackCount} = ${hits}타`;
+        
+        damageInfo = `\n\n🎯 범위: ${rangeText} | 타수: ${hitsText}\n💥 예상 데미지: ${Math.floor(baseDmg)} x ${hits}타 = ${Math.floor(totalDmg)}`;
       } else if (skill.type === 'defense') {
         damageInfo = `\n\n🛡️ 방어력 +${skill.defenseBonus}`;
       }
@@ -44,28 +51,21 @@ export class TooltipUI {
       damageInfo = `\n\n⚔️ 기본 공격력: ${sword.attack} x ${sword.attackCount}타`;
     }
     
-    // 등급별 색상
-    const rarityColors: Record<string, string> = {
-      common: '#e94560',
-      uncommon: '#4ecca3',
-      rare: '#4dabf7',
-      unique: '#ffcc00',
-    };
-    
     const borderColor = isSword 
-      ? parseInt(rarityColors[(data as SwordCard).rarity || 'common'].replace('#', ''), 16)
-      : 0x4ecca3;
+      ? COLORS.rarity[(data as SwordCard).rarity as keyof typeof COLORS.rarity || 'common']
+      : COLORS.success.dark;
     
-    // 무기 카드는 더 큰 툴팁 필요
-    const tooltipHeight = isSword ? 280 : 180;
-    const bg = this.scene.add.rectangle(0, 0, 300, tooltipHeight, 0x1a1a2e, 0.98);
+    // 무기 카드는 더 큰 툴팁 필요, 공격 스킬은 범위/타수 정보 추가로 더 큼
+    const isAttackSkill = !isSword && ((data as SkillCard).type === 'attack' || (data as SkillCard).type === 'special');
+    const tooltipHeight = isSword ? 280 : (isAttackSkill ? 200 : 160);
+    const bg = this.scene.add.rectangle(0, 0, 300, tooltipHeight, COLORS.background.dark, 0.98);
     bg.setStrokeStyle(3, borderColor);
     
     const emoji = this.scene.add.text(-130, -tooltipHeight/2 + 15, data.emoji, { font: '32px Arial' });
     
     // 검은 displayName 사용
     const displayName = isSword ? ((data as SwordCard).displayName || data.name) : data.name;
-    const nameColor = isSword ? rarityColors[(data as SwordCard).rarity || 'common'] : '#4ecca3';
+    const nameColor = isSword ? COLORS_STR.rarity[(data as SwordCard).rarity as keyof typeof COLORS_STR.rarity || 'common'] : COLORS_STR.success.dark;
     
     const name = this.scene.add.text(-90, -tooltipHeight/2 + 18, displayName, {
       font: 'bold 16px monospace',
@@ -76,7 +76,7 @@ export class TooltipUI {
     const descText = isSword ? data.description : data.description + damageInfo;
     const desc = this.scene.add.text(0, -tooltipHeight/2 + 50, descText, {
       font: '13px monospace',
-      color: '#ffffff',
+      color: COLORS_STR.text.primary,
       wordWrap: { width: 280 },
       align: 'center',
       lineSpacing: 3,
@@ -115,7 +115,7 @@ export class TooltipUI {
       `🔧 내구도: ${sword.currentDurability}/${sword.durability}`,
     ].join('\n'), {
       font: '12px monospace',
-      color: '#ffffff',
+      color: COLORS_STR.text.primary,
       align: 'center',
       lineSpacing: 6,
     }).setOrigin(0.5, 0);
@@ -128,7 +128,7 @@ export class TooltipUI {
       `배율: x${drawAtk.multiplier} | 범위: ${reachMap[drawAtk.reach]}`,
     ].join('\n'), {
       font: 'bold 11px monospace',
-      color: '#ffcc00',
+      color: COLORS_STR.primary.dark,
       align: 'center',
       lineSpacing: 4,
     }).setOrigin(0.5, 0);
@@ -140,7 +140,7 @@ export class TooltipUI {
     if (sword.prefix) {
       const prefixText = this.scene.add.text(0, effectY, `🔮 ${sword.prefix.name}`, {
         font: '12px monospace',
-        color: '#ff9f43',
+        color: COLORS_STR.primary.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(prefixText);
       effectY += 16;
@@ -149,7 +149,7 @@ export class TooltipUI {
     if (sword.suffix) {
       const suffixText = this.scene.add.text(0, effectY, `🔮 ${sword.suffix.name}`, {
         font: '12px monospace',
-        color: '#ff9f43',
+        color: COLORS_STR.primary.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(suffixText);
       effectY += 16;
@@ -158,7 +158,7 @@ export class TooltipUI {
     if (sword.specialEffect) {
       const effect = this.scene.add.text(0, effectY, `✨ ${sword.specialEffect}`, {
         font: '12px monospace',
-        color: '#4ecca3',
+        color: COLORS_STR.success.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(effect);
       effectY += 16;
@@ -168,7 +168,7 @@ export class TooltipUI {
     if (sword.durability === 1) {
       const warnText = this.scene.add.text(0, effectY, '⚠️ 일회용!', {
         font: 'bold 12px monospace',
-        color: '#ff6b6b',
+        color: COLORS_STR.secondary.dark,
       }).setOrigin(0.5, 0);
       this.tooltipContainer.add(warnText);
     }

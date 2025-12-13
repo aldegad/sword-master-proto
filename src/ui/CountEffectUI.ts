@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { CountEffect } from '../types';
+import { COLORS, COLORS_STR } from '../constants/colors';
 
 /**
  * 카운트 효과 UI - 활성화된 카운트 스킬 효과 표시
@@ -49,17 +50,19 @@ export class CountEffectUI {
     const container = this.scene.add.container(0, yOffset);
     
     // 효과 타입별 색상
-    let color = '#4ecca3';
-    let bgColor = 0x1a1a2e;
+    let color: string = COLORS_STR.success.dark;
+    let colorHex: number = COLORS.success.dark;
     if (effect.type === 'ironWall') {
-      color = '#4dabf7';
+      color = '#6b8e9f';
+      colorHex = 0x6b8e9f;
     } else if (effect.type === 'chargeAttack') {
-      color = '#ffcc00';
+      color = COLORS_STR.primary.dark;
+      colorHex = COLORS.primary.dark;
     }
     
     // 배경
-    const bg = this.scene.add.rectangle(80, 0, 180, 26, bgColor, 0.95);
-    bg.setStrokeStyle(2, parseInt(color.replace('#', ''), 16));
+    const bg = this.scene.add.rectangle(80, 0, 180, 26, COLORS.background.dark, 0.95);
+    bg.setStrokeStyle(2, colorHex);
     bg.setOrigin(0.5, 0.5);
     
     // 텍스트
@@ -75,12 +78,12 @@ export class CountEffectUI {
     bg.setInteractive({ useHandCursor: true });
     
     bg.on('pointerover', () => {
-      bg.setStrokeStyle(3, 0xffffff);
+      bg.setStrokeStyle(3, COLORS.primary.light);
       this.showTooltip(effect, this.container.x + 200, this.container.y + yOffset);
     });
     
     bg.on('pointerout', () => {
-      bg.setStrokeStyle(2, parseInt(color.replace('#', ''), 16));
+      bg.setStrokeStyle(2, colorHex);
       this.hideTooltip();
     });
     
@@ -93,11 +96,13 @@ export class CountEffectUI {
     // 효과별 설명 생성
     let description = '';
     let title = `${effect.emoji} ${effect.name}`;
-    let titleColor = '#4ecca3';
+    let titleColor: string = COLORS_STR.success.dark;
+    let titleColorHex: number = COLORS.success.dark;
     
     switch (effect.type) {
       case 'parry':
-        titleColor = '#4ecca3';
+        titleColor = COLORS_STR.success.dark;
+        titleColorHex = COLORS.success.dark;
         description = [
           `남은 대기: ${effect.remainingDelays}`,
           '',
@@ -109,7 +114,8 @@ export class CountEffectUI {
         break;
         
       case 'ironWall':
-        titleColor = '#4dabf7';
+        titleColor = '#6b8e9f';
+        titleColorHex = 0x6b8e9f;
         description = [
           `남은 대기: ${effect.remainingDelays}`,
           '',
@@ -119,7 +125,8 @@ export class CountEffectUI {
         break;
         
       case 'chargeAttack':
-        titleColor = '#ffcc00';
+        titleColor = COLORS_STR.primary.dark;
+        titleColorHex = COLORS.primary.dark;
         description = [
           `남은 대기: ${effect.remainingDelays}`,
           '',
@@ -136,8 +143,8 @@ export class CountEffectUI {
     const tooltipWidth = 200;
     
     // 배경
-    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x1a1a2e, 0.98);
-    bg.setStrokeStyle(3, parseInt(titleColor.replace('#', ''), 16));
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, COLORS.background.dark, 0.98);
+    bg.setStrokeStyle(3, titleColorHex);
     
     // 제목
     const titleText = this.scene.add.text(0, -tooltipHeight/2 + 15, title, {
@@ -148,7 +155,7 @@ export class CountEffectUI {
     // 설명
     const descText = this.scene.add.text(0, -tooltipHeight/2 + 45, description, {
       font: '12px monospace',
-      color: '#ffffff',
+      color: COLORS_STR.text.primary,
       align: 'center',
       lineSpacing: 4,
     }).setOrigin(0.5, 0);

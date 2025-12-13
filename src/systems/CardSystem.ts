@@ -56,7 +56,7 @@ export class CardSystem {
     
     // 마나 체크
     if (this.scene.playerState.mana < manaCost) {
-      this.scene.animationHelper.showMessage('마나 부족!', 0xe94560);
+      this.scene.animationHelper.showMessage('마나 부족!', 0xc44536);
       return;
     }
     
@@ -87,9 +87,20 @@ export class CardSystem {
       this.equipSword(card.data, targetEnemy);
     } else {
       // 스킬 카드: 적에게 날아가는 애니메이션
+      const skill = card.data as SkillCard;
+      const isChargeAttack = skill.effect?.type === 'chargeAttack';
+      
       if (enemies.length > 0) {
-        // 공격/스페셜/방어 스킬만 적에게 날아감
-        if (card.data.type === 'attack' || card.data.type === 'special' || card.data.type === 'defense') {
+        // 강타(chargeAttack)는 카운트 영역으로 날아감
+        if (isChargeAttack) {
+          this.scene.animationHelper.cardToCount(
+            cardStartX,
+            cardStartY,
+            card.data.emoji,
+            card.data.name
+          );
+        } else if (card.data.type === 'attack' || card.data.type === 'special' || card.data.type === 'defense') {
+          // 다른 공격/스페셜/방어 스킬은 적에게 날아감
           this.scene.animationHelper.cardToEnemy(
             cardStartX,
             cardStartY,
@@ -155,7 +166,7 @@ export class CardSystem {
     this.scene.playerState.currentSword = { ...sword };
     this.scene.updatePlayerWeaponDisplay();
     
-    this.scene.animationHelper.showMessage(`${sword.name} 장착!`, 0x4ecca3);
+    this.scene.animationHelper.showMessage(`${sword.name} 장착!`, 0x4a7c59);
     
     this.scene.tweens.add({
       targets: this.scene.playerSprite,
@@ -184,7 +195,7 @@ export class CardSystem {
     this.scene.updatePlayerWeaponDisplay();
     
     if (this.scene.playerState.currentSword!.currentDurability <= 0) {
-      this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, 0xe94560);
+      this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, 0xc44536);
       this.scene.playerState.currentSword = null;
       this.scene.updatePlayerWeaponDisplay();
     }
@@ -214,25 +225,22 @@ export class CardSystem {
   
   useSkill(skill: SkillCard, targetEnemy?: Enemy): boolean {
     if ((skill.type === 'attack' || skill.type === 'special') && !this.scene.playerState.currentSword) {
-      this.scene.animationHelper.showMessage('무기가 필요합니다!', 0xe94560);
+      this.scene.animationHelper.showMessage('무기가 필요합니다!', 0xc44536);
       return false;
     }
     
     const sword = this.scene.playerState.currentSword;
     
-    // 내구도 체크 및 소모
-    if (sword && skill.durabilityCost > 0) {
-      if (sword.currentDurability < skill.durabilityCost) {
-        this.scene.animationHelper.showMessage('내구도 부족!', 0xe94560);
+    // 공격/특수 스킬: 내구도 체크
+    // 강타(chargeAttack)는 발동 시 체크하므로 여기서는 패스
+    // 나머지 스킬은 내구도 1 이상 필요 (부족하면 가능한 만큼만 때림)
+    if ((skill.type === 'attack' || skill.type === 'special') && sword) {
+      const isChargeAttack = skill.effect?.type === 'chargeAttack';
+      if (!isChargeAttack && sword.currentDurability <= 0) {
+        this.scene.animationHelper.showMessage('내구도 없음!', 0xc44536);
         return false;
       }
-      sword.currentDurability -= skill.durabilityCost;
-      
-      if (sword.currentDurability <= 0) {
-        this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, 0xe94560);
-        this.scene.playerState.currentSword = null;
-      }
-      this.scene.updatePlayerWeaponDisplay();
+      // 내구도 소모는 CombatSystem.executeAttack에서 처리
     }
     
     // 스킬 타입별 처리
@@ -296,7 +304,7 @@ export class CardSystem {
     }
     
     if (drawnCards.length === 0) {
-      this.scene.animationHelper.showMessage('덱이 비어있다!', 0xe94560);
+      this.scene.animationHelper.showMessage('덱이 비어있다!', 0xc44536);
       return;
     }
     
@@ -319,7 +327,7 @@ export class CardSystem {
     
     if (card.type === 'sword') {
       // 무기 카드: 장착 (발도 공격 포함)
-      this.scene.animationHelper.showMessage(`💃 ${card.data.name} 장착!`, 0xe94560);
+      this.scene.animationHelper.showMessage(`💃 ${card.data.name} 장착!`, 0xc44536);
       this.equipSword(card.data as SwordCard, targetEnemy);
       
       this.scene.time.delayedCall(500, () => {
@@ -341,7 +349,7 @@ export class CardSystem {
       }
       
       // 스킬 발동 (마나 소모 없이)
-      this.scene.animationHelper.showMessage(`💃 ${skillCard.name}!`, 0x4ecca3);
+      this.scene.animationHelper.showMessage(`💃 ${skillCard.name}!`, 0x4a7c59);
       
       // 내구도 소모
       if (skillCard.durabilityCost > 0 && this.scene.playerState.currentSword) {
@@ -349,7 +357,7 @@ export class CardSystem {
         this.scene.updatePlayerWeaponDisplay();
         
         if (this.scene.playerState.currentSword.currentDurability <= 0) {
-          this.scene.animationHelper.showMessage(`${this.scene.playerState.currentSword.name}이(가) 부서졌다!`, 0xe94560);
+          this.scene.animationHelper.showMessage(`${this.scene.playerState.currentSword.name}이(가) 부서졌다!`, 0xc44536);
           this.scene.playerState.currentSword = null;
           this.scene.updatePlayerWeaponDisplay();
         }
@@ -379,7 +387,7 @@ export class CardSystem {
     const sword = this.scene.playerState.currentSword;
     
     if (!sword) {
-      this.scene.animationHelper.showMessage('장착된 무기가 없다!', 0xe94560);
+      this.scene.animationHelper.showMessage('장착된 무기가 없다!', 0xc44536);
       return;
     }
     
@@ -446,6 +454,7 @@ export class CardSystem {
     this.scene.animationHelper.showMessage(`${card.data.name} → 교환!`, 0xffcc00);
     
     this.scene.isExchangeMode = false;
+    this.scene.events.emit('exchangeUsed');  // 교환 사용 완료 이벤트
     this.scene.events.emit('modeChanged');
     this.scene.events.emit('handUpdated');
     this.scene.events.emit('statsUpdated');
@@ -476,7 +485,7 @@ export class CardSystem {
     this.scene.pendingCard = { card, index };
     
     const message = card.type === 'sword' ? '발도 공격 대상을 선택하세요' : '공격할 적을 선택하세요';
-    this.scene.animationHelper.showMessage(message, 0xe94560);
+    this.scene.animationHelper.showMessage(message, 0xc44536);
     this.scene.events.emit('modeChanged');
     this.scene.events.emit('targetingStarted');
   }
@@ -504,11 +513,11 @@ export class CardSystem {
     if (Math.random() < 0.25) {
       const sword = getRandomSword(this.scene.gameState.currentWave);
       this.scene.playerState.discard.push({ type: 'sword', data: sword });
-      this.scene.animationHelper.showMessage(`${sword.displayName} 획득!`, 0x4ecca3);
+      this.scene.animationHelper.showMessage(`${sword.displayName} 획득!`, 0x4a7c59);
     } else {
       const skill = getRandomSkill();
       this.scene.playerState.discard.push({ type: 'skill', data: skill });
-      this.scene.animationHelper.showMessage(`${skill.name} 획득!`, 0x4ecca3);
+      this.scene.animationHelper.showMessage(`${skill.name} 획득!`, 0x4a7c59);
     }
   }
   

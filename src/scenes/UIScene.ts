@@ -29,6 +29,9 @@ export class UIScene extends Phaser.Scene {
   skillSelectUI!: SkillSelectUI;
   countEffectUI!: CountEffectUI;
   
+  // 무기 없음 경고 UI
+  noWeaponWarning!: Phaser.GameObjects.Container;
+  
   constructor() {
     super({ key: 'UIScene' });
   }
@@ -49,12 +52,59 @@ export class UIScene extends Phaser.Scene {
     this.skillSelectUI = new SkillSelectUI(this);
     this.countEffectUI = new CountEffectUI(this);
     
+    // 무기 없음 경고 UI 생성
+    this.createNoWeaponWarning();
+    
     // 이벤트 리스너 설정
     this.setupEventListeners();
     
     // 초기 업데이트
     this.cardUI.updateCardDisplay();
     this.updateAllStats();
+  }
+  
+  private createNoWeaponWarning() {
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2 - 60;
+    
+    this.noWeaponWarning = this.add.container(centerX, centerY);
+    
+    // 배경 박스 - 사이버펑크 스타일
+    const bg = this.add.rectangle(0, 0, 320, 80, 0x0a0a15, 0.95);
+    bg.setStrokeStyle(2, 0xff2a6d);
+    
+    // 경고 아이콘과 텍스트
+    const warningIcon = this.add.text(0, -15, '⚠ NO WEAPON ⚠', {
+      font: 'bold 22px monospace',
+      color: '#ff2a6d',
+    }).setOrigin(0.5);
+    
+    const warningText = this.add.text(0, 18, '무기 카드를 사용하여 장착하세요', {
+      font: '13px monospace',
+      color: '#05d9e8',
+    }).setOrigin(0.5);
+    
+    this.noWeaponWarning.add([bg, warningIcon, warningText]);
+    this.noWeaponWarning.setVisible(false);
+    this.noWeaponWarning.setDepth(100);
+    
+    // 깜빡이는 애니메이션
+    this.tweens.add({
+      targets: this.noWeaponWarning,
+      alpha: { from: 1, to: 0.6 },
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+  }
+  
+  private updateNoWeaponWarning() {
+    const hasWeapon = this.gameScene.playerState.currentSword !== null;
+    const inCombat = this.gameScene.gameState.phase === 'combat';
+    
+    // 전투 중이고 무기가 없을 때만 표시
+    this.noWeaponWarning.setVisible(!hasWeapon && inCombat);
   }
   
   private setupEventListeners() {
@@ -69,6 +119,7 @@ export class UIScene extends Phaser.Scene {
     this.gameScene.events.on('rewardSelected', () => this.rewardSelectionUI.hide(), this);
     this.gameScene.events.on('showSkillCardSelection', () => this.skillSelectUI.show(), this);
     this.gameScene.events.on('skillCardSelected', () => this.skillSelectUI.hide(), this);
+    this.gameScene.events.on('exchangeUsed', () => this.actionButtonsUI.onExchangeUsed(), this);
   }
   
   private onHandUpdated() {
@@ -85,6 +136,7 @@ export class UIScene extends Phaser.Scene {
     this.topUI.updateStats();
     this.swordInfoUI.update();
     this.countEffectUI.update();
+    this.updateNoWeaponWarning();
   }
   
   private onTurnEnded() {

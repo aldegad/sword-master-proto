@@ -37,7 +37,7 @@ export class AnimationHelper {
   // ========== 데미지 숫자 ==========
   
   showDamageNumber(x: number, y: number, damage: number, color: number) {
-    const prefix = color === 0x4ecca3 ? '+' : '-';
+    const prefix = color === 0x4a7c59 ? '+' : '-';
     const text = this.scene.add.text(x, y, `${prefix}${Math.floor(damage)}`, {
       font: 'bold 20px monospace',
       color: `#${color.toString(16).padStart(6, '0')}`,
@@ -94,10 +94,10 @@ export class AnimationHelper {
         0x000000,
         0.7
       ).setOrigin(0.5);
-      overlay.setDepth(1000);
+      overlay.setDepth(3000);  // 모든 경고 메시지보다 위에 표시
       
       // 테두리
-      overlay.setStrokeStyle(3, 0xe94560);
+      overlay.setStrokeStyle(3, 0xc44536);
       
       // 적 이름 + 스킬 이름
       const text = this.scene.add.text(
@@ -106,10 +106,10 @@ export class AnimationHelper {
         `${skillEmoji} ${enemyName}의 ${skillName}!`,
         {
           font: 'bold 28px monospace',
-          color: '#e94560',
+          color: '#c44536',
         }
       ).setOrigin(0.5);
-      text.setDepth(1001);
+      text.setDepth(3001);  // 모든 경고 메시지보다 위에 표시
       
       // 등장 애니메이션
       overlay.setScale(0.5);
@@ -150,8 +150,8 @@ export class AnimationHelper {
     // 적 머리 위에서 스킬 이름이 슉~ 하고 날아감
     const skillText = this.scene.add.text(enemyX, enemyY - 80, `${emoji} ${skillName}`, {
       font: 'bold 16px monospace',
-      color: '#ffcc00',
-      backgroundColor: '#1a1a2e',
+      color: '#d4af37',
+      backgroundColor: '#1a1512',
       padding: { x: 6, y: 3 },
     }).setOrigin(0.5);
     skillText.setDepth(500);
@@ -180,8 +180,8 @@ export class AnimationHelper {
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x2d3436, 0.95);
-      bg.setStrokeStyle(3, 0xe94560);
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x2a1f1a, 0.95);
+      bg.setStrokeStyle(3, 0xc44536);
       
       const emojiText = this.scene.add.text(0, -15, emoji, {
         font: '32px Arial',
@@ -189,7 +189,7 @@ export class AnimationHelper {
       
       const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
         font: 'bold 12px monospace',
-        color: '#e94560',
+        color: '#c44536',
       }).setOrigin(0.5);
       
       card.add([bg, emojiText, nameText]);
@@ -260,8 +260,8 @@ export class AnimationHelper {
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1a2e, 0.95);
-      bg.setStrokeStyle(3, 0x4ecca3);
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1512, 0.95);
+      bg.setStrokeStyle(3, 0x4a7c59);
       
       const emojiText = this.scene.add.text(0, -15, emoji, {
         font: '32px Arial',
@@ -269,7 +269,7 @@ export class AnimationHelper {
       
       const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
         font: 'bold 12px monospace',
-        color: '#4ecca3',
+        color: '#4a7c59',
       }).setOrigin(0.5);
       
       card.add([bg, emojiText, nameText]);
@@ -305,13 +305,13 @@ export class AnimationHelper {
   }
   
   showParryEffect() {
-    // 화면 전체 파란색 플래시
+    // 화면 전체 금색 플래시
     const flash = this.scene.add.rectangle(
       this.scene.cameras.main.width / 2,
       this.scene.cameras.main.height / 2,
       this.scene.cameras.main.width,
       this.scene.cameras.main.height,
-      0x4ecca3,
+      0xd4af37,
       0.4
     );
     
@@ -354,6 +354,212 @@ export class AnimationHelper {
       scale: 0,
       duration: 400,
       onComplete: () => sparkle.destroy(),
+    });
+  }
+  
+  // ========== 카운트 효과 애니메이션 ==========
+  
+  /**
+   * 카운트 영역 위치 (CountEffectUI와 동일)
+   */
+  private getCountAreaPosition() {
+    return { x: 110, y: 320 };  // 카운트 UI 영역 중앙
+  }
+  
+  /**
+   * 스킬 카드가 카운트 영역으로 날아가는 애니메이션 (강타 등)
+   */
+  cardToCount(startX: number, startY: number, emoji: string, name: string): Promise<void> {
+    return new Promise((resolve) => {
+      const countPos = this.getCountAreaPosition();
+      
+      // 카드 모양 컨테이너
+      const card = this.scene.add.container(startX, startY);
+      card.setDepth(2000);
+      
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1512, 0.95);
+      bg.setStrokeStyle(3, 0xd4af37);  // 강타는 금색
+      
+      const emojiText = this.scene.add.text(0, -15, emoji, {
+        font: '32px Arial',
+      }).setOrigin(0.5);
+      
+      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
+        font: 'bold 12px monospace',
+        color: '#d4af37',
+      }).setOrigin(0.5);
+      
+      card.add([bg, emojiText, nameText]);
+      
+      // 카운트 영역으로 날아가는 애니메이션
+      this.scene.tweens.add({
+        targets: card,
+        x: countPos.x,
+        y: countPos.y,
+        scale: 0.5,
+        rotation: Math.PI * 0.5,
+        duration: 400,
+        ease: 'Power2',
+        onComplete: () => {
+          // 카운트 등록 효과
+          const chargeText = this.scene.add.text(countPos.x, countPos.y, '⏳', {
+            font: '32px Arial',
+          }).setOrigin(0.5);
+          chargeText.setDepth(2001);
+          
+          this.scene.tweens.add({
+            targets: chargeText,
+            scale: 1.5,
+            alpha: 0,
+            y: countPos.y - 30,
+            duration: 400,
+            onComplete: () => chargeText.destroy(),
+          });
+          
+          card.destroy();
+          resolve();
+        },
+      });
+    });
+  }
+  
+  /**
+   * 강타 발동 시 화면 중앙에 스킬 정보 표시
+   */
+  showChargeSkillEffect(emoji: string, name: string, description: string): Promise<void> {
+    return new Promise((resolve) => {
+      const centerX = this.scene.cameras.main.width / 2;
+      const centerY = this.scene.cameras.main.height / 2 - 50;
+      
+      // 배경
+      const overlay = this.scene.add.rectangle(
+        centerX,
+        centerY,
+        350,
+        120,
+        0x000000,
+        0.85
+      ).setOrigin(0.5);
+      overlay.setDepth(1000);
+      overlay.setStrokeStyle(4, 0xd4af37);
+      
+      // 이모지와 스킬명
+      const titleText = this.scene.add.text(
+        centerX,
+        centerY - 25,
+        `${emoji} ${name} 발동!`,
+        {
+          font: 'bold 32px monospace',
+          color: '#d4af37',
+        }
+      ).setOrigin(0.5);
+      titleText.setDepth(1001);
+      
+      // 설명
+      const descText = this.scene.add.text(
+        centerX,
+        centerY + 20,
+        description,
+        {
+          font: '16px monospace',
+          color: '#e8dcc4',
+          align: 'center',
+        }
+      ).setOrigin(0.5);
+      descText.setDepth(1001);
+      
+      // 등장 애니메이션
+      overlay.setScale(0.3);
+      overlay.setAlpha(0);
+      titleText.setScale(0.3);
+      titleText.setAlpha(0);
+      descText.setScale(0.3);
+      descText.setAlpha(0);
+      
+      this.scene.tweens.add({
+        targets: [overlay, titleText, descText],
+        scale: 1,
+        alpha: 1,
+        duration: 200,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          // 잠시 유지 후 사라짐
+          this.scene.time.delayedCall(800, () => {
+            this.scene.tweens.add({
+              targets: [overlay, titleText, descText],
+              alpha: 0,
+              y: centerY - 30,
+              duration: 300,
+              onComplete: () => {
+                overlay.destroy();
+                titleText.destroy();
+                descText.destroy();
+                resolve();
+              },
+            });
+          });
+        },
+      });
+    });
+  }
+  
+  /**
+   * 카운트 영역에서 적에게 날아가는 애니메이션 (강타 발동)
+   */
+  cardFromCountToEnemy(targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
+    return new Promise((resolve) => {
+      const countPos = this.getCountAreaPosition();
+      
+      // 카드 모양 컨테이너
+      const card = this.scene.add.container(countPos.x, countPos.y);
+      card.setDepth(2000);
+      card.setScale(0.5);
+      
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1512, 0.95);
+      bg.setStrokeStyle(3, 0xd4af37);
+      
+      const emojiText = this.scene.add.text(0, -15, emoji, {
+        font: '32px Arial',
+      }).setOrigin(0.5);
+      
+      const nameText = this.scene.add.text(0, 25, name.slice(0, 4), {
+        font: 'bold 12px monospace',
+        color: '#d4af37',
+      }).setOrigin(0.5);
+      
+      card.add([bg, emojiText, nameText]);
+      
+      // 적에게 돌진하는 애니메이션 (더 빠르고 강렬하게)
+      this.scene.tweens.add({
+        targets: card,
+        x: targetX,
+        y: targetY - 30,
+        scale: 0.8,
+        rotation: Math.PI * 2,
+        duration: 250,
+        ease: 'Power4',
+        onComplete: () => {
+          // 강력한 임팩트 효과
+          const impact = this.scene.add.text(targetX, targetY - 30, '💥💥💥', {
+            font: '56px Arial',
+          }).setOrigin(0.5);
+          impact.setDepth(2001);
+          
+          this.scene.tweens.add({
+            targets: impact,
+            scale: 2,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => impact.destroy(),
+          });
+          
+          // 화면 흔들림
+          this.scene.cameras.main.shake(150, 0.02);
+          
+          card.destroy();
+          resolve();
+        },
+      });
     });
   }
 }

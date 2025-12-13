@@ -4,6 +4,7 @@ import { GAME_CONSTANTS } from '../types';
 import { createSwordCard, getRandomSword } from '../data/swords';
 import { createSkillCard, getStarterDeck, getRandomSkill } from '../data/skills';
 import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../systems';
+import { COLORS, COLORS_STR } from '../constants/colors';
 
 /**
  * 메인 게임 씬
@@ -138,19 +139,28 @@ export class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
+    // 배경 그라데이션
     const sky = this.add.graphics();
-    sky.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x16213e, 1);
+    sky.fillGradientStyle(COLORS.background.dark, COLORS.background.dark, COLORS.background.medium, COLORS.background.medium, 1);
     sky.fillRect(0, 0, width, this.GROUND_Y);
     
-    const ground = this.add.graphics();
-    ground.fillStyle(0x2d3436);
-    ground.fillRect(0, this.GROUND_Y, width, height - this.GROUND_Y);
-    ground.lineStyle(3, 0xe94560);
-    ground.lineBetween(0, this.GROUND_Y, width, this.GROUND_Y);
     
+    // 지면
+    const ground = this.add.graphics();
+    ground.fillStyle(COLORS.background.overlay);
+    ground.fillRect(0, this.GROUND_Y, width, height - this.GROUND_Y);
+    
+    // 지면 경계 (금색 라인)
+    ground.lineStyle(2, COLORS.border.medium, 0.8);
+    ground.lineBetween(0, this.GROUND_Y, width, this.GROUND_Y);
+    ground.lineStyle(1, COLORS.primary.dark, 0.3);
+    ground.lineBetween(0, this.GROUND_Y + 3, width, this.GROUND_Y + 3);
+    
+    // 배경 파티클 (꽃잎/먼지)
     for (let i = 0; i < 15; i++) {
       const dot = this.add.graphics();
-      dot.fillStyle(0x636e72);
+      const isGold = Math.random() > 0.5;
+      dot.fillStyle(isGold ? COLORS.primary.dark : COLORS.secondary.dark, 0.3);
       dot.fillCircle(Math.random() * width, this.GROUND_Y + 30 + Math.random() * 80, 2);
       (dot as any).scrollX = Math.random() * width;
       (dot as any).speed = 0.5 + Math.random();
@@ -161,13 +171,14 @@ export class GameScene extends Phaser.Scene {
   createPlayer() {
     this.playerSprite = this.add.container(this.PLAYER_X, this.GROUND_Y - 30);
     
-    const body = this.add.rectangle(0, 0, 40, 60, 0x4ecca3);
-    body.setStrokeStyle(3, 0x2d3436);
+    // 플레이어 스프라이트
+    const body = this.add.rectangle(0, 0, 40, 60, COLORS.background.medium, 0.9);
+    body.setStrokeStyle(2, COLORS.border.medium);
     
     const emoji = this.add.text(0, -10, '🧑‍🦱', { font: '32px Arial' }).setOrigin(0.5);
-    const label = this.add.text(0, 35, 'Player', {
-      font: 'bold 14px monospace',
-      color: '#4ecca3',
+    const label = this.add.text(0, 35, '검객', {
+      font: 'bold 12px monospace',
+      color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
     
     this.playerSprite.add([body, emoji, label]);
@@ -223,7 +234,7 @@ export class GameScene extends Phaser.Scene {
     this.gameState.phase = 'running';
     this.moveDistance = 0;
     
-    this.animationHelper.showMessage('이동중...', 0x4ecca3);
+    this.animationHelper.showMessage('이동중...', COLORS.success.dark);
   }
 
   encounterEnemies() {
@@ -247,7 +258,7 @@ export class GameScene extends Phaser.Scene {
     
     this.enemyManager.initializeEnemyActions();
     
-    this.animationHelper.showMessage(`웨이브 ${this.gameState.currentWave} - 전투 시작!`, 0xe94560);
+    this.animationHelper.showMessage(`제 ${this.gameState.currentWave} 파 - 전투 시작!`, COLORS.secondary.dark);
     
     this.events.emit('combatStarted');
     this.events.emit('statsUpdated');
@@ -288,7 +299,7 @@ export class GameScene extends Phaser.Scene {
   checkCombatEnd(): boolean {
     if (this.gameState.enemies.length === 0 && this.gameState.phase === 'combat') {
       this.gameState.phase = 'victory';
-      this.animationHelper.showMessage('승리!', 0x4ecca3);
+      this.animationHelper.showMessage('승리!', COLORS.success.dark);
       
       // 모든 카드를 덱으로 돌리고 셔플
       this.resetDeck();
@@ -328,7 +339,7 @@ export class GameScene extends Phaser.Scene {
     this.playerState.deck.push(selectedCard);
     this.cardSystem.shuffleArray(this.playerState.deck);
     
-    this.animationHelper.showMessage(`${selectedCard.data.name} 획득!`, 0x4ecca3);
+    this.animationHelper.showMessage(`${selectedCard.data.name} 획득!`, COLORS.success.dark);
     
     this.rewardCards = [];
     this.events.emit('rewardSelected');
@@ -365,7 +376,7 @@ export class GameScene extends Phaser.Scene {
         if (deckIdx !== -1) {
           this.playerState.deck.splice(deckIdx, 1);
           this.playerState.hand.push(selectedCard);
-          this.animationHelper.showMessage(`${selectedCard.data.name}을(를) 손에 넣었다!`, 0x4ecca3);
+          this.animationHelper.showMessage(`${selectedCard.data.name}을(를) 손에 넣었다!`, COLORS.success.dark);
         }
         break;
         
@@ -375,7 +386,7 @@ export class GameScene extends Phaser.Scene {
         if (graveIdx !== -1) {
           this.playerState.discard.splice(graveIdx, 1);
           this.playerState.hand.push(selectedCard);
-          this.animationHelper.showMessage(`${selectedCard.data.name}이(가) 돌아왔다!`, 0x4ecca3);
+          this.animationHelper.showMessage(`${selectedCard.data.name}이(가) 돌아왔다!`, COLORS.success.dark);
         }
         break;
         
@@ -465,36 +476,36 @@ export class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    this.add.rectangle(width/2, height/2, width, height, 0x000000, 0.8);
+    this.add.rectangle(width/2, height/2, width, height, COLORS.background.overlay, 0.9);
     
-    this.add.text(width/2, height/2 - 60, '💀 GAME OVER 💀', {
+    this.add.text(width/2, height/2 - 60, '💀 패배 💀', {
       font: 'bold 48px monospace',
-      color: '#e94560',
+      color: COLORS_STR.secondary.dark,
     }).setOrigin(0.5);
     
-    this.add.text(width/2, height/2 + 10, `웨이브: ${this.gameState.currentWave}`, {
+    this.add.text(width/2, height/2 + 10, `도달 파: ${this.gameState.currentWave}`, {
       font: 'bold 24px monospace',
-      color: '#ffffff',
+      color: COLORS_STR.text.primary,
     }).setOrigin(0.5);
     
     this.add.text(width/2, height/2 + 50, `처치한 적: ${this.gameState.enemiesDefeated}`, {
       font: '20px monospace',
-      color: '#aaaaaa',
+      color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     
-    this.add.text(width/2, height/2 + 90, `점수: ${this.gameState.score}`, {
+    this.add.text(width/2, height/2 + 90, `공: ${this.gameState.score}`, {
       font: 'bold 28px monospace',
-      color: '#ffcc00',
+      color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
     
     const restartBtn = this.add.text(width/2, height/2 + 150, '[ 다시 시작 ]', {
       font: 'bold 24px monospace',
-      color: '#4ecca3',
+      color: COLORS_STR.success.dark,
     }).setOrigin(0.5);
     
     restartBtn.setInteractive({ useHandCursor: true });
-    restartBtn.on('pointerover', () => restartBtn.setColor('#ffffff'));
-    restartBtn.on('pointerout', () => restartBtn.setColor('#4ecca3'));
+    restartBtn.on('pointerover', () => restartBtn.setColor(COLORS_STR.primary.light));
+    restartBtn.on('pointerout', () => restartBtn.setColor(COLORS_STR.success.dark));
     restartBtn.on('pointerdown', () => {
       this.scene.stop('UIScene');
       this.scene.restart();

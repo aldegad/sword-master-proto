@@ -88,8 +88,9 @@ export interface CountEffect {
   data: {
     defenseMultiplier?: number;  // 방어율 배수 (x5, x10)
     attackMultiplier?: number;   // 공격 배수
-    attackCount?: number;        // 추가 타수
-    reach?: string;              // 공격 범위
+    attackCount?: number;        // 추가 타수 (deprecated, skillAttackCount 사용)
+    skillAttackCount?: number;   // 스킬 타수배율 (발동 시 현재 무기 타수와 곱함)
+    reach?: string;              // 공격 범위 (발동 시 무기 범위와 비교)
     targetId?: string;           // 타겟 적 ID (강타용)
   };
 }

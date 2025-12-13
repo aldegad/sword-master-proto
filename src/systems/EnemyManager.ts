@@ -1,6 +1,7 @@
 import type { GameScene } from '../scenes/GameScene';
 import type { Enemy, EnemyAction } from '../types';
 import { createWaveEnemies } from '../data/enemies';
+import { COLORS, COLORS_STR } from '../constants/colors';
 
 // 적 행동 큐 아이템 타입
 interface ActionQueueItem {
@@ -46,12 +47,13 @@ export class EnemyManager {
     // 적 이름
     const nameText = this.scene.add.text(0, 25, enemy.name, {
       font: 'bold 14px monospace',
-      color: '#e94560',
+      color: COLORS_STR.secondary.dark,
     }).setOrigin(0.5);
     
     // HP 바
-    const hpBarBg = this.scene.add.rectangle(0, 45, 60, 8, 0x333333);
-    const hpBar = this.scene.add.rectangle(-30 + 30, 45, 60, 8, 0xe94560);
+    const hpBarBg = this.scene.add.rectangle(0, 45, 60, 8, COLORS.background.medium);
+    hpBarBg.setStrokeStyle(1, COLORS.border.medium);
+    const hpBar = this.scene.add.rectangle(-30, 45, 60, 8, COLORS.secondary.dark);
     hpBar.setOrigin(0, 0.5);
     (container as any).hpBar = hpBar;
     
@@ -65,8 +67,8 @@ export class EnemyManager {
     container.add([emoji, nameText, hpBarBg, hpBar, hpText]);
     
     // 타겟 강조 효과 (숨김 상태)
-    const targetHighlight = this.scene.add.rectangle(0, -10, 90, 110, 0xe94560, 0);
-    targetHighlight.setStrokeStyle(3, 0xe94560);
+    const targetHighlight = this.scene.add.rectangle(0, -10, 90, 110, COLORS.secondary.dark, 0);
+    targetHighlight.setStrokeStyle(3, COLORS.primary.dark);
     targetHighlight.setVisible(false);
     (container as any).targetHighlight = targetHighlight;
     container.add(targetHighlight);
@@ -79,7 +81,7 @@ export class EnemyManager {
     hitArea.on('pointerover', () => {
       if (this.scene.isTargetingMode) {
         targetHighlight.setVisible(true);
-        targetHighlight.setFillStyle(0xe94560, 0.3);
+        targetHighlight.setFillStyle(COLORS.secondary.dark, 0.3);
         container.setScale(1.1);
         // 커서를 포인터로 변경
         this.scene.input.setDefaultCursor('pointer');
@@ -173,6 +175,9 @@ export class EnemyManager {
     const readyActions: ActionQueueItem[] = [];
     
     this.scene.gameState.enemies.forEach(enemy => {
+      // 죽은 적은 스킵
+      if (enemy.hp <= 0) return;
+      
       while (enemy.actionQueue.length > 0 && enemy.actionQueue[0].currentDelay <= 0) {
         const action = enemy.actionQueue.shift()!;
         readyActions.push({ enemy, action });
@@ -354,8 +359,8 @@ export class EnemyManager {
         const actionText = this.scene.add.text(0, currentYOffset, 
           `${enemy.emoji} ${action.name} (${action.currentDelay})`, {
           font: 'bold 11px monospace',
-          color: idx === 0 ? '#ffcc00' : '#888888',
-          backgroundColor: '#1a1a2e',
+          color: idx === 0 ? COLORS_STR.primary.dark : COLORS_STR.text.muted,
+          backgroundColor: COLORS_STR.background.dark,
           padding: { x: 4, y: 2 },
         }).setOrigin(0.5);
         actionText.name = 'actionText';
@@ -371,7 +376,7 @@ export class EnemyManager {
         
         actionText.on('pointerover', () => {
           // 텍스트 강조
-          actionText.setStyle({ backgroundColor: '#2a2a4e' });
+          actionText.setStyle({ backgroundColor: COLORS_STR.background.medium });
           actionText.setScale(1.1);
           
           // 툴팁 표시 (컨테이너의 월드 좌표 계산)
@@ -381,7 +386,7 @@ export class EnemyManager {
         });
         
         actionText.on('pointerout', () => {
-          actionText.setStyle({ backgroundColor: '#1a1a2e' });
+          actionText.setStyle({ backgroundColor: COLORS_STR.background.dark });
           actionText.setScale(1);
           this.hideActionTooltip();
         });
@@ -444,8 +449,8 @@ export class EnemyManager {
     const tooltipHeight = 20 + lines.length * 18;
     const tooltipWidth = 180;
     
-    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x1a1a2e, 0.95);
-    bg.setStrokeStyle(2, 0xe94560);
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, COLORS.background.dark, 0.95);
+    bg.setStrokeStyle(2, COLORS.border.medium);
     bg.setOrigin(0.5, 1);
     tooltip.add(bg);
     
@@ -453,7 +458,7 @@ export class EnemyManager {
     let textY = -tooltipHeight + 14;
     lines.forEach((line, idx) => {
       if (!line) return;
-      const color = idx === 0 ? '#e94560' : idx === 1 ? '#ffcc00' : '#ffffff';
+      const color = idx === 0 ? COLORS_STR.secondary.dark : idx === 1 ? COLORS_STR.primary.dark : COLORS_STR.text.primary;
       const text = this.scene.add.text(0, textY, line, {
         font: idx < 2 ? 'bold 12px monospace' : '11px monospace',
         color: color,
