@@ -105,10 +105,9 @@ export class GameScene extends Phaser.Scene {
       deck: deck,
       discard: [],
       buffs: [],
-      countEffects: [],  // 카운트 효과 (패리, 철벽 등)
+      countEffects: [],  // 카운트 효과 (패리, 철벽, 반격 등)
       position: 0,
-      counterReady: false,
-      counterMultiplier: 0,
+      usedAttackThisTurn: false,   // 이번 턴에 공격/무기 스킬 사용 여부
       passives: [
         {
           id: 'lightBlade',
@@ -341,7 +340,8 @@ export class GameScene extends Phaser.Scene {
     // 적 행동이 순차적으로 끝날 때까지 대기
     await this.enemyManager.executeRemainingEnemyActions();
     
-    this.playerState.counterReady = false;
+    // 이번 턴 공격 여부 리셋 (다음 턴을 위해)
+    this.playerState.usedAttackThisTurn = false;
     
     this.combatSystem.applyBleedDamage();
     this.combatSystem.reduceBuff();
@@ -439,12 +439,12 @@ export class GameScene extends Phaser.Scene {
     
     switch (this.skillSelectType) {
       case 'searchSword':
-        // 덱에서 손패로
+        // 덱에서 즉시 장착 + 발도 스킬 발동
         const deckIdx = this.playerState.deck.findIndex(c => c === selectedCard);
-        if (deckIdx !== -1) {
+        if (deckIdx !== -1 && selectedCard.type === 'sword') {
           this.playerState.deck.splice(deckIdx, 1);
-          this.playerState.hand.push(selectedCard);
-          this.animationHelper.showMessage(`${selectedCard.data.name}을(를) 손에 넣었다!`, COLORS.success.dark);
+          this.cardSystem.equipSword(selectedCard.data);  // 장착 + 발도 공격
+          this.animationHelper.showMessage(`🔍 ${selectedCard.data.name} 소환!`, COLORS.primary.dark);
         }
         break;
         

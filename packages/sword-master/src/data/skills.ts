@@ -219,6 +219,21 @@ export const SKILLS: Record<string, SkillCard> = {
     description: '신속 2연타! 적 대기턴을 줄이지 않음.',
     isSwift: true,
   },
+  followUpSlash: {
+    id: 'followUpSlash',
+    name: '이어베기',
+    emoji: '🔗',
+    type: 'attack',
+    attackMultiplier: 1.2,
+    attackCount: 1,
+    reach: 'single', // 무기 범위 사용
+    defenseBonus: 0,
+    durabilityCost: 0,
+    manaCost: 0,
+    description: '신속! 이번 턴에 공격/무기 사용 후에만 낼 수 있음.',
+    isSwift: true,
+    effect: { type: 'followUp', value: 1.2 },  // followUp: 공격 후에만 사용 가능
+  },
   
   // ===== 도발 스킬 =====
   taunt: {
@@ -265,21 +280,6 @@ export const SKILLS: Record<string, SkillCard> = {
     description: '3대기 동안 방어율 x10. 1회 방어 후 소멸.',
     effect: { type: 'ironWall', value: 10, duration: 3 },  // value: 방어율 배수, duration: 대기 시간
   },
-  counter: {
-    id: 'counter',
-    name: '반격',
-    emoji: '↩️',
-    type: 'defense',
-    attackMultiplier: 1.5,
-    attackCount: 1,
-    reach: 'single',
-    defenseBonus: 1,
-    durabilityCost: 1,
-    manaCost: 1,
-    description: '공격을 받아내고 방어율 x5 + 반격!',
-    effect: { type: 'counter', value: 1.5 },
-  },
-
   // ===== 버프기 (신속 - 적 대기턴 감소 없음) =====
   focus: {
     id: 'focus',
@@ -345,7 +345,7 @@ export const SKILLS: Record<string, SkillCard> = {
   // ===== 드로우/서치 스킬 (신속) =====
   bladeSeeker: {
     id: 'bladeSeeker',
-    name: '검의 부름',
+    name: '검 부르기',
     emoji: '🔍',
     type: 'buff',
     attackMultiplier: 0,
@@ -354,7 +354,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '덱에서 검 3자루를 확인하고 1개 선택!',
+    description: '덱에서 검 3자루 중 1개를 즉시 장착 + 발도!',
     effect: { type: 'searchSword', value: 3 },
     isSwift: true,
   },
@@ -471,7 +471,7 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
       'focus',
       'powerStrike',
       'sweepingBlow',
-      'counter',
+      'ironWall',
     ],
   };
 }

@@ -1,5 +1,6 @@
 import type { GameScene } from '../scenes/GameScene';
 import type { Enemy, SkillCard, EnemyAction } from '../types';
+import { COLORS } from '../constants/colors';
 
 /**
  * 전투 시스템 - 공격, 방어, 데미지 계산 담당
@@ -43,7 +44,7 @@ export class CombatSystem {
         },
       });
       
-      this.scene.animationHelper.showMessage(`${skill.emoji} ${skill.name} 준비! (${duration}대기)`, 0xffcc00);
+      this.scene.animationHelper.showMessage(`${skill.emoji} ${skill.name} 준비! (${duration}대기)`, COLORS.message.warning);
       // 내구도는 발동 시 소모
       return;  // 바로 공격하지 않음
     }
@@ -83,7 +84,7 @@ export class CombatSystem {
     
     // 내구도 부족으로 공격 불가
     if (actualHits <= 0) {
-      this.scene.animationHelper.showMessage('무기가 부서졌다!', 0xc44536);
+      this.scene.animationHelper.showMessage('무기가 부서졌다!', COLORS.message.error);
       return;
     }
     
@@ -105,7 +106,7 @@ export class CombatSystem {
       if (skill.effect?.type === 'lifesteal') {
         const heal = Math.floor(totalDamage * skill.effect.value);
         this.scene.playerState.hp = Math.min(this.scene.playerState.maxHp, this.scene.playerState.hp + heal);
-        this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, heal, 0x4a7c59);
+        this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, heal, COLORS.message.success);
       }
       
       // 데미지 즉시 적용 (적 HP 감소 및 사망 처리)
@@ -117,7 +118,7 @@ export class CombatSystem {
           if (enemy.hp > 0) {
             const sprite = this.scene.enemySprites.get(enemy.id);
             if (sprite) {
-              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), 0xff6b6b);
+              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), COLORS.effect.damage);
             }
           }
         });
@@ -158,7 +159,7 @@ export class CombatSystem {
     this.scene.updatePlayerWeaponDisplay();
     
     if (sword.currentDurability <= 0) {
-      this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, 0xc44536);
+      this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, COLORS.message.error);
       this.scene.playerState.currentSword = null;
       this.scene.updatePlayerWeaponDisplay();
     }
@@ -168,26 +169,6 @@ export class CombatSystem {
   
   executeDefense(skill: SkillCard) {
     const sword = this.scene.playerState.currentSword;
-    
-    // 반격 효과 (counter 스킬)
-    if (skill.effect?.type === 'counter') {
-      this.scene.playerState.counterReady = true;
-      this.scene.playerState.counterMultiplier = skill.effect.value;
-      
-      // 기존 방어율 버프도 추가
-      if (sword && skill.defenseBonus > 0) {
-        const bonusRate = sword.defense * 5;
-        this.scene.playerState.buffs.push({
-          id: 'defense_' + Date.now(),
-          name: `방어율+${bonusRate}%`,
-          type: 'defense',
-          value: bonusRate,
-          duration: 1,
-        });
-        this.scene.animationHelper.showMessage(`🛡️ 반격 준비! 방어율 +${bonusRate}%!`, 0x4a7c59);
-      }
-      return;
-    }
     
     // 패리 효과 (카운트 기반)
     if (skill.effect?.type === 'parry') {
@@ -207,7 +188,7 @@ export class CombatSystem {
         },
       });
       
-      this.scene.animationHelper.showMessage(`🛡️ 패리 준비! (${duration}대기)`, 0x4a7c59);
+      this.scene.animationHelper.showMessage(`🛡️ 패리 준비! (${duration}대기)`, COLORS.message.success);
       return;
     }
     
@@ -228,7 +209,7 @@ export class CombatSystem {
         },
       });
       
-      this.scene.animationHelper.showMessage(`🏰 철벽 준비! (${duration}대기)`, 0x4dabf7);
+      this.scene.animationHelper.showMessage(`🏰 철벽 준비! (${duration}대기)`, COLORS.message.info);
       return;
     }
     
@@ -242,7 +223,7 @@ export class CombatSystem {
         value: bonusRate,
         duration: 1,
       });
-      this.scene.animationHelper.showMessage(`🛡️ 방어율 +${bonusRate}%!`, 0x4a7c59);
+      this.scene.animationHelper.showMessage(`🛡️ 방어율 +${bonusRate}%!`, COLORS.message.success);
     }
   }
   
@@ -269,7 +250,7 @@ export class CombatSystem {
       // 덱에서 검 찾기
       const swords = this.scene.playerState.deck.filter(c => c.type === 'sword');
       if (swords.length === 0) {
-        this.scene.animationHelper.showMessage('덱에 검이 없다!', 0xc44536);
+        this.scene.animationHelper.showMessage('덱에 검이 없다!', COLORS.message.error);
         return;
       }
       // 랜덤하게 최대 3개 선택
@@ -280,7 +261,7 @@ export class CombatSystem {
       // 무덤에서 카드 찾기
       const graveCards = [...this.scene.playerState.discard];
       if (graveCards.length === 0) {
-        this.scene.animationHelper.showMessage('무덤이 비어있다!', 0xc44536);
+        this.scene.animationHelper.showMessage('무덤이 비어있다!', COLORS.message.error);
         return;
       }
       // 랜덤하게 최대 3개 선택
@@ -291,7 +272,7 @@ export class CombatSystem {
       // 무덤에서 검 찾기
       const graveSwords = this.scene.playerState.discard.filter(c => c.type === 'sword');
       if (graveSwords.length === 0) {
-        this.scene.animationHelper.showMessage('무덤에 검이 없다!', 0xc44536);
+        this.scene.animationHelper.showMessage('무덤에 검이 없다!', COLORS.message.error);
         return;
       }
       // 랜덤하게 최대 3개 선택
@@ -308,7 +289,7 @@ export class CombatSystem {
     
     // 스턴 상태면 행동 불가
     if (enemy.isStunned > 0) {
-      this.scene.animationHelper.showMessage(`${enemy.name} 기절!`, 0xffcc00);
+      this.scene.animationHelper.showMessage(`${enemy.name} 기절!`, COLORS.message.warning);
       return;
     }
     
@@ -322,7 +303,7 @@ export class CombatSystem {
         
       case 'defend':
         enemy.defense += 5;
-        this.scene.animationHelper.showMessage(`${enemy.name} 방어 자세!`, 0x4a7c59);
+        this.scene.animationHelper.showMessage(`${enemy.name} 방어 자세!`, COLORS.message.success);
         break;
         
       case 'buff':
@@ -331,12 +312,12 @@ export class CombatSystem {
             e.hp = Math.min(e.maxHp, e.hp + action.effect!.value);
             this.scene.enemyManager.updateEnemySprite(e);
           });
-          this.scene.animationHelper.showMessage(`${enemy.name} 회복!`, 0x4a7c59);
+          this.scene.animationHelper.showMessage(`${enemy.name} 회복!`, COLORS.message.success);
         }
         break;
         
       case 'charge':
-        this.scene.animationHelper.showMessage(`${enemy.name} 힘을 모으는 중...`, 0xffcc00);
+        this.scene.animationHelper.showMessage(`${enemy.name} 힘을 모으는 중...`, COLORS.message.warning);
         break;
     }
     
@@ -374,7 +355,7 @@ export class CombatSystem {
     let activeCountEffect: typeof this.scene.playerState.countEffects[0] | null = null;
     let countEffectParryRate = baseParryRate;
     
-    // 철벽 효과 찾기 (우선)
+    // 철벽 효과 찾기 (최우선)
     const ironWallEffect = this.scene.playerState.countEffects.find(e => e.type === 'ironWall');
     if (ironWallEffect) {
       activeCountEffect = ironWallEffect;
@@ -400,12 +381,12 @@ export class CombatSystem {
       this.scene.updatePlayerWeaponDisplay();
       
       if (sword!.currentDurability <= 0) {
-        this.scene.animationHelper.showMessage(`${sword!.name}이(가) 부서졌다!`, 0xc44536);
+        this.scene.animationHelper.showMessage(`${sword!.name}이(가) 부서졌다!`, COLORS.message.error);
         this.scene.playerState.currentSword = null;
         this.scene.updatePlayerWeaponDisplay();
       }
       
-      this.scene.animationHelper.showMessage(`🛡️ 방어 성공! ${action.name} 흘려냄!`, 0x4a7c59);
+      this.scene.animationHelper.showMessage(`🛡️ 방어 성공! ${action.name} 흘려냄!`, COLORS.message.success);
       
       // 패리 반격 체크 (방어 성공 시에만)
       if (activeCountEffect?.type === 'parry' && this.scene.playerState.currentSword) {
@@ -414,23 +395,16 @@ export class CombatSystem {
         const counterDamage = (swordAttack * parryMultiplier) + (action.damage * 0.5);
         
         this.damageEnemy(enemy, counterDamage);
-        this.scene.animationHelper.showMessage(`⚔️ 패리 반격! ${Math.floor(counterDamage)} 데미지!`, 0xffcc00);
-      }
-      
-      // 기존 반격 스킬 체크
-      if (this.scene.playerState.counterReady && this.scene.playerState.currentSword) {
-        const counterDamage = this.scene.playerState.currentSword.attack * this.scene.playerState.counterMultiplier;
-        this.damageEnemy(enemy, counterDamage);
-        this.scene.animationHelper.showMessage('반격!', 0xffcc00);
+        this.scene.animationHelper.showMessage(`⚔️ 패리 반격! ${Math.floor(counterDamage)} 데미지!`, COLORS.message.warning);
       }
     } else {
       // 방어 실패 - 풀 데미지
       const damage = action.damage;
       this.scene.playerState.hp -= damage;
       
-      this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, damage, 0xff0000);
+      this.scene.animationHelper.showDamageNumber(this.scene.PLAYER_X, this.scene.GROUND_Y - 100, damage, COLORS.effect.damageHard);
       this.scene.animationHelper.playerHit();
-      this.scene.animationHelper.showMessage(`${enemy.name}의 ${action.name}! -${damage}`, 0xc44536);
+      this.scene.animationHelper.showMessage(`${enemy.name}의 ${action.name}! -${damage}`, COLORS.message.error);
       
       if (action.effect?.type === 'bleed') {
         this.scene.playerState.hp -= action.effect.value;
@@ -444,7 +418,7 @@ export class CombatSystem {
         this.scene.playerState.countEffects = this.scene.playerState.countEffects.filter(
           e => e.id !== activeCountEffect!.id
         );
-        this.scene.animationHelper.showMessage('🏰 철벽 효과 소멸!', 0x888888);
+        this.scene.animationHelper.showMessage('🏰 철벽 효과 소멸!', COLORS.message.muted);
       } else if (activeCountEffect.type === 'parry') {
         // 패리: 발동 후 소멸 (방어 성공 시에만 발동했으므로)
         if (parrySuccess) {
@@ -466,7 +440,7 @@ export class CombatSystem {
     
     const sprite = this.scene.enemySprites.get(enemy.id);
     if (sprite) {
-      this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, actualDamage, 0xff6b6b);
+      this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, actualDamage, COLORS.effect.damage);
       
       // 적이 죽을 경우 더 강렬한 깜빡임 후 사망
       if (enemy.hp <= 0) {
@@ -536,12 +510,12 @@ export class CombatSystem {
   }
   
   private onLevelUp() {
-    this.scene.animationHelper.showMessage(`⬆️ 레벨 ${this.scene.playerState.level}!`, 0xffff00);
+    this.scene.animationHelper.showMessage(`⬆️ 레벨 ${this.scene.playerState.level}!`, COLORS.message.levelUp);
     
     const lightBlade = this.scene.playerState.passives.find(p => p.id === 'lightBlade');
     if (lightBlade && lightBlade.level < lightBlade.maxLevel) {
       lightBlade.level++;
-      this.scene.animationHelper.showMessage(`✨ 잔광의 검사 Lv.${lightBlade.level}!`, 0xffcc00);
+      this.scene.animationHelper.showMessage(`✨ 잔광의 검사 Lv.${lightBlade.level}!`, COLORS.message.warning);
     }
     
     this.scene.playerState.maxHp += 10;
@@ -631,7 +605,7 @@ export class CombatSystem {
         this.executeChargeAttack(effect);
       } else {
         // 방어 효과 만료 메시지
-        this.scene.animationHelper.showMessage('⏳ 효과 만료!', 0x888888);
+        this.scene.animationHelper.showMessage('⏳ 효과 만료!', COLORS.message.muted);
       }
     });
     
@@ -653,7 +627,7 @@ export class CombatSystem {
   private async executeChargeAttack(effect: typeof this.scene.playerState.countEffects[0]) {
     const sword = this.scene.playerState.currentSword;
     if (!sword) {
-      this.scene.animationHelper.showMessage('무기 없음! 강타 실패', 0xc44536);
+      this.scene.animationHelper.showMessage('무기 없음! 강타 실패', COLORS.message.error);
       return;
     }
     
@@ -682,7 +656,7 @@ export class CombatSystem {
     }
     
     if (targets.length === 0) {
-      this.scene.animationHelper.showMessage('타겟 없음!', 0x888888);
+      this.scene.animationHelper.showMessage('타겟 없음!', COLORS.message.muted);
       return;
     }
     
@@ -710,7 +684,7 @@ export class CombatSystem {
     const actualHits = this.consumeDurabilityAndGetHits(totalHits);
     
     if (actualHits <= 0) {
-      this.scene.animationHelper.showMessage('무기가 부서졌다! 강타 실패', 0xc44536);
+      this.scene.animationHelper.showMessage('무기가 부서졌다! 강타 실패', COLORS.message.error);
       return;
     }
     
@@ -745,7 +719,7 @@ export class CombatSystem {
           if (enemy.hp > 0) {
             const sprite = this.scene.enemySprites.get(enemy.id);
             if (sprite) {
-              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), 0xff6b6b);
+              this.scene.animationHelper.showDamageNumber(sprite.x, sprite.y - 50, Math.floor(damage), COLORS.effect.damage);
             }
           }
         });

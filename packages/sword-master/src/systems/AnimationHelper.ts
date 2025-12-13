@@ -1,4 +1,5 @@
 import type { GameScene } from '../scenes/GameScene';
+import { COLORS } from '../constants/colors';
 
 /**
  * 애니메이션 헬퍼 - 모든 애니메이션 효과 담당
@@ -37,7 +38,7 @@ export class AnimationHelper {
   // ========== 데미지 숫자 ==========
   
   showDamageNumber(x: number, y: number, damage: number, color: number) {
-    const prefix = color === 0x4a7c59 ? '+' : '-';
+    const prefix = color === COLORS.message.success ? '+' : '-';
     const text = this.scene.add.text(x, y, `${prefix}${Math.floor(damage)}`, {
       font: 'bold 20px monospace',
       color: `#${color.toString(16).padStart(6, '0')}`,
@@ -91,13 +92,13 @@ export class AnimationHelper {
         centerY,
         400,
         100,
-        0x000000,
+        COLORS.background.black,
         0.7
       ).setOrigin(0.5);
       overlay.setDepth(3000);  // 모든 경고 메시지보다 위에 표시
       
       // 테두리
-      overlay.setStrokeStyle(3, 0xc44536);
+      overlay.setStrokeStyle(3, COLORS.message.error);
       
       // 적 이름 + 스킬 이름
       const text = this.scene.add.text(
@@ -180,8 +181,8 @@ export class AnimationHelper {
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x2a1f1a, 0.95);
-      bg.setStrokeStyle(3, 0xc44536);
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.medium, 0.95);
+      bg.setStrokeStyle(3, COLORS.message.error);
       
       const emojiText = this.scene.add.text(0, -15, emoji, {
         font: '32px Arial',
@@ -260,8 +261,8 @@ export class AnimationHelper {
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1512, 0.95);
-      bg.setStrokeStyle(3, 0x4a7c59);
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(3, COLORS.message.success);
       
       const emojiText = this.scene.add.text(0, -15, emoji, {
         font: '32px Arial',
@@ -311,7 +312,7 @@ export class AnimationHelper {
       this.scene.cameras.main.height / 2,
       this.scene.cameras.main.width,
       this.scene.cameras.main.height,
-      0xd4af37,
+      COLORS.primary.dark,
       0.4
     );
     
@@ -377,8 +378,8 @@ export class AnimationHelper {
       const card = this.scene.add.container(startX, startY);
       card.setDepth(2000);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1512, 0.95);
-      bg.setStrokeStyle(3, 0xd4af37);  // 강타는 금색
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(3, COLORS.primary.dark);  // 강타는 금색
       
       const emojiText = this.scene.add.text(0, -15, emoji, {
         font: '32px Arial',
@@ -437,11 +438,11 @@ export class AnimationHelper {
         centerY,
         350,
         120,
-        0x000000,
+        COLORS.background.black,
         0.85
       ).setOrigin(0.5);
       overlay.setDepth(1000);
-      overlay.setStrokeStyle(4, 0xd4af37);
+      overlay.setStrokeStyle(4, COLORS.primary.dark);
       
       // 이모지와 스킬명
       const titleText = this.scene.add.text(
@@ -515,8 +516,8 @@ export class AnimationHelper {
       card.setDepth(2000);
       card.setScale(0.5);
       
-      const bg = this.scene.add.rectangle(0, 0, 80, 100, 0x1a1512, 0.95);
-      bg.setStrokeStyle(3, 0xd4af37);
+      const bg = this.scene.add.rectangle(0, 0, 80, 100, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(3, COLORS.primary.dark);
       
       const emojiText = this.scene.add.text(0, -15, emoji, {
         font: '32px Arial',

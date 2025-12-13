@@ -26,27 +26,28 @@ export const COLORS = {
     light: 0x6abc79,     // 더 밝은 청록
   },
   
-  // 배경 색상
+  // 배경 색상 (밝게 조정)
   background: {
-    dark: 0x1a1512,      // 가장 어두운 배경
-    medium: 0x2a2018,    // 중간 배경
-    light: 0x3a3028,     // 밝은 배경 (카드 등)
-    overlay: 0x0f0d0a,   // 오버레이 배경
+    black: 0x000000,     // 순수 검정 (오버레이)
+    dark: 0x252220,      // 가장 어두운 배경 (밝게)
+    medium: 0x3a352a,    // 중간 배경 (밝게)
+    light: 0x4a4238,     // 밝은 배경 (카드 등)
+    overlay: 0x1a1815,   // 오버레이 배경 (밝게)
   },
   
-  // 테두리/구분선
+  // 테두리/구분선 (밝게 조정)
   border: {
-    dark: 0x4a3a28,      // 어두운 테두리
-    medium: 0x8b4513,    // 중간 테두리 (갈색)
-    light: 0xa86030,     // 밝은 테두리
+    dark: 0x5a4a38,      // 어두운 테두리 (밝게)
+    medium: 0x9b5523,    // 중간 테두리 (밝게)
+    light: 0xb87040,     // 밝은 테두리 (밝게)
   },
   
-  // 텍스트 색상
+  // 텍스트 색상 (밝게 조정)
   text: {
     primary: 0xf5ead8,   // 주요 텍스트 (밝은 아이보리)
     secondary: 0xd4c4a0, // 보조 텍스트 (베이지)
-    muted: 0xb8a080,     // 흐린 텍스트
-    disabled: 0x4a3a28,  // 비활성화 텍스트
+    muted: 0xc8b090,     // 흐린 텍스트 (밝게)
+    disabled: 0x6a5a48,  // 비활성화 텍스트 (밝게)
   },
   
   // 등급별 색상
@@ -61,7 +62,7 @@ export const COLORS = {
   card: {
     sword: 0xe85a4a,     // 무기 카드 - 주홍
     skill: 0x5a9c69,     // 일반 스킬 - 청록
-    swift: 0xf0c850,     // 신속 스킬 - 금색
+    swift: 0x4dabf7,     // 신속 스킬 - 파란색
   },
   
   // 상태 색상
@@ -80,9 +81,21 @@ export const COLORS = {
   // 데미지/효과 색상
   effect: {
     damage: 0xff6b6b,    // 데미지 숫자
+    damageHard: 0xff0000, // 강한 데미지 (플레이어 피격)
     heal: 0x5a9c69,      // 회복 숫자
     buff: 0xf0c850,      // 버프 효과
     debuff: 0xe85a4a,    // 디버프 효과
+  },
+  
+  // 메시지 색상
+  message: {
+    warning: 0xffcc00,   // 경고/준비 (금색)
+    error: 0xc44536,     // 에러/실패 (주홍)
+    success: 0x4a7c59,   // 성공 (청록)
+    info: 0x4dabf7,      // 정보 (파란색)
+    muted: 0x888888,     // 비활성/만료 (회색)
+    discard: 0xaaaaaa,   // 무덤 이동 (연회색)
+    levelUp: 0xffff00,   // 레벨업 (노란색)
   },
 } as const;
 
@@ -104,20 +117,20 @@ export const COLORS_STR = {
     light: '#6abc79',
   },
   background: {
-    dark: '#1a1512',
-    medium: '#2a2018',
-    light: '#3a3028',
+    dark: '#252220',
+    medium: '#3a352a',
+    light: '#4a4238',
   },
   border: {
-    dark: '#4a3a28',
-    medium: '#8b4513',
-    light: '#a86030',
+    dark: '#5a4a38',
+    medium: '#9b5523',
+    light: '#b87040',
   },
   text: {
     primary: '#f5ead8',
     secondary: '#d4c4a0',
-    muted: '#b8a080',
-    disabled: '#4a3a28',
+    muted: '#c8b090',
+    disabled: '#6a5a48',
   },
   rarity: {
     common: '#f5ead8',
@@ -128,7 +141,7 @@ export const COLORS_STR = {
   card: {
     sword: '#e85a4a',
     skill: '#5a9c69',
-    swift: '#f0c850',
+    swift: '#4dabf7',
   },
 } as const;
 

@@ -72,7 +72,7 @@ export interface SkillCard {
 
 // 스킬 특수 효과
 export interface SkillEffect {
-  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'counter' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'parry' | 'ironWall' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe';
+  type: 'bleed' | 'stun' | 'pierce' | 'lifesteal' | 'charge' | 'delayReduce' | 'focus' | 'draw' | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' | 'parry' | 'ironWall' | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' | 'followUp';
   value: number;
   duration?: number;
 }
@@ -125,10 +125,9 @@ export interface PlayerState {
   deck: Card[];        // 덱
   discard: Card[];     // 무덤 (버린 카드)
   buffs: Buff[];
-  countEffects: CountEffect[];  // 카운트 효과 (패리, 철벽 등)
+  countEffects: CountEffect[];  // 카운트 효과 (패리, 철벽, 반격 등)
   position: number;    // 러너 위치
-  counterReady: boolean;
-  counterMultiplier: number;
+  usedAttackThisTurn: boolean;   // 이번 턴에 공격/무기 스킬 사용 여부 (이어베기 조건용)
   // 패시브 스킬
   passives: PlayerPassive[];
   // 경험치 & 레벨

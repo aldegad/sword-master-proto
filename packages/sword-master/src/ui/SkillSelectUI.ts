@@ -40,7 +40,7 @@ export class SkillSelectUI {
     let titleColor: string = COLORS_STR.success.dark;
     switch (selectType) {
       case 'searchSword':
-        titleText = '🔍 덱에서 검을 선택하세요!';
+        titleText = '🔍 장착할 검을 소환하세요!';
         titleColor = COLORS_STR.secondary.dark;
         break;
       case 'graveRecall':

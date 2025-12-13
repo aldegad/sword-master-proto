@@ -81,7 +81,12 @@ export class CardUI {
     const hasWeapon = this.scene.gameScene.playerState.currentSword !== null;
     const needsWeapon = !isSword && ((card.data as SkillCard).type === 'attack' || (card.data as SkillCard).type === 'special');
     const isDisabledByNoWeapon = needsWeapon && !hasWeapon;
-    const isUsable = canAfford && !isDisabledByNoWeapon;
+    
+    // 이어베기: 이번 턴에 공격/무기를 사용했어야 함
+    const isFollowUpSkill = !isSword && (card.data as SkillCard).effect?.type === 'followUp';
+    const isDisabledByFollowUp = isFollowUpSkill && !this.scene.gameScene.playerState.usedAttackThisTurn;
+    
+    const isUsable = canAfford && !isDisabledByNoWeapon && !isDisabledByFollowUp;
     
     const bgColor = isSword ? COLORS.background.light : COLORS.background.dark;
     // 신속 스킬은 금색, 일반 스킬은 청록색
@@ -122,6 +127,15 @@ export class CardUI {
         font: '28px Arial',
       }).setOrigin(0.5);
       container.add([disabledOverlay, noWeaponIcon]);
+    }
+    
+    // 이어베기 비활성화 (먼저 공격해야 함)
+    if (isDisabledByFollowUp) {
+      const disabledOverlay = this.scene.add.rectangle(0, 0, 88, 135, 0x000000, 0.5);
+      const followUpIcon = this.scene.add.text(0, 0, '🔗', {
+        font: '28px Arial',
+      }).setOrigin(0.5);
+      container.add([disabledOverlay, followUpIcon]);
     }
     
     // 교환 모드일 때 교환 표시

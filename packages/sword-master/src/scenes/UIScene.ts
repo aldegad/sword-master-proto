@@ -86,7 +86,7 @@ export class UIScene extends Phaser.Scene {
     
     this.noWeaponWarning.add([bg, warningIcon, warningText]);
     this.noWeaponWarning.setVisible(false);
-    this.noWeaponWarning.setDepth(100);
+    this.noWeaponWarning.setDepth(50);  // 적 스킬 이름(3000)보다 뒤에
     
     // 깜빡이는 애니메이션
     this.tweens.add({

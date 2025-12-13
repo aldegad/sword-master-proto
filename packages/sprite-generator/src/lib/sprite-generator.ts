@@ -1,5 +1,10 @@
 import type { ExtractedFrame } from './video-processor';
 
+export interface FrameWithOffset {
+  frame: ExtractedFrame;
+  offset: { x: number; y: number };
+}
+
 export interface SpriteSheetOptions {
   columns?: number;
   padding?: number;
@@ -46,19 +51,34 @@ export class SpriteGenerator {
     frames: ExtractedFrame[],
     options: SpriteSheetOptions = {}
   ): SpriteSheetResult {
-    if (frames.length === 0) {
+    // 오프셋 없이 호출된 경우 기본 오프셋 적용
+    const framesWithOffsets: FrameWithOffset[] = frames.map(frame => ({
+      frame,
+      offset: { x: 0, y: 0 }
+    }));
+    return this.generateSpriteSheetWithOffsets(framesWithOffsets, options);
+  }
+
+  /**
+   * 오프셋이 적용된 스프라이트 시트 생성
+   */
+  generateSpriteSheetWithOffsets(
+    framesWithOffsets: FrameWithOffset[],
+    options: SpriteSheetOptions = {}
+  ): SpriteSheetResult {
+    if (framesWithOffsets.length === 0) {
       throw new Error('프레임이 없습니다.');
     }
 
     const {
-      columns = this.calculateOptimalColumns(frames.length),
+      columns = this.calculateOptimalColumns(framesWithOffsets.length),
       padding = 0,
       backgroundColor = 'transparent',
     } = options;
 
-    const frameWidth = frames[0].canvas.width;
-    const frameHeight = frames[0].canvas.height;
-    const rows = Math.ceil(frames.length / columns);
+    const frameWidth = framesWithOffsets[0].frame.canvas.width;
+    const frameHeight = framesWithOffsets[0].frame.canvas.height;
+    const rows = Math.ceil(framesWithOffsets.length / columns);
 
     // 스프라이트 시트 캔버스 생성
     const canvas = document.createElement('canvas');
@@ -76,14 +96,22 @@ export class SpriteGenerator {
     // 프레임 메타데이터 배열
     const frameMetadata: FrameMetadata[] = [];
 
-    // 프레임 그리기
-    frames.forEach((frame, index) => {
+    // 프레임 그리기 (오프셋 적용)
+    framesWithOffsets.forEach(({ frame, offset }, index) => {
       const col = index % columns;
       const row = Math.floor(index / columns);
       const x = padding + col * (frameWidth + padding);
       const y = padding + row * (frameHeight + padding);
 
-      ctx.drawImage(frame.canvas, x, y);
+      // 클리핑 영역 설정하여 프레임 영역 밖으로 넘어가지 않게 함
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, frameWidth, frameHeight);
+      ctx.clip();
+      
+      // 오프셋 적용하여 그리기
+      ctx.drawImage(frame.canvas, x + offset.x, y + offset.y);
+      ctx.restore();
 
       frameMetadata.push({
         filename: `frame_${String(index).padStart(4, '0')}.png`,
@@ -106,7 +134,7 @@ export class SpriteGenerator {
         frameHeight,
         columns,
         rows,
-        totalFrames: frames.length,
+        totalFrames: framesWithOffsets.length,
       },
     };
 

@@ -47,6 +47,8 @@ let backgroundRemover: BackgroundRemover | null = null;
 let extractedFrames: ExtractedFrame[] = [];
 let disabledFrames: Set<number> = new Set(); // 비활성화된 프레임 인덱스
 let disabledReverseFrames: Set<number> = new Set(); // 비활성화된 역방향 프레임 인덱스
+let frameOffsets: Map<number, { x: number; y: number }> = new Map(); // 프레임별 오프셋
+let reverseFrameOffsets: Map<number, { x: number; y: number }> = new Map(); // 역방향 프레임별 오프셋
 let currentMetadata: SpriteSheetMetadata | null = null;
 
 // 애니메이션 미리보기 상태
@@ -188,9 +190,11 @@ async function handleExtractFrames() {
       }
     );
 
-    // 비활성화 목록 초기화
+    // 비활성화 목록 및 오프셋 초기화
     disabledFrames.clear();
     disabledReverseFrames.clear();
+    frameOffsets.clear();
+    reverseFrameOffsets.clear();
 
     // 프레임 미리보기 렌더링
     renderFramesPreviews();
@@ -218,24 +222,7 @@ function renderFramesPreviews() {
 
   // 원본 프레임 렌더링
   extractedFrames.forEach((frame, index) => {
-    const div = document.createElement('div');
-    div.className = 'frame-item';
-    if (disabledFrames.has(index)) {
-      div.classList.add('disabled');
-    }
-    div.innerHTML = `
-      <img src="${frame.dataUrl}" alt="Frame ${index}" />
-      <span class="frame-number">${index + 1}</span>
-    `;
-    
-    // 클릭 시 토글
-    div.addEventListener('click', () => {
-      toggleFrame(index);
-      div.classList.toggle('disabled');
-      updateFrameCount();
-      updatePreviewInfo();
-    });
-    
+    const div = createFrameElement(frame, index, false);
     framesContainer.appendChild(div);
   });
 
@@ -250,28 +237,100 @@ function renderFramesPreviews() {
     // 역방향 프레임 (완전 역순)
     const reversedFrames = [...extractedFrames].reverse();
     reversedFrames.forEach((frame, reverseIndex) => {
-      const div = document.createElement('div');
-      div.className = 'frame-item reverse-frame';
-      if (disabledReverseFrames.has(reverseIndex)) {
-        div.classList.add('disabled');
-      }
-      const displayNumber = totalOriginalFrames + reverseIndex + 1;
-      div.innerHTML = `
-        <img src="${frame.dataUrl}" alt="Reverse Frame ${reverseIndex}" />
-        <span class="frame-number">${displayNumber}</span>
-      `;
-      
-      // 클릭 시 토글
-      div.addEventListener('click', () => {
-        toggleReverseFrame(reverseIndex);
-        div.classList.toggle('disabled');
-        updateFrameCount();
-        updatePreviewInfo();
-      });
-      
+      const div = createFrameElement(frame, reverseIndex, true, totalOriginalFrames + reverseIndex + 1);
       framesContainer.appendChild(div);
     });
   }
+}
+
+function createFrameElement(frame: ExtractedFrame, index: number, isReverse: boolean, displayNumber?: number): HTMLDivElement {
+  const div = document.createElement('div');
+  div.className = 'frame-item' + (isReverse ? ' reverse-frame' : '');
+  
+  const disabledSet = isReverse ? disabledReverseFrames : disabledFrames;
+  const offsetsMap = isReverse ? reverseFrameOffsets : frameOffsets;
+  
+  if (disabledSet.has(index)) {
+    div.classList.add('disabled');
+  }
+  
+  const offset = offsetsMap.get(index) || { x: 0, y: 0 };
+  const frameNum = displayNumber ?? (index + 1);
+  
+  div.innerHTML = `
+    <div class="frame-image-wrapper">
+      <img src="${frame.dataUrl}" alt="Frame ${index}" style="transform: translate(${offset.x}px, ${offset.y}px)" />
+    </div>
+    <span class="frame-number">${frameNum}</span>
+    <div class="frame-offset-controls">
+      <button class="offset-btn up" data-dir="up" title="위로">▲</button>
+      <div class="offset-lr">
+        <button class="offset-btn left" data-dir="left" title="왼쪽">◀</button>
+        <span class="offset-value">${offset.x},${offset.y}</span>
+        <button class="offset-btn right" data-dir="right" title="오른쪽">▶</button>
+      </div>
+      <button class="offset-btn down" data-dir="down" title="아래로">▼</button>
+    </div>
+  `;
+  
+  // 이미지 클릭 시 토글
+  const imgWrapper = div.querySelector('.frame-image-wrapper') as HTMLElement;
+  imgWrapper.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isReverse) {
+      toggleReverseFrame(index);
+    } else {
+      toggleFrame(index);
+    }
+    div.classList.toggle('disabled');
+    updateFrameCount();
+    updatePreviewInfo();
+  });
+  
+  // 방향 버튼 이벤트
+  const offsetBtns = div.querySelectorAll('.offset-btn');
+  offsetBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dir = (btn as HTMLElement).dataset.dir;
+      adjustFrameOffset(index, dir as 'up' | 'down' | 'left' | 'right', isReverse);
+      
+      // UI 업데이트
+      const newOffset = offsetsMap.get(index) || { x: 0, y: 0 };
+      const img = div.querySelector('img') as HTMLImageElement;
+      img.style.transform = `translate(${newOffset.x}px, ${newOffset.y}px)`;
+      const valueSpan = div.querySelector('.offset-value') as HTMLSpanElement;
+      valueSpan.textContent = `${newOffset.x},${newOffset.y}`;
+      
+      // 미리보기 업데이트
+      drawPreviewFrame();
+    });
+  });
+  
+  return div;
+}
+
+function adjustFrameOffset(index: number, direction: 'up' | 'down' | 'left' | 'right', isReverse: boolean) {
+  const offsetsMap = isReverse ? reverseFrameOffsets : frameOffsets;
+  const current = offsetsMap.get(index) || { x: 0, y: 0 };
+  const step = 1; // 1픽셀 단위로 이동
+  
+  switch (direction) {
+    case 'up':
+      current.y -= step;
+      break;
+    case 'down':
+      current.y += step;
+      break;
+    case 'left':
+      current.x -= step;
+      break;
+    case 'right':
+      current.x += step;
+      break;
+  }
+  
+  offsetsMap.set(index, current);
 }
 
 function updateFrameCount() {
@@ -301,23 +360,42 @@ function toggleReverseFrame(index: number) {
   }
 }
 
+interface FrameWithOffset {
+  frame: ExtractedFrame;
+  offset: { x: number; y: number };
+}
+
 function getEnabledFrames(): ExtractedFrame[] {
   return extractedFrames.filter((_, index) => !disabledFrames.has(index));
 }
 
-/**
- * 핑퐁(역방향) 프레임 포함하여 반환
- * 역방향 프레임의 disabled 상태도 개별 반영
- */
-function getFramesWithPingPong(): ExtractedFrame[] {
-  const enabledFrames = getEnabledFrames();
+function getEnabledFramesWithOffsets(): FrameWithOffset[] {
+  return extractedFrames
+    .map((frame, index) => ({
+      frame,
+      offset: frameOffsets.get(index) || { x: 0, y: 0 },
+      index
+    }))
+    .filter((_, index) => !disabledFrames.has(index))
+    .map(({ frame, offset }) => ({ frame, offset }));
+}
+
+function getFramesWithPingPongAndOffsets(): FrameWithOffset[] {
+  const enabledFrames = getEnabledFramesWithOffsets();
   if (!pingpongCheckbox.checked) {
     return enabledFrames;
   }
   
   // 역방향 프레임: 원본 전체를 역순으로 배열한 후, disabled된 것 제외
   const reversedAllFrames = [...extractedFrames].reverse();
-  const enabledReverseFrames = reversedAllFrames.filter((_, index) => !disabledReverseFrames.has(index));
+  const enabledReverseFrames = reversedAllFrames
+    .map((frame, index) => ({
+      frame,
+      offset: reverseFrameOffsets.get(index) || { x: 0, y: 0 },
+      index
+    }))
+    .filter(({ index }) => !disabledReverseFrames.has(index))
+    .map(({ frame, offset }) => ({ frame, offset }));
   
   return [...enabledFrames, ...enabledReverseFrames];
 }
@@ -338,24 +416,24 @@ function initPreviewCanvas() {
 }
 
 function drawPreviewFrame() {
-  const frames = getFramesWithPingPong();
-  if (frames.length === 0) {
+  const framesWithOffsets = getFramesWithPingPongAndOffsets();
+  if (framesWithOffsets.length === 0) {
     const ctx = previewCanvas.getContext('2d')!;
     ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
     return;
   }
   
-  const frameIndex = currentFrameIndex % frames.length;
-  const frame = frames[frameIndex];
+  const frameIndex = currentFrameIndex % framesWithOffsets.length;
+  const { frame, offset } = framesWithOffsets[frameIndex];
   
   const ctx = previewCanvas.getContext('2d')!;
   ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-  ctx.drawImage(frame.canvas, 0, 0);
+  ctx.drawImage(frame.canvas, offset.x, offset.y);
 }
 
 function updatePreviewInfo() {
   const enabledFrames = getEnabledFrames();
-  const totalFrames = getFramesWithPingPong();
+  const totalFrames = getFramesWithPingPongAndOffsets();
   if (enabledFrames.length === 0) {
     previewInfo.textContent = '활성화된 프레임 없음';
     return;
@@ -390,7 +468,7 @@ function animate() {
   const now = performance.now();
   
   if (now - lastFrameTime >= frameInterval) {
-    const frames = getFramesWithPingPong();
+    const frames = getFramesWithPingPongAndOffsets();
     currentFrameIndex = (currentFrameIndex + 1) % frames.length;
     drawPreviewFrame();
     updatePreviewInfo();
@@ -452,9 +530,9 @@ function handleGenerateSprite() {
   try {
     showProgress('스프라이트 시트 생성 중...');
 
-    // 핑퐁 옵션 적용된 프레임으로 스프라이트 시트 생성
-    const finalFrames = getFramesWithPingPong();
-    const result = spriteGenerator!.generateSpriteSheet(finalFrames);
+    // 핑퐁 옵션 및 오프셋 적용된 프레임으로 스프라이트 시트 생성
+    const finalFramesWithOffsets = getFramesWithPingPongAndOffsets();
+    const result = spriteGenerator!.generateSpriteSheetWithOffsets(finalFramesWithOffsets);
 
     // 결과 캔버스에 그리기
     const ctx = spriteCanvas.getContext('2d')!;
@@ -467,7 +545,7 @@ function handleGenerateSprite() {
 
     // 정보 표시
     const pingpongInfo = pingpongCheckbox.checked 
-      ? `<br>🔄 핑퐁 적용됨 (${enabledFrames.length}개 → ${finalFrames.length}개)`
+      ? `<br>🔄 핑퐁 적용됨 (${enabledFrames.length}개 → ${finalFramesWithOffsets.length}개)`
       : '';
     spriteInfo.innerHTML = `
       <strong>스프라이트 시트 정보:</strong><br>

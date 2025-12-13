@@ -74,7 +74,7 @@ export class EnemyManager {
     container.add(targetHighlight);
     
     // 인터랙션 (타겟 선택용)
-    const hitArea = this.scene.add.rectangle(0, 0, 90, 120, 0x000000, 0);
+    const hitArea = this.scene.add.rectangle(0, 0, 90, 120, COLORS.background.black, 0);
     hitArea.setInteractive({ useHandCursor: false, cursor: 'pointer' });
     
     // 호버 효과 - 타겟팅 모드일 때만 강조
