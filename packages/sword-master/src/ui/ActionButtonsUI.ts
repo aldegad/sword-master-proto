@@ -23,10 +23,15 @@ export class ActionButtonsUI {
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
     
+    // 버튼을 가로로 나열 (오른쪽 하단)
+    const btnY = height - 90;
+    const btnSpacing = 95;
+    const startX = width - 280;
+    
     // 턴 종료 버튼
     this.createButton(
-      width - 140, height - 260,
-      '▶ 턴 종료',
+      startX, btnY,
+      '▶ 턴종료',
       'SPACE',
       COLORS.secondary.main,
       () => {
@@ -38,18 +43,18 @@ export class ActionButtonsUI {
     
     // 대기 버튼
     this.waitBtn = this.createButton(
-      width - 140, height - 195,
-      '‖ 대기 [1/1]',
-      '(W키)',
+      startX + btnSpacing, btnY,
+      '‖ 대기',
+      'W',
       COLORS.success.main,
       () => this.useWait()
     );
     
     // 교환 버튼
     this.exchangeBtn = this.createButton(
-      width - 140, height - 130,
-      '↻ 교환 [1/1]',
-      '(X키)',
+      startX + btnSpacing * 2, btnY,
+      '↻ 교환',
+      'X',
       COLORS.primary.main,
       () => this.tryExchange()
     );
@@ -88,16 +93,17 @@ export class ActionButtonsUI {
   ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(x, y);
     
-    const bg = this.scene.add.rectangle(0, 0, 220, 55, COLORS.background.dark, 0.95);
+    // 버튼 크기 축소 (220x55 → 140x38)
+    const bg = this.scene.add.rectangle(0, 0, 140, 38, COLORS.background.dark, 0.95);
     bg.setStrokeStyle(2, color);
     
-    const text = this.scene.add.text(0, -8, label, {
-      font: 'bold 16px monospace',
+    const text = this.scene.add.text(0, -5, label, {
+      font: 'bold 13px monospace',
       color: `#${color.toString(16).padStart(6, '0')}`,
     }).setOrigin(0.5);
     
-    const sub = this.scene.add.text(0, 15, subLabel, {
-      font: '11px monospace',
+    const sub = this.scene.add.text(0, 12, subLabel, {
+      font: '9px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     

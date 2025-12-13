@@ -30,7 +30,7 @@ export class GameScene extends Phaser.Scene {
   
   // 상수
   readonly PLAYER_X = 150;
-  readonly GROUND_Y = 400;
+  readonly GROUND_Y = 520;  // 더 아래로 내림
   readonly SCROLL_SPEED = 2;
   
   // 이동 관련
@@ -171,18 +171,20 @@ export class GameScene extends Phaser.Scene {
   // 플레이어 스프라이트 (애니메이션용)
   playerAnim?: Phaser.GameObjects.Sprite;
   currentAnim: string = 'idle';
+  isAnimating: boolean = false;  // 전환 애니메이션 중인지
 
   createPlayer() {
-    this.playerSprite = this.add.container(this.PLAYER_X, this.GROUND_Y - 30);
+    this.playerSprite = this.add.container(this.PLAYER_X, this.GROUND_Y);
     
     if (USE_SPRITES && this.textures.exists('player-idle')) {
       // 스프라이트 기반 플레이어
       this.playerAnim = this.add.sprite(0, 0, 'player-idle');
       this.playerAnim.setScale(SPRITE_SCALE);
+      this.playerAnim.setOrigin(0.5, 1);  // 하단 중앙 기준 (발이 땅에 닿도록)
       this.playerAnim.play('idle');
       this.playerSprite.add(this.playerAnim);
       
-      const label = this.add.text(0, 50 * SPRITE_SCALE, '검객', {
+      const label = this.add.text(0, 10, '검객', {
         font: 'bold 12px monospace',
         color: COLORS_STR.primary.dark,
       }).setOrigin(0.5);
@@ -206,65 +208,148 @@ export class GameScene extends Phaser.Scene {
 
   /**
    * 플레이어 애니메이션 재생
-   * @param animKey 애니메이션 키 (idle, walk, attack, skill, equip)
+   * 
+   * 애니메이션 흐름:
+   * - idle: 기본 대기 상태 (서있기)
+   * - work: 작업/공격 상태 (idle → idle-to-work → work → work-to-idle → idle)
+   * 
+   * @param animKey 애니메이션 키 (idle, work)
    * @param onComplete 애니메이션 완료 콜백
    */
   playPlayerAnimation(animKey: string, onComplete?: () => void) {
-    if (!USE_SPRITES || !this.playerAnim) return;
-    
-    // 이미 같은 애니메이션 재생 중이면 스킵 (반복 애니메이션의 경우)
-    if (this.currentAnim === animKey && (animKey === 'idle' || animKey === 'walk')) {
+    if (!USE_SPRITES || !this.playerAnim) {
+      // 스프라이트 없을 때는 콜백만 실행
+      if (onComplete) onComplete();
       return;
     }
     
-    this.currentAnim = animKey;
-    
-    // 해당 애니메이션의 스프라이트시트로 변경
-    const textureKey = this.getTextureForAnimation(animKey);
-    if (textureKey && this.textures.exists(textureKey)) {
-      this.playerAnim.setTexture(textureKey);
+    // 이미 같은 상태면 스킵
+    if (this.currentAnim === animKey && animKey === 'idle') {
+      if (onComplete) onComplete();
+      return;
     }
     
-    // 애니메이션이 존재하는지 확인
-    if (this.anims.exists(animKey)) {
-      this.playerAnim.play(animKey);
-      
-      if (onComplete) {
-        this.playerAnim.once('animationcomplete', onComplete);
-      }
+    // 전환 애니메이션 중이면 큐에 넣기 (간단히 무시)
+    if (this.isAnimating) {
+      if (onComplete) this.time.delayedCall(500, onComplete);
+      return;
+    }
+    
+    // work 애니메이션 요청
+    if (animKey === 'work') {
+      this.playWorkAnimation(onComplete);
+    } 
+    // idle 상태로 돌아가기
+    else if (animKey === 'idle') {
+      this.playIdleAnimation(onComplete);
     }
   }
-
+  
   /**
-   * 애니메이션 키에 맞는 텍스처 키 반환
+   * Work 애니메이션 시퀀스: idle-to-work → work → work-to-idle → idle
    */
-  private getTextureForAnimation(animKey: string): string {
-    switch (animKey) {
-      case 'idle':
-        return 'player-idle';
-      case 'walk':
-        return 'player-walk';
-      case 'attack':
-      case 'skill':
-      case 'equip':
-        return 'player-action';
-      default:
-        return 'player-idle';
+  private playWorkAnimation(onComplete?: () => void) {
+    this.isAnimating = true;
+    this.currentAnim = 'work';
+    
+    // 1단계: idle-to-work 전환
+    const textureIdleWork = 'player-idle-work';
+    if (this.textures.exists(textureIdleWork) && this.anims.exists('idle-to-work')) {
+      this.playerAnim!.setTexture(textureIdleWork);
+      this.playerAnim!.play('idle-to-work');
+      
+      this.playerAnim!.once('animationcomplete', () => {
+        // 2단계: work 애니메이션
+        const textureWork = 'player-work';
+        if (this.textures.exists(textureWork) && this.anims.exists('work')) {
+          this.playerAnim!.setTexture(textureWork);
+          this.playerAnim!.play('work');
+          
+          this.playerAnim!.once('animationcomplete', () => {
+            // 3단계: work-to-idle 전환
+            if (this.textures.exists(textureIdleWork) && this.anims.exists('work-to-idle')) {
+              this.playerAnim!.setTexture(textureIdleWork);
+              this.playerAnim!.play('work-to-idle');
+              
+              this.playerAnim!.once('animationcomplete', () => {
+                // 4단계: idle로 복귀
+                this.playIdleAnimation();
+                this.isAnimating = false;
+                if (onComplete) onComplete();
+              });
+            } else {
+              this.playIdleAnimation();
+              this.isAnimating = false;
+              if (onComplete) onComplete();
+            }
+          });
+        } else {
+          // work 애니메이션 없으면 바로 idle로
+          this.playIdleAnimation();
+          this.isAnimating = false;
+          if (onComplete) onComplete();
+        }
+      });
+    } else {
+      // 전환 애니메이션 없으면 바로 idle
+      this.playIdleAnimation();
+      this.isAnimating = false;
+      if (onComplete) onComplete();
+    }
+  }
+  
+  /**
+   * Idle 애니메이션으로 전환
+   */
+  private playIdleAnimation(onComplete?: () => void) {
+    this.currentAnim = 'idle';
+    
+    const textureIdle = 'player-idle';
+    if (this.textures.exists(textureIdle) && this.anims.exists('idle')) {
+      this.playerAnim!.setTexture(textureIdle);
+      this.playerAnim!.play('idle');
+    }
+    
+    if (onComplete) onComplete();
+  }
+  
+  /**
+   * Attak(카드 뽑기) 애니메이션 재생
+   * 재생 후 자동으로 idle로 복귀
+   */
+  playAttakAnimation(onComplete?: () => void) {
+    if (!USE_SPRITES || !this.playerAnim) {
+      if (onComplete) onComplete();
+      return;
+    }
+    
+    // 이미 애니메이션 중이면 스킵
+    if (this.isAnimating) {
+      if (onComplete) onComplete();
+      return;
+    }
+    
+    this.isAnimating = true;
+    this.currentAnim = 'attak';
+    
+    const textureAttak = 'player-attak';
+    if (this.textures.exists(textureAttak) && this.anims.exists('attak')) {
+      this.playerAnim.setTexture(textureAttak);
+      this.playerAnim.play('attak');
+      
+      this.playerAnim.once('animationcomplete', () => {
+        this.playIdleAnimation();
+        this.isAnimating = false;
+        if (onComplete) onComplete();
+      });
+    } else {
+      this.isAnimating = false;
+      if (onComplete) onComplete();
     }
   }
 
   updatePlayerWeaponDisplay() {
-    const existingWeapon = this.playerSprite.getByName('weaponEmoji');
-    if (existingWeapon) existingWeapon.destroy();
-    
-    if (this.playerState.currentSword) {
-      const weaponEmoji = this.add.text(25, -5, this.playerState.currentSword.emoji, {
-        font: '24px Arial',
-      }).setOrigin(0.5);
-      weaponEmoji.setName('weaponEmoji');
-      this.playerSprite.add(weaponEmoji);
-    }
-    
+    // 무기 아이콘은 상단 UI에 표시되므로 플레이어 옆에는 표시하지 않음
     this.events.emit('statsUpdated');
   }
 
@@ -596,12 +681,12 @@ export class GameScene extends Phaser.Scene {
         tile.setPosition((tile as any).scrollX, 0);
       });
       
-      // 플레이어 달리기 애니메이션
-      if (USE_SPRITES && this.playerAnim) {
-        this.playPlayerAnimation('walk');
-      } else {
+      // 플레이어 이동 애니메이션 (work-loop 사용)
+      if (USE_SPRITES && this.playerAnim && this.currentAnim !== 'work-loop') {
+        this.playWorkLoopAnimation();
+      } else if (!USE_SPRITES) {
         // 기존 방식: y 좌표 흔들림
-        this.playerSprite.y = this.GROUND_Y - 30 + Math.sin(this.time.now / 100) * 3;
+        this.playerSprite.y = this.GROUND_Y + Math.sin(this.time.now / 100) * 3;
       }
       
       // 일정 거리마다 적 조우
@@ -610,9 +695,24 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       // 전투/대기 중에는 idle 애니메이션
-      if (USE_SPRITES && this.playerAnim && this.currentAnim === 'walk') {
-        this.playPlayerAnimation('idle');
+      if (USE_SPRITES && this.playerAnim && (this.currentAnim === 'work-loop' || this.currentAnim === 'work')) {
+        this.playIdleAnimation();
       }
+    }
+  }
+  
+  /**
+   * 이동 중 Work 반복 애니메이션
+   */
+  playWorkLoopAnimation() {
+    if (!USE_SPRITES || !this.playerAnim) return;
+    
+    this.currentAnim = 'work-loop';
+    
+    const textureWork = 'player-work';
+    if (this.textures.exists(textureWork) && this.anims.exists('work-loop')) {
+      this.playerAnim.setTexture(textureWork);
+      this.playerAnim.play('work-loop');
     }
   }
 }

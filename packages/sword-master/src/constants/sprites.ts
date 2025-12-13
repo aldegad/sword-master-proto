@@ -48,57 +48,69 @@ export interface SpriteSheetMeta {
 
 /**
  * 플레이어 스프라이트 설정
+ * 
+ * 애니메이션 흐름:
+ * - idle: 기본 서있는 상태 (122프레임, 무한 반복)
+ * - idle-to-work: idle → work 전환 애니메이션 (25프레임, 1회)
+ * - work: 작업/공격 상태 (46프레임, 1회 또는 반복)
+ * - work-to-idle: work → idle 전환 (idle-to-work 역재생)
  */
 export const PLAYER_SPRITES: SpriteConfig[] = [
   {
     key: 'player-idle',
-    imagePath: 'assets/sprites/player-idle.png',
-    jsonPath: 'assets/sprites/player-idle.json',
+    imagePath: 'assets/sprites/idle.png',
+    jsonPath: 'assets/sprites/idle.json',
     animations: [
       {
         key: 'idle',
-        frameRate: 8,
-        repeat: -1,   // 무한 반복
+        frameRate: 24,    // 24fps
+        repeat: -1,       // 무한 반복
       },
     ],
   },
   {
-    key: 'player-walk',
-    imagePath: 'assets/sprites/player-walk.png',
-    jsonPath: 'assets/sprites/player-walk.json',
+    key: 'player-idle-work',
+    imagePath: 'assets/sprites/idle-work.png',
+    jsonPath: 'assets/sprites/idle-work.json',
     animations: [
       {
-        key: 'walk',
-        frameRate: 12,
-        repeat: -1,
+        key: 'idle-to-work',
+        frameRate: 24,    // 24fps
+        repeat: 0,        // 1회만
+      },
+      {
+        key: 'work-to-idle',
+        frameRate: 24,    // 24fps
+        repeat: 0,
       },
     ],
   },
   {
-    key: 'player-action',
-    imagePath: 'assets/sprites/player-action.png',
-    jsonPath: 'assets/sprites/player-action.json',
+    key: 'player-work',
+    imagePath: 'assets/sprites/work.png',
+    jsonPath: 'assets/sprites/work.json',
     animations: [
       {
-        key: 'attack',
-        startFrame: 0,
-        endFrame: 4,       // 예: 0~4 프레임 (5프레임)
-        frameRate: 15,
-        repeat: 0,
+        key: 'work',
+        frameRate: 24,    // 24fps - 이동 중 재생
+        repeat: 0,        // 1회
       },
       {
-        key: 'skill',
-        startFrame: 5,
-        endFrame: 9,       // 예: 5~9 프레임
-        frameRate: 12,
-        repeat: 0,
+        key: 'work-loop',
+        frameRate: 24,    // 24fps
+        repeat: -1,       // 반복 버전 (이동용)
       },
+    ],
+  },
+  {
+    key: 'player-attak',
+    imagePath: 'assets/sprites/attak.png',
+    jsonPath: 'assets/sprites/attak.json',
+    animations: [
       {
-        key: 'equip',
-        startFrame: 10,
-        endFrame: 13,      // 예: 10~13 프레임
-        frameRate: 10,
-        repeat: 0,
+        key: 'attak',
+        frameRate: 24,    // 24fps - 공격/장착 시 재생
+        repeat: 0,        // 1회
       },
     ],
   },
@@ -108,12 +120,13 @@ export const PLAYER_SPRITES: SpriteConfig[] = [
  * 스프라이트 사용 여부
  * false면 기존 이모지/텍스트 기반 렌더링 사용
  */
-export const USE_SPRITES = false;
+export const USE_SPRITES = true;
 
 /**
  * 스프라이트 스케일
+ * 원본 560x560을 화면에 맞게 축소 (0.4 ≈ 224px)
  */
-export const SPRITE_SCALE = 1.5;
+export const SPRITE_SCALE = 0.4;
 
 /**
  * 로드된 스프라이트 메타데이터 저장소

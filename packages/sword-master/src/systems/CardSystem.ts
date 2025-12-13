@@ -163,19 +163,14 @@ export class CardSystem {
       this.scene.animationHelper.showMessage(`${this.scene.playerState.currentSword.name} → 무덤`, COLORS.message.discard);
     }
     
+    // 무기 장착 시 attak 애니메이션 재생 (스케일 애니메이션 제거)
+    this.scene.playAttakAnimation();
+    
     // 새 무기 장착
     this.scene.playerState.currentSword = { ...sword };
     this.scene.updatePlayerWeaponDisplay();
     
     this.scene.animationHelper.showMessage(`${sword.name} 장착!`, COLORS.message.success);
-    
-    this.scene.tweens.add({
-      targets: this.scene.playerSprite,
-      scaleX: 1.2,
-      scaleY: 1.2,
-      duration: 100,
-      yoyo: true,
-    });
     
     // 발도 공격 실행 (타겟 지정 포함)
     if (this.scene.gameState.phase === 'combat' && this.scene.gameState.enemies.length > 0) {
@@ -414,6 +409,7 @@ export class CardSystem {
   // ========== 카드 드로우 ==========
   
   drawCards(count: number) {
+    // 카드 뽑기는 애니메이션 없음 (attak은 공격/장착용)
     for (let i = 0; i < count; i++) {
       if (this.scene.playerState.hand.length >= GAME_CONSTANTS.MAX_HAND_SIZE) {
         const discarded = this.scene.playerState.hand.shift();

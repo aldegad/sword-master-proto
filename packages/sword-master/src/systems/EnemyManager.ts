@@ -64,7 +64,23 @@ export class EnemyManager {
     }).setOrigin(0.5);
     (container as any).hpText = hpText;
     
-    container.add([emoji, nameText, hpBarBg, hpBar, hpText]);
+    // 방어력 표시 (버프 형태)
+    const defenseContainer = this.scene.add.container(-35, 20);
+    const defenseBg = this.scene.add.rectangle(0, 0, 36, 20, COLORS.background.dark, 0.85);
+    defenseBg.setStrokeStyle(1, COLORS.secondary.light);
+    const defenseText = this.scene.add.text(0, 0, `🛡️${enemy.defense}`, {
+      font: 'bold 11px monospace',
+      color: COLORS_STR.secondary.light,
+    }).setOrigin(0.5);
+    defenseContainer.add([defenseBg, defenseText]);
+    (container as any).defenseText = defenseText;
+    (container as any).defenseContainer = defenseContainer;
+    (container as any).baseDefense = enemy.defense;  // 기본 방어력 저장
+    
+    // 방어력이 0이면 숨김
+    defenseContainer.setVisible(enemy.defense > 0);
+    
+    container.add([emoji, nameText, hpBarBg, hpBar, hpText, defenseContainer]);
     
     // 타겟 강조 효과 (숨김 상태)
     const targetHighlight = this.scene.add.rectangle(0, -10, 90, 110, COLORS.secondary.dark, 0);
@@ -122,6 +138,9 @@ export class EnemyManager {
     
     const hpBar = (container as any).hpBar as Phaser.GameObjects.Rectangle;
     const hpText = (container as any).hpText as Phaser.GameObjects.Text;
+    const defenseText = (container as any).defenseText as Phaser.GameObjects.Text;
+    const defenseContainer = (container as any).defenseContainer as Phaser.GameObjects.Container;
+    const baseDefense = (container as any).baseDefense as number;
     
     if (hpBar) {
       const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
@@ -130,6 +149,27 @@ export class EnemyManager {
     
     if (hpText) {
       hpText.setText(`${Math.max(0, enemy.hp)}/${enemy.maxHp}`);
+    }
+    
+    // 방어력 업데이트
+    if (defenseText && defenseContainer) {
+      defenseText.setText(`🛡️${enemy.defense}`);
+      defenseContainer.setVisible(enemy.defense > 0);
+      
+      // 기본 방어력보다 높으면 강조 (버프 상태)
+      if (enemy.defense > baseDefense) {
+        defenseText.setColor(COLORS_STR.primary.light);
+        // 펄스 효과
+        this.scene.tweens.add({
+          targets: defenseContainer,
+          scale: 1.2,
+          duration: 150,
+          yoyo: true,
+          ease: 'Power2',
+        });
+      } else {
+        defenseText.setColor(COLORS_STR.secondary.light);
+      }
     }
   }
   

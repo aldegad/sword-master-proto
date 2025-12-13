@@ -59,23 +59,11 @@ export class BootScene extends Phaser.Scene {
       loadingText.destroy();
     });
     
-    // 스프라이트 로드
+    // 스프라이트 로드 (atlas 형식으로 변경)
     if (USE_SPRITES) {
       PLAYER_SPRITES.forEach(sprite => {
-        const meta = loadedSpriteMeta.get(sprite.key);
-        if (meta) {
-          // JSON에서 프레임 크기 자동 로드
-          this.load.spritesheet(sprite.key, sprite.imagePath, {
-            frameWidth: meta.meta.frameWidth,
-            frameHeight: meta.meta.frameHeight,
-          });
-        } else {
-          // JSON 없으면 기본값 사용 (64x64)
-          this.load.spritesheet(sprite.key, sprite.imagePath, {
-            frameWidth: 64,
-            frameHeight: 64,
-          });
-        }
+        // Aseprite/TexturePacker JSON Array 형식은 atlas로 로드
+        this.load.atlas(sprite.key, sprite.imagePath, sprite.jsonPath);
       });
     } else {
       // 더미 로드 (바로 넘어가지 않게)
@@ -86,7 +74,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   /**
-   * 스프라이트 애니메이션 생성
+   * 스프라이트 애니메이션 생성 (atlas 방식)
    */
   private createAnimations() {
     if (!USE_SPRITES) return;
@@ -97,16 +85,27 @@ export class BootScene extends Phaser.Scene {
 
       sprite.animations.forEach(anim => {
         if (!this.anims.exists(anim.key)) {
-          // startFrame/endFrame이 없으면 JSON의 totalFrames 사용
           const start = anim.startFrame ?? 0;
           const end = anim.endFrame ?? (totalFrames - 1);
 
+          // atlas에서 프레임 이름으로 애니메이션 생성
+          const frameNames: string[] = [];
+          
+          if (anim.key === 'work-to-idle') {
+            // 역재생
+            for (let i = end; i >= start; i--) {
+              frameNames.push(`frame_${i.toString().padStart(4, '0')}.png`);
+            }
+          } else {
+            // 정방향
+            for (let i = start; i <= end; i++) {
+              frameNames.push(`frame_${i.toString().padStart(4, '0')}.png`);
+            }
+          }
+
           this.anims.create({
             key: anim.key,
-            frames: this.anims.generateFrameNumbers(sprite.key, {
-              start,
-              end,
-            }),
+            frames: frameNames.map(name => ({ key: sprite.key, frame: name })),
             frameRate: anim.frameRate,
             repeat: anim.repeat,
           });

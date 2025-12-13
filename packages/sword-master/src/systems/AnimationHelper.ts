@@ -14,24 +14,12 @@ export class AnimationHelper {
   // ========== 플레이어 애니메이션 ==========
   
   playerAttack() {
-    this.scene.tweens.add({
-      targets: this.scene.playerSprite,
-      x: this.scene.PLAYER_X + 40,
-      duration: 100,
-      yoyo: true,
-      ease: 'Power2',
-    });
+    // 공격 시 attak 애니메이션만 재생 (흔들림 제거)
+    this.scene.playAttakAnimation();
   }
   
   playerHit() {
-    this.scene.tweens.add({
-      targets: this.scene.playerSprite,
-      x: this.scene.PLAYER_X - 15,
-      duration: 50,
-      yoyo: true,
-      repeat: 2,
-    });
-    
+    // 피격 시 카메라 흔들림만 (캐릭터 흔들림 제거)
     this.scene.cameras.main.shake(100, 0.01);
   }
   

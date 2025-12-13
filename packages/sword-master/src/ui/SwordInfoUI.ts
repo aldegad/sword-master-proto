@@ -18,31 +18,31 @@ export class SwordInfoUI {
   }
   
   private create() {
-    // 무기 정보 패널
-    const infoPanel = this.scene.add.rectangle(20, 125, 260, 110, COLORS.background.dark, 0.95).setOrigin(0);
+    // 무기 정보 패널 (위로 올림: 125 → 85)
+    const infoPanel = this.scene.add.rectangle(20, 85, 260, 100, COLORS.background.dark, 0.95).setOrigin(0);
     infoPanel.setStrokeStyle(2, COLORS.border.medium);
     
-    this.scene.add.text(30, 132, '◈ 장착 무기', {
+    this.scene.add.text(30, 92, '◈ 장착 무기', {
       font: 'bold 14px monospace',
       color: COLORS_STR.secondary.main,
     });
     
-    this.swordEmoji = this.scene.add.text(230, 180, '', {
-      font: '44px Arial',
+    this.swordEmoji = this.scene.add.text(230, 135, '', {
+      font: '40px Arial',
     }).setOrigin(0.5);
     
-    this.swordInfoText = this.scene.add.text(30, 158, '', {
-      font: '13px monospace',
+    this.swordInfoText = this.scene.add.text(30, 112, '', {
+      font: '12px monospace',
       color: COLORS_STR.text.secondary,
-      lineSpacing: 5,
+      lineSpacing: 4,
     });
     
-    // 덱 정보 패널
-    const deckPanel = this.scene.add.rectangle(20, 240, 260, 50, COLORS.background.dark, 0.95).setOrigin(0);
+    // 덱 정보 패널 (위로 올림)
+    const deckPanel = this.scene.add.rectangle(20, 190, 260, 40, COLORS.background.dark, 0.95).setOrigin(0);
     deckPanel.setStrokeStyle(1, COLORS.border.dark);
     
-    this.deckText = this.scene.add.text(30, 255, '', {
-      font: 'bold 13px monospace',
+    this.deckText = this.scene.add.text(30, 200, '', {
+      font: 'bold 12px monospace',
       color: COLORS_STR.text.muted,
     });
   }

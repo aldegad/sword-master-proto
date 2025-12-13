@@ -37,16 +37,16 @@ export class TopUI {
   }
   
   private createHpBar() {
-    // HP 바 배경
-    const hpBg = this.scene.add.rectangle(20, 25, 280, 35, COLORS.background.dark).setOrigin(0);
-    hpBg.setStrokeStyle(2, COLORS.border.medium);
+    // HP 바 배경 (더 가늘게: 35 → 18)
+    const hpBg = this.scene.add.rectangle(20, 22, 280, 18, COLORS.background.dark).setOrigin(0);
+    hpBg.setStrokeStyle(1, COLORS.border.medium);
     
     // HP 바
     this.hpBar = this.scene.add.graphics();
     
     // HP 텍스트
-    this.hpText = this.scene.add.text(160, 42, '', {
-      font: FONTS.titleSmall,
+    this.hpText = this.scene.add.text(160, 31, '', {
+      font: 'bold 11px monospace',
       color: '#ffffff',
     }).setOrigin(0.5);
     
@@ -58,12 +58,12 @@ export class TopUI {
   }
   
   private createManaUI() {
-    this.scene.add.text(20, 68, '◈ 기력', {
+    this.scene.add.text(20, 48, '◈ 기력', {
       font: FONTS.labelBold,
       color: COLORS_STR.primary.main,
     });
     
-    this.manaContainer = this.scene.add.container(105, 82);
+    this.manaContainer = this.scene.add.container(105, 60);
     
     for (let i = 0; i < GAME_CONSTANTS.MAX_MANA; i++) {
       const orb = this.scene.add.circle(i * 24, 0, 9, COLORS.primary.main);
@@ -100,8 +100,8 @@ export class TopUI {
       color: COLORS_STR.primary.main,
     }).setOrigin(1, 0);
     
-    // 스탯 표시
-    this.statsText = this.scene.add.text(20, 100, '', {
+    // 스탯 표시 (버프만, 방어율은 SwordInfoUI에 표시)
+    this.statsText = this.scene.add.text(20, 235, '', {
       font: FONTS.labelBold,
       color: COLORS_STR.text.muted,
     });
@@ -118,7 +118,7 @@ export class TopUI {
     if (ratio < 0.25) color = COLORS.status.hp.low;
     
     this.hpBar.fillStyle(color);
-    this.hpBar.fillRect(23, 28, 274 * ratio, 29);
+    this.hpBar.fillRect(22, 24, 276 * ratio, 14);  // 더 가늘게
     
     if (this.hpText) {
       this.hpText.setText(`${Math.max(0, player.hp)} / ${player.maxHp}`);
@@ -147,20 +147,11 @@ export class TopUI {
     this.updateHpBar();
     this.updateManaDisplay();
     
+    // 버프만 표시 (방어율은 SwordInfoUI에서 표시)
     let statsStr = '';
-    // 방어율 표시 (검의 방어력 = 방어율%)
-    if (player.currentSword && player.currentSword.defense > 0) {
-      let totalParryRate = player.currentSword.defense;
-      // 방어 버프 추가
-      player.buffs.forEach(b => {
-        if (b.type === 'defense') totalParryRate += b.value;
-      });
-      statsStr += `🛡 방어율: ${totalParryRate}%  `;
-    }
-    // 방어 외 버프만 표시
-    const otherBuffs = player.buffs.filter(b => b.type !== 'defense');
-    if (otherBuffs.length > 0) {
-      statsStr += `✨ ${otherBuffs.map(b => b.name).join(', ')}`;
+    const buffs = player.buffs;
+    if (buffs.length > 0) {
+      statsStr = `✨ ${buffs.map(b => b.name).join(', ')}`;
     }
     this.statsText.setText(statsStr);
     
