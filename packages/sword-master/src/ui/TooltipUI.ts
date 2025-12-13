@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
-import { FONTS } from '../constants/typography';
 
 /**
  * 툴팁 UI - 카드 상세 정보 표시

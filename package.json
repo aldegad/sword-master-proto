@@ -6,7 +6,7 @@
   "scripts": {
     "dev:game": "pnpm --filter sword-master dev",
     "build:game": "pnpm --filter sword-master build",
-    "deploy:game": "pnpm --filter sword-master build && pnpm --filter sword-master deploy",
+    "deploy:game": "pnpm --filter sword-master build && pnpm --filter sword-master run deploy",
     "dev:sprite": "pnpm --filter sprite-generator dev",
     "build:sprite": "pnpm --filter sprite-generator build"
   },

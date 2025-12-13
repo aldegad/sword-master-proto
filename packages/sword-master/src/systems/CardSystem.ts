@@ -259,13 +259,18 @@ export class CardSystem {
       this.scene.combatSystem.damageEnemy(enemy, actualDamage, isCritical);
       
       // 적 방어력 영구 감소 효과 (armorReduce)
+      // gameState에서 실제 적 객체를 찾아서 수정
       if (drawAtk.armorReduce && drawAtk.armorReduce > 0) {
-        const oldDefense = enemy.defense;
-        const reduceAmount = Math.min(drawAtk.armorReduce, oldDefense);
-        enemy.defense = Math.max(0, enemy.defense - drawAtk.armorReduce);
-        console.log(`[armorReduce] ${enemy.name}: ${oldDefense} → ${enemy.defense} (감소: ${reduceAmount})`);
-        if (reduceAmount > 0) {
-          this.scene.animationHelper.showMessage(`🔨 ${enemy.name} 방어력 -${reduceAmount}!`, COLORS.message.warning);
+        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
+        if (actualEnemy) {
+          const oldDefense = actualEnemy.defense;
+          const reduceAmount = Math.min(drawAtk.armorReduce, oldDefense);
+          actualEnemy.defense = Math.max(0, actualEnemy.defense - drawAtk.armorReduce);
+          if (reduceAmount > 0) {
+            this.scene.animationHelper.showMessage(`🔨 ${actualEnemy.name} 방어력 -${reduceAmount}!`, COLORS.message.warning);
+            // UI 업데이트
+            this.scene.enemyManager.updateEnemySprite(actualEnemy);
+          }
         }
       }
     });
