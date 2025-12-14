@@ -278,8 +278,10 @@ private setupEventListeners() {
     this.gameScene.events.on('rewardSelected', () => this.rewardSelectionUI.hide(), this);
     this.gameScene.events.on('showSkillCardSelection', () => this.skillSelectUI.show(), this);
     this.gameScene.events.on('skillCardSelected', () => this.skillSelectUI.hide(), this);
-    this.gameScene.events.on('showLevelUpSkillSelection', () => this.levelUpSkillUI.show(), this);
+    this.gameScene.events.on('showLevelUpSkillSelection', () => this.levelUpSkillUI.showSkills(), this);
     this.gameScene.events.on('levelUpSkillSelected', () => this.levelUpSkillUI.hide(), this);
+    this.gameScene.events.on('showLevelUpPassiveSelection', () => this.levelUpSkillUI.showPassives(), this);
+    this.gameScene.events.on('levelUpPassiveSelected', () => this.levelUpSkillUI.hide(), this);
     this.gameScene.events.on('showBossRewardSelection', () => this.bossRewardUI.show(), this);
     this.gameScene.events.on('bossRewardSelected', () => this.bossRewardUI.hide(), this);
     this.gameScene.events.on('exchangeUsed', () => this.actionButtonsUI.onExchangeUsed(), this);
@@ -302,6 +304,8 @@ private setupEventListeners() {
       this.gameScene.events.off('skillCardSelected');
       this.gameScene.events.off('showLevelUpSkillSelection');
       this.gameScene.events.off('levelUpSkillSelected');
+      this.gameScene.events.off('showLevelUpPassiveSelection');
+      this.gameScene.events.off('levelUpPassiveSelected');
       this.gameScene.events.off('showBossRewardSelection');
       this.gameScene.events.off('bossRewardSelected');
       this.gameScene.events.off('exchangeUsed');
@@ -310,11 +314,15 @@ private setupEventListeners() {
   }
   
   private onHandUpdated() {
+    // 카드 상태 변경 시 툴팁 강제 숨김 (버그 방지)
+    this.tooltipUI.hide();
     this.cardUI.updateCardDisplay();
     this.swordInfoUI.update();
   }
   
   private onModeChanged() {
+    // 모드 변경 시 툴팁 강제 숨김
+    this.tooltipUI.hide();
     this.cardUI.updateCardDisplay();
     this.actionButtonsUI.updateExchangeButton();
   }
@@ -327,6 +335,9 @@ private setupEventListeners() {
   }
   
   private onTurnEnded() {
+    // 턴 종료 시 툴팁 강제 숨김
+    this.tooltipUI.hide();
+    
     // 대기 버튼 리셋
     this.actionButtonsUI.resetWaitButton();
     
@@ -353,6 +364,9 @@ private setupEventListeners() {
   }
   
   private onCombatStarted() {
+    // 전투 시작 시 툴팁 강제 숨김
+    this.tooltipUI.hide();
+    
     // 대기 버튼 리셋
     this.actionButtonsUI.resetWaitButton();
     

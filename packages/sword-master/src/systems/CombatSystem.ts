@@ -1,6 +1,8 @@
 import type { GameScene } from '../scenes/GameScene';
 import type { Enemy, SkillCard, EnemyAction, SwordCard } from '../types';
 import { COLORS } from '../constants/colors';
+import { hasPassive, getPassiveLevel } from '../data/passives';
+import { createEnemy, ENEMIES_TIER1 } from '../data/enemies';
 
 /**
  * 전투 시스템 - 공격, 방어, 데미지 계산 담당
@@ -85,6 +87,15 @@ export class CombatSystem {
     if (actualHits <= 0) {
       this.scene.animationHelper.showMessage('무기가 부서졌다!', COLORS.message.error);
       return;
+    }
+    
+    // 무기 장착 효과: 대기턴 증가 (delayIncreaseOnHit) - 즉시 처리 (대기턴 감소 전에 적용)
+    if (sword.delayIncreaseOnHit && sword.delayIncreaseOnHit > 0) {
+      targets.forEach(enemy => {
+        if (enemy.hp > 0) {
+          this.increaseEnemyDelay(enemy, sword.delayIncreaseOnHit!);
+        }
+      });
     }
     
     // 각 타격을 300ms 간격으로 순차 처리
@@ -193,17 +204,33 @@ export class CombatSystem {
   /**
    * 내구도 소모 및 실제 타격 가능 횟수 반환
    * 내구도가 부족하면 가능한 만큼만 타격하고 무기 파괴
+   * '완벽 시전' 패시브가 있으면 내구도와 상관없이 모든 타수 시전 후 무기 파괴
    */
   private consumeDurabilityAndGetHits(requestedHits: number): number {
     const sword = this.scene.playerState.currentSword;
     if (!sword) return 0;
     
-    // 실제 타격 가능 횟수 = 내구도와 요청 타수 중 작은 값
-    const actualHits = Math.min(sword.currentDurability, requestedHits);
+    // '완벽 시전' 패시브 체크
+    const hasPerfectCast = hasPassive(this.scene.playerState.passives, 'perfectCast');
+    
+    let actualHits: number;
+    let durabilityToConsume: number;
+    
+    if (hasPerfectCast) {
+      // 완벽 시전: 내구도가 1 이상이면 모든 타수 시전
+      if (sword.currentDurability <= 0) return 0;
+      actualHits = requestedHits;
+      durabilityToConsume = sword.currentDurability;  // 모든 내구도 소모
+      this.scene.animationHelper.showMessage('✨ 완벽 시전!', COLORS.rarity.unique);
+    } else {
+      // 일반: 실제 타격 가능 횟수 = 내구도와 요청 타수 중 작은 값
+      actualHits = Math.min(sword.currentDurability, requestedHits);
+      durabilityToConsume = actualHits;
+    }
     
     if (actualHits <= 0) return 0;
     
-    sword.currentDurability -= actualHits;
+    sword.currentDurability -= durabilityToConsume;
     this.scene.updatePlayerWeaponDisplay();
     
     if (sword.currentDurability <= 0) {
@@ -489,6 +516,12 @@ export class CombatSystem {
     
     const sprite = this.scene.enemySprites.get(enemy.id);
     
+    // summon 효과는 attack/special 대신 호출 처리
+    if (action.effect?.type === 'summon') {
+      this.handleSummonAction(enemy, action);
+      return;
+    }
+    
     switch (action.type) {
       case 'attack':
       case 'special':
@@ -534,6 +567,43 @@ export class CombatSystem {
     }
   }
   
+  /**
+   * 호출 스킬 처리 - 산적/궁수 등 부하 소환
+   */
+  private handleSummonAction(enemy: Enemy, action: EnemyAction) {
+    const summonCount = action.effect?.value || 1;
+    
+    this.scene.animationHelper.showMessage(`📢 ${enemy.name}이(가) 부하를 부른다!`, COLORS.message.warning);
+    
+    // 부하 소환 (산적 또는 궁수 랜덤)
+    const minionTypes = ['bandit', 'archer'];  // 산적, 궁수
+    
+    for (let i = 0; i < summonCount; i++) {
+      // 최대 적 수 체크 (4마리까지)
+      if (this.scene.gameState.enemies.length >= 4) {
+        this.scene.animationHelper.showMessage('더 이상 부를 수 없다!', COLORS.message.info);
+        break;
+      }
+      
+      // 랜덤 부하 타입 선택
+      const minionType = minionTypes[Math.floor(Math.random() * minionTypes.length)];
+      const template = ENEMIES_TIER1[minionType];
+      
+      if (template) {
+        const minion = createEnemy(template, this.scene.gameState.currentWave);
+        this.scene.gameState.enemies.push(minion);
+        this.scene.enemyManager.createEnemySprite(minion);
+        
+        this.scene.animationHelper.showMessage(`⚔️ ${minion.name} 등장!`, COLORS.effect.damage);
+      }
+    }
+    
+    // 호출 후 쿨다운 설정 (2턴)
+    enemy.summonCooldown = 2;
+    
+    this.scene.events.emit('statsUpdated');
+  }
+  
   private handleEnemyAttack(enemy: Enemy, action: EnemyAction, _sprite: Phaser.GameObjects.Container | undefined) {
     const sword = this.scene.playerState.currentSword;
     let baseParryRate = sword ? sword.defense : 0;  // 기본 방어율 (10이면 10%)
@@ -544,6 +614,12 @@ export class CombatSystem {
         baseParryRate += buff.value;
       }
     });
+    
+    // '방어율 증가' 패시브 보너스 (레벨당 1%)
+    const defenseBonusLevel = getPassiveLevel(this.scene.playerState.passives, 'defenseBonus');
+    if (defenseBonusLevel > 0) {
+      baseParryRate += defenseBonusLevel;
+    }
     
     // 카운트 효과 체크 (통합: countDefense, flowRead)
     let activeCountEffect: typeof this.scene.playerState.countEffects[0] | null = null;
@@ -779,12 +855,6 @@ export class CombatSystem {
   private onLevelUp() {
     this.scene.animationHelper.showMessage(`⬆️ 레벨 ${this.scene.playerState.level}!`, COLORS.message.levelUp);
     
-    const lightBlade = this.scene.playerState.passives.find(p => p.id === 'lightBlade');
-    if (lightBlade && lightBlade.level < lightBlade.maxLevel) {
-      lightBlade.level++;
-      this.scene.animationHelper.showMessage(`✨ 잔광의 검사 Lv.${lightBlade.level}!`, COLORS.message.warning);
-    }
-    
     // 체력 +5, 체력 풀 회복
     this.scene.playerState.maxHp += 5;
     this.scene.playerState.hp = this.scene.playerState.maxHp;
@@ -794,12 +864,6 @@ export class CombatSystem {
       this.scene.playerState.maxMana += 1;
     }
     this.scene.playerState.mana = this.scene.playerState.maxMana;
-    
-    // 대기 횟수 증가 알림 (레벨 3, 5, 7... 마다)
-    if (this.scene.playerState.level >= 3 && this.scene.playerState.level % 2 === 1) {
-      const maxWait = this.scene.getMaxWaitCount();
-      this.scene.animationHelper.showMessage(`⏳ 대기 횟수 증가! (${maxWait}회)`, COLORS.message.success);
-    }
   }
   
   // ========== 유틸리티 ==========
@@ -879,6 +943,18 @@ export class CombatSystem {
       }
     });
     this.scene.enemyManager.checkEnemyActions();
+  }
+  
+  /**
+   * 특정 적의 대기턴 증가
+   */
+  increaseEnemyDelay(enemy: Enemy, amount: number) {
+    if (enemy.actionQueue.length > 0) {
+      enemy.actionQueue[0].currentDelay += amount;
+      this.scene.animationHelper.showMessage(`⏳ ${enemy.name} 대기 +${amount}!`, COLORS.message.info);
+    }
+    this.scene.enemyManager.updateEnemySprite(enemy);
+    this.scene.enemyManager.updateEnemyActionDisplay();
   }
   
   /**

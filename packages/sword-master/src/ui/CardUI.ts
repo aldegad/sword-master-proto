@@ -346,11 +346,16 @@ export class CardUI {
       this.scene.tooltipUI.show(
         this.cardContainer.x + x,
         this.cardContainer.y + y,
-        card
+        card,
+        bg  // 원본 히트 영역 전달
       );
     });
     bg.on('pointerout', () => {
       container.y = y;
+      // 툴팁 영역 위에 있는지 확인 후 숨김
+      if (!this.scene.tooltipUI.isVisible()) {
+        this.scene.tooltipUI.hide();
+      }
       if (this.scene.gameScene.isExchangeMode) {
         bg.setStrokeStyle(5, COLORS.primary.dark);
       } else {

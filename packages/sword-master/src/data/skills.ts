@@ -446,7 +446,7 @@ export const SKILLS: Record<string, SkillCard> = {
     id: 'ancestorBlade',
     name: '검 차올리기',
     emoji: '⚰️',
-    type: 'buff',
+    type: 'draw',
     attackMultiplier: 0,
     attackCount: 0,
     reach: 'single',

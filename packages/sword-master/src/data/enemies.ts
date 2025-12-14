@@ -9,7 +9,7 @@ interface EnemyActionTemplate {
   delay: number;
   description: string;
   effect?: {
-    type: 'bleed' | 'stun' | 'debuff' | 'heal' | 'taunt';
+    type: 'bleed' | 'stun' | 'debuff' | 'heal' | 'taunt' | 'summon';
     value: number;
     duration?: number;
   };
@@ -96,7 +96,7 @@ export const ENEMIES_TIER2: Record<string, EnemyTemplate> = {
     silverDrop: { min: 15, max: 25 },
   },
   knight: {
-    name: '기사',
+    name: '파견 기사',
     emoji: '🛡️',
     hp: 80,
     defense: 8,
@@ -183,7 +183,7 @@ export const MID_BOSSES: Record<string, EnemyTemplate> = {
     defense: 5,
     actions: [
       { id: 'heavyBlow', name: '강타', type: 'attack', damage: 25, delay: 3, description: '무거운 일격!' },
-      { id: 'callMinions', name: '호출', type: 'buff', damage: 0, delay: 4, description: '부하를 부른다', effect: { type: 'heal', value: 10 } },
+      { id: 'callMinions', name: '호출', type: 'special', damage: 0, delay: 2, description: '부하를 부른다!', effect: { type: 'summon', value: 1 } },
       { id: 'dualWield', name: '쌍도', type: 'attack', damage: 15, delay: 2, description: '쌍검으로 공격' },
     ],
     actionsPerTurn: { min: 1, max: 2 },
@@ -259,10 +259,28 @@ export function createEnemy(template: EnemyTemplate, x: number = 900): Enemy {
   return enemy;
 }
 
-// 티어별 랜덤 적 생성
-function getRandomEnemyFromTier(tier: 1 | 2): Enemy {
+// 스테이지별 적 등장 풀
+const STAGE_ENEMY_POOLS: Record<number, string[]> = {
+  // 스테이지 1, 2: 산적, 궁수, 산적 방패꾼만
+  1: ['bandit', 'archer', 'shieldman'],
+  2: ['bandit', 'archer', 'shieldman'],
+  // 스테이지 11, 12: 자객, 무사, 창방패무사만
+  11: ['assassin', 'samurai', 'spearShield'],
+  12: ['assassin', 'samurai', 'spearShield'],
+};
+
+// 티어별 랜덤 적 생성 (wave 정보로 특정 스테이지 풀 사용)
+function getRandomEnemyFromTier(tier: 1 | 2, wave?: number): Enemy {
   const pool = tier === 1 ? ENEMIES_TIER1 : ENEMIES_TIER2;
-  const keys = Object.keys(pool);
+  
+  // 특정 스테이지에서는 제한된 적만 등장
+  let keys: string[];
+  if (wave && STAGE_ENEMY_POOLS[wave]) {
+    keys = STAGE_ENEMY_POOLS[wave];
+  } else {
+    keys = Object.keys(pool);
+  }
+  
   const randomKey = keys[Math.floor(Math.random() * keys.length)];
   return createEnemy(pool[randomKey]);
 }
@@ -356,7 +374,7 @@ export function createWaveEnemies(wave: number): Enemy[] {
   
   for (let i = 0; i < enemyCount; i++) {
     const x = 500 + i * 150;
-    const enemy = getRandomEnemyFromTier(tier);
+    const enemy = getRandomEnemyFromTier(tier, wave);
     enemy.x = x;
     enemies.push(enemy);
   }

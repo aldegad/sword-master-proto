@@ -273,10 +273,22 @@ export const TIER2_EVENTS: GameEvent[] = [
 
 /**
  * 티어에 맞는 랜덤 이벤트 반환
+ * 상인 이벤트는 6~9, 16~19 웨이브에서만 발생
  */
-export function getRandomEvent(tier: 1 | 2): GameEvent {
+export function getRandomEvent(tier: 1 | 2, wave: number): GameEvent {
   const events = tier === 1 ? TIER1_EVENTS : TIER2_EVENTS;
-  return events[Math.floor(Math.random() * events.length)];
+  
+  // 상인 이벤트는 6~9, 16~19 웨이브에서만 발생
+  const isShopWave = (wave >= 6 && wave <= 9) || (wave >= 16 && wave <= 19);
+  const filteredEvents = isShopWave 
+    ? events 
+    : events.filter(e => e.eventType !== 'shop');
+  
+  if (filteredEvents.length === 0) {
+    return events[0]; // fallback
+  }
+  
+  return filteredEvents[Math.floor(Math.random() * filteredEvents.length)];
 }
 
 /**

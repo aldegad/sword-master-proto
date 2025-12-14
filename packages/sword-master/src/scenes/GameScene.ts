@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
-import type { PlayerState, GameState, Card } from '../types';
+import type { PlayerState, GameState, Card, PassiveTemplate } from '../types';
 import { GAME_CONSTANTS } from '../types';
 import { createSwordCard, getRandomSword, getRandomUniqueSword } from '../data/swords';
 import { isBossWave, getCurrentTier, ENEMIES_TIER1, ENEMIES_TIER2, createEnemy } from '../data/enemies';
 import { getRandomEvent, getRandomOutcome, type GameEvent, type EventChoice, type EventOutcome } from '../data/events';
 import { createSkillCard, getStarterDeck, getRandomSkill } from '../data/skills';
+import { getRandomPassive, addOrUpgradePassive } from '../data/passives';
 import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../systems';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
@@ -49,6 +50,10 @@ export class GameScene extends Phaser.Scene {
   
   // 레벨업 스킬 선택
   levelUpSkillCards: Card[] = [];
+  
+  // 레벨업 패시브 선택
+  levelUpPassive: PassiveTemplate | null = null;
+  levelUpPassives: PassiveTemplate[] = [];
 
   // 스킬 효과로 인한 카드 선택
   skillSelectCards: Card[] = [];
@@ -80,12 +85,14 @@ export class GameScene extends Phaser.Scene {
     // UI 씬 시작
     this.scene.launch('UIScene', { gameScene: this });
     
-    // 스탯 업데이트 이벤트 리스너 (플레이어 스탯 표시 업데이트)
+    // 스탯 업데이트 이벤트 리스너 (플레이어 스탯 + 버프 표시 업데이트)
     this.events.on('statsUpdated', this.updatePlayerStatsDisplay, this);
+    this.events.on('statsUpdated', this.updatePlayerBuffDisplay, this);
     
     // 씬 종료 시 정리 (재시작 시 이벤트 리스너 중복 방지)
     this.events.once('shutdown', () => {
       this.events.off('statsUpdated', this.updatePlayerStatsDisplay, this);
+      this.events.off('statsUpdated', this.updatePlayerBuffDisplay, this);
       this.enemySprites.clear();
     });
     
@@ -129,16 +136,7 @@ export class GameScene extends Phaser.Scene {
       countEffects: [],  // 카운트 효과 (패리, 철벽, 반격 등)
       position: 0,
       usedAttackThisTurn: false,   // 이번 턴에 공격/무기 스킬 사용 여부
-      passives: [
-        {
-          id: 'lightBlade',
-          name: '잔광의 검사',
-          description: '전투 시작 시 확률로 "잔광" 획득',
-          level: 0,
-          maxLevel: 5,
-          effect: { type: 'uniqueWeaponChance', value: 0.05 },
-        },
-      ],
+      passives: [],  // 패시브는 레벨업 시 획득
       exp: 0,
       level: 1,
       silver: 0,  // 은전
@@ -200,6 +198,9 @@ export class GameScene extends Phaser.Scene {
   // 플레이어 스탯 표시용
   playerStatsText?: Phaser.GameObjects.Text;
   
+  // 플레이어 버프/디버프 컨테이너
+  playerBuffContainer?: Phaser.GameObjects.Container;
+  
   createPlayer() {
     // 플레이어만 조금 더 아래로 (GROUND_Y + 50)
     this.playerSprite = this.add.container(this.PLAYER_X, this.GROUND_Y + 50);
@@ -231,8 +232,13 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.playerSprite.add(this.playerStatsText);
     
+    // 플레이어 버프/디버프 컨테이너 (스탯 위에 가로 배열)
+    this.playerBuffContainer = this.add.container(0, -260);
+    this.playerSprite.add(this.playerBuffContainer);
+    
     this.updatePlayerWeaponDisplay();
     this.updatePlayerStatsDisplay();
+    this.updatePlayerBuffDisplay();
   }
   
   updatePlayerStatsDisplay() {
@@ -470,7 +476,153 @@ export class GameScene extends Phaser.Scene {
   updatePlayerWeaponDisplay() {
     // 무기 아이콘은 상단 UI에 표시되므로 플레이어 옆에는 표시하지 않음
     this.updatePlayerStatsDisplay();
+    this.updatePlayerBuffDisplay();
     this.events.emit('statsUpdated');
+  }
+  
+  /**
+   * 플레이어 버프/디버프를 가로로 표시 (적과 동일한 형태)
+   */
+  updatePlayerBuffDisplay() {
+    if (!this.playerBuffContainer) return;
+    
+    // 기존 내용 제거
+    this.playerBuffContainer.removeAll(true);
+    
+    const buffs = this.playerState.buffs;
+    const countEffects = this.playerState.countEffects;
+    
+    if (buffs.length === 0 && countEffects.length === 0) return;
+    
+    const iconSize = 52;
+    const spacing = 8;
+    const totalItems = buffs.length + countEffects.length;
+    const totalWidth = totalItems * iconSize + (totalItems - 1) * spacing;
+    let xOffset = -totalWidth / 2 + iconSize / 2;
+    
+    // 버프 표시
+    buffs.forEach(buff => {
+      const icon = this.createBuffIcon(xOffset, buff);
+      this.playerBuffContainer!.add(icon);
+      xOffset += iconSize + spacing;
+    });
+    
+    // 카운트 효과 표시 (패리, 철벽 등)
+    countEffects.forEach(effect => {
+      const icon = this.createCountEffectIcon(xOffset, effect);
+      this.playerBuffContainer!.add(icon);
+      xOffset += iconSize + spacing;
+    });
+  }
+  
+  private createBuffIcon(x: number, buff: import('../types').Buff): Phaser.GameObjects.Container {
+    const container = this.add.container(x, 0);
+    
+    // 배경
+    const bg = this.add.rectangle(0, 0, 48, 36, COLORS.background.dark, 0.9);
+    bg.setStrokeStyle(2, COLORS.primary.dark);
+    
+    // 아이콘 (버프 ID에 따라 다른 아이콘)
+    let emoji = '✨';
+    if (buff.id === 'focus') emoji = '🎯';
+    else if (buff.id === 'sharpen') emoji = '🔪';
+    else if (buff.type === 'attack') emoji = '⚔️';
+    else if (buff.type === 'defense') emoji = '🛡️';
+    
+    const icon = this.add.text(-10, 0, emoji, { font: '16px Arial' }).setOrigin(0.5);
+    
+    // 남은 턴
+    const duration = this.add.text(12, 0, `${buff.duration}`, {
+      font: 'bold 14px monospace',
+      color: COLORS_STR.primary.light,
+    }).setOrigin(0.5);
+    
+    container.add([bg, icon, duration]);
+    
+    // 툴팁 추가
+    bg.setInteractive({ useHandCursor: true });
+    
+    // 툴팁 설명 생성
+    let description = buff.name;
+    if (buff.id === 'focus') {
+      description = `🎯 ${buff.name}: 다음 공격 +${buff.value * 100}%`;
+    } else if (buff.id === 'sharpen') {
+      description = `🔪 ${buff.name}: 공격력 +${buff.value}`;
+    } else if (buff.type === 'attack') {
+      description = `⚔️ ${buff.name}: 공격력 +${buff.value}`;
+    } else if (buff.type === 'defense') {
+      description = `🛡️ ${buff.name}: 방어력 +${buff.value}%`;
+    }
+    
+    const tooltip = this.add.text(0, -40, description, {
+      font: 'bold 14px monospace',
+      color: COLORS_STR.text.primary,
+      backgroundColor: '#1a1a2eee',
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setVisible(false);
+    container.add(tooltip);
+    
+    bg.on('pointerover', () => {
+      tooltip.setVisible(true);
+      bg.setStrokeStyle(3, COLORS.primary.light);
+    });
+    bg.on('pointerout', () => {
+      tooltip.setVisible(false);
+      bg.setStrokeStyle(2, COLORS.primary.dark);
+    });
+    
+    return container;
+  }
+  
+  private createCountEffectIcon(x: number, effect: import('../types').CountEffect): Phaser.GameObjects.Container {
+    const container = this.add.container(x, 0);
+    
+    // 배경
+    const bg = this.add.rectangle(0, 0, 48, 36, COLORS.background.dark, 0.9);
+    bg.setStrokeStyle(2, COLORS.secondary.dark);
+    
+    // 아이콘
+    const icon = this.add.text(-10, 0, effect.emoji, { font: '16px Arial' }).setOrigin(0.5);
+    
+    // 남은 대기
+    const delays = this.add.text(12, 0, `${effect.remainingDelays}`, {
+      font: 'bold 14px monospace',
+      color: COLORS_STR.secondary.light,
+    }).setOrigin(0.5);
+    
+    container.add([bg, icon, delays]);
+    
+    // 툴팁 추가
+    bg.setInteractive({ useHandCursor: true });
+    
+    // 효과 설명 생성
+    let description = `${effect.emoji} ${effect.name}`;
+    if (effect.data.defenseMultiplier) {
+      description += ` (방어 x${effect.data.defenseMultiplier})`;
+    }
+    if (effect.data.counterAttack) {
+      description += ` +반격`;
+    }
+    description += ` [${effect.remainingDelays}회]`;
+    
+    const tooltip = this.add.text(0, -40, description, {
+      font: 'bold 14px monospace',
+      color: COLORS_STR.text.primary,
+      backgroundColor: '#1a1a2eee',
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setVisible(false);
+    container.add(tooltip);
+    
+    bg.on('pointerover', () => {
+      tooltip.setVisible(true);
+      bg.setStrokeStyle(3, COLORS.secondary.light);
+    });
+    bg.on('pointerout', () => {
+      tooltip.setVisible(false);
+      bg.setStrokeStyle(2, COLORS.secondary.dark);
+    });
+    
+    return container;
   }
 
   // ========== 입력 ==========
@@ -520,25 +672,23 @@ export class GameScene extends Phaser.Scene {
       this.gameState.eventsThisTier = 0;
     }
     
-    // 이벤트 발생 체크 (보스 웨이브 제외)
-    if (this.shouldTriggerEvent()) {
-      this.triggerRandomEvent();
-      return;
-    }
-    
-    // 일반 전투 시작
+    // 무조건 전투 시작 (이벤트는 전투 후에 발생)
     this.gameState.phase = 'combat';
     this.enemyManager.spawnWaveEnemies();
     this.startCombat();
   }
   
   /**
-   * 이벤트 발생 여부 확인
-   * - 티어당 2번 발생: 1-4 사이 1번, 6-9 사이 1번
-   * - 보스 웨이브(5, 10)에서는 발생하지 않음
+   * 이벤트 발생 여부 확인 (전투 후에 호출됨)
+   * - 1파 이후부터 발생 가능
+   * - 티어당 2번 발생: 2-4 사이 1번, 6-9 사이 1번
+   * - 보스 웨이브(5, 10) 이후에는 발생하지 않음
    */
   private shouldTriggerEvent(): boolean {
     const wave = this.gameState.currentWave;
+    
+    // 1파는 이벤트 없음 (첫 전투)
+    if (wave <= 1) return false;
     
     // 보스 웨이브 제외
     if (isBossWave(wave)) return false;
@@ -549,9 +699,9 @@ export class GameScene extends Phaser.Scene {
     // 티어 내 웨이브 번호 (1~10)
     const waveInTier = ((wave - 1) % 10) + 1;
     
-    // 첫 번째 이벤트: 1~4 사이에서 발생
+    // 첫 번째 이벤트: 2~4 사이에서 발생 (1파 전투 끝난 후부터)
     if (this.gameState.eventsThisTier === 0) {
-      if (waveInTier >= 1 && waveInTier <= 4) {
+      if (waveInTier >= 2 && waveInTier <= 4) {
         // 4웨이브에서 아직 안 터졌으면 무조건 발생
         if (waveInTier === 4) return true;
         // 그 외에는 40% 확률
@@ -583,7 +733,7 @@ export class GameScene extends Phaser.Scene {
     this.gameState.lastEventWave = this.gameState.currentWave;
     
     const tier = getCurrentTier(this.gameState.currentWave);
-    const event = getRandomEvent(tier);
+    const event = getRandomEvent(tier, this.gameState.currentWave);
     
     this.animationHelper.showMessage('❗ 이벤트 발생!', COLORS.primary.dark);
     
@@ -802,7 +952,8 @@ export class GameScene extends Phaser.Scene {
     this.playerState.mana = this.playerState.maxMana;
     this.playerState.defense = 0;
     
-    this.cardSystem.tryAddUniqueWeapon();
+    // 첫 턴에 잔광 출현 확률 체크
+    this.cardSystem.trySpawnJangwang();
     
     // 레벨별 드로우 수: 레벨 1-2는 2장, 레벨 3+는 3장
     const drawCount = this.getDrawCount();
@@ -865,6 +1016,10 @@ export class GameScene extends Phaser.Scene {
     this.gameState.turn++;
     
 this.playerState.mana = this.playerState.maxMana;
+    
+    // 새 턴 시작 시 잔광 출현 확률 체크
+    this.cardSystem.trySpawnJangwang();
+    
     this.cardSystem.drawCards(this.getDrawCount());
 
     this.enemyManager.initializeEnemyActions();
@@ -902,10 +1057,17 @@ this.playerState.mana = this.playerState.maxMana;
       const expNeeded = this.getExpNeeded();
       
       if (wasBossFight) {
-        // 보스 처치: 특별 보상 (스킬 2개 + 유니크 무기 1개 중 선택)
+        // 보스 처치: 특별 보상 (스킬 2개 + 유니크 무기 1개 중 선택) - 이게 스테이지 보상
         this.animationHelper.showMessage(`💀 보스 처치! 특별 보상!`, COLORS.primary.dark);
         this.time.delayedCall(1500, () => {
           this.showBossRewardSelection();
+        });
+      } else {
+        // 일반 전투 후 이벤트 체크
+        if (this.shouldTriggerEvent()) {
+          // 이벤트 발생 시 보상 없이 바로 이벤트로
+          this.time.delayedCall(1000, () => {
+            this.triggerRandomEvent();
         });
       } else if (this.playerState.exp >= expNeeded) {
         // 레벨업!
@@ -925,6 +1087,7 @@ this.playerState.mana = this.playerState.maxMana;
         this.time.delayedCall(1000, () => {
           this.events.emit('showRewardSelection');
         });
+        }
       }
       
       return true;
@@ -940,7 +1103,7 @@ this.playerState.mana = this.playerState.maxMana;
   }
   
   /**
-   * 레벨업 스킬 선택 UI
+   * 레벨업 스킬 선택 UI (스킬 3개)
    */
   showLevelUpSkillSelection() {
     // 랜덤 스킬 3개 생성
@@ -949,7 +1112,24 @@ this.playerState.mana = this.playerState.maxMana;
       const skill = getRandomSkill();
       this.levelUpSkillCards.push({ type: 'skill', data: skill });
     }
+    
+    // 패시브는 스킬 선택 후에 표시
+    this.levelUpPassive = null;
+    
     this.events.emit('showLevelUpSkillSelection');
+  }
+  
+  /**
+   * 레벨업 패시브 선택 UI (스킬 선택 후)
+   */
+  showLevelUpPassiveSelection() {
+    // 랜덤 패시브 3개 생성
+    this.levelUpPassives = [];
+    for (let i = 0; i < 3; i++) {
+      this.levelUpPassives.push(getRandomPassive());
+    }
+    
+    this.events.emit('showLevelUpPassiveSelection');
   }
   
   /**
@@ -967,7 +1147,7 @@ this.playerState.mana = this.playerState.maxMana;
     this.levelUpSkillCards = [];
     this.events.emit('levelUpSkillSelected');
     
-    // 이벤트 스킬 선택이면 무기 보상 없이 이동
+    // 이벤트 스킬 선택이면 무기 보상 없이 이동 (패시브 선택 없음)
     if (this.isEventSkillSelection) {
       this.isEventSkillSelection = false;
       this.time.delayedCall(500, () => {
@@ -976,7 +1156,32 @@ this.playerState.mana = this.playerState.maxMana;
       return;
     }
     
-    // 레벨업 후 무기 보상
+    // 스킬 선택 후 패시브 선택 화면으로
+    this.time.delayedCall(500, () => {
+      this.showLevelUpPassiveSelection();
+    });
+  }
+  
+  /**
+   * 레벨업 패시브 선택 (인덱스 기반)
+   */
+  selectLevelUpPassive(index: number) {
+    if (index < 0 || index >= this.levelUpPassives.length) return;
+    
+    const selectedPassive = this.levelUpPassives[index];
+    
+    // 패시브 추가/레벨업
+    this.playerState.passives = addOrUpgradePassive(
+      this.playerState.passives, 
+      selectedPassive.id
+    );
+    
+    this.animationHelper.showMessage(`🔮 ${selectedPassive.name} 획득!`, COLORS.rarity.unique);
+    
+    this.levelUpPassives = [];
+    this.events.emit('levelUpPassiveSelected');
+    
+    // 패시브 선택 후 무기 보상
     this.generateRewardCards();
     this.time.delayedCall(500, () => {
       this.events.emit('showRewardSelection');
@@ -987,7 +1192,7 @@ this.playerState.mana = this.playerState.maxMana;
     this.levelUpSkillCards = [];
     this.events.emit('levelUpSkillSelected');
     
-    // 이벤트 스킬 선택이면 무기 보상 없이 이동
+    // 이벤트 스킬 선택이면 무기 보상 없이 이동 (패시브 선택 없음)
     if (this.isEventSkillSelection) {
       this.isEventSkillSelection = false;
       this.time.delayedCall(500, () => {
@@ -995,6 +1200,16 @@ this.playerState.mana = this.playerState.maxMana;
       });
       return;
     }
+    
+    // 스킬 스킵해도 패시브 선택으로
+    this.time.delayedCall(500, () => {
+      this.showLevelUpPassiveSelection();
+    });
+  }
+  
+  skipLevelUpPassive() {
+    this.levelUpPassives = [];
+    this.events.emit('levelUpPassiveSelected');
     
     // 무기 보상
     this.generateRewardCards();
@@ -1053,10 +1268,9 @@ this.playerState.mana = this.playerState.maxMana;
         this.showLevelUpSkillSelection();
       });
     } else {
-      // 일반 무기 보상
-      this.generateRewardCards();
+      // 보스 보상이 스테이지 보상이므로 추가 보상 없이 이동
       this.time.delayedCall(500, () => {
-        this.events.emit('showRewardSelection');
+        this.startMoving();
       });
     }
   }
@@ -1110,11 +1324,19 @@ selectRewardCard(index: number) {
   }
   
   /**
-   * 레벨별 대기 가능 횟수 반환
-   * 기본 1회, 레벨 3부터 2레벨당 +1회
+   * 대기 가능 횟수 반환
+   * 기본 1회 + 패시브 스킬 보너스
    */
   getMaxWaitCount(): number {
-    return 1 + Math.floor((this.playerState.level - 1) / 2);
+    let waitCount = 1;
+    
+    // 패시브 스킬에서 대기 증가 체크
+    const waitPassive = this.playerState.passives.find(p => p.id === 'waitIncrease');
+    if (waitPassive) {
+      waitCount += waitPassive.level;
+    }
+    
+    return waitCount;
   }
   
   // ========== 스킬 효과 카드 선택 ==========

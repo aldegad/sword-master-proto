@@ -1,94 +1,18 @@
-import type { SwordCard, SwordPrefix, SwordSuffix, SwordRarity, ReachType } from '../types';
+import type { SwordCard, SwordPrefix, SwordSuffix, SwordTemplate } from '../types';
 
 // ===== 인첸트 접두사 =====
 export const PREFIXES: Record<string, SwordPrefix> = {
-  rusty: {
-    id: 'rusty',
-    name: '녹슨',
-    effect: { type: 'durability', value: -99 }, // 내구도 1로 고정
-  },
-  broken: {
-    id: 'broken',
-    name: '부서진',
-    effect: { type: 'attack', value: -5 },
-  },
-  sharp: {
-    id: 'sharp',
-    name: '날카로운',
-    effect: { type: 'attack', value: 3 },
-  },
-  heavy: {
-    id: 'heavy',
-    name: '무거운',
-    effect: { type: 'attack', value: 5 },
-  },
-  swift: {
-    id: 'swift',
-    name: '신속한',
-    effect: { type: 'attackCount', value: 1 },
-  },
-  sturdy: {
-    id: 'sturdy',
-    name: '견고한',
-    effect: { type: 'durability', value: 2 },
+  chipped: {
+    id: 'chipped',
+    name: '이가 빠진',
+    effect: { type: 'durability', value: -99 }, // 내구도 고정 (createSwordCard에서 처리)
   },
 };
 
 // ===== 인첸트 접미사 =====
 export const SUFFIXES: Record<string, SwordSuffix> = {
-  ofBlood: {
-    id: 'ofBlood',
-    name: '피의',
-    effect: { type: 'lifesteal', value: 0.1 },
-  },
-  ofWounds: {
-    id: 'ofWounds',
-    name: '상처의',
-    effect: { type: 'bleed', value: 2 },
-  },
-  ofPiercing: {
-    id: 'ofPiercing',
-    name: '관통의',
-    effect: { type: 'pierce', value: 0.2 },
-  },
-  ofReach: {
-    id: 'ofReach',
-    name: '광역의',
-    effect: { type: 'reach', value: 'double' },
-  },
+  // 현재 사용 안 함
 };
-
-// ===== 검 기본 데이터 =====
-interface SwordTemplate {
-  id: string;
-  name: string;
-  emoji: string;
-  origin: 'korean' | 'japanese' | 'chinese' | 'western' | 'unique';
-  rarity: SwordRarity;
-  attack: number;
-  attackCount: number;
-  reach: ReachType;
-  defense: number;
-  pierce: number;     // 방어관통력 (0~5, 적 방어력에서 빼는 고정 수치)
-  durability: number;
-  manaCost: number;
-  description: string;
-  specialEffect?: string;
-  // 특수 장착 효과
-  bleedOnHit?: { damage: number; duration: number };  // 장착 중 모든 공격에 출혈
-  armorBreakOnHit?: number;  // 장착 중 모든 공격에 적 방어력 감소
-  drawAttack: {
-    name: string;
-    multiplier: number;
-    reach: ReachType;
-    durabilityCost: number;
-    effect?: string;  // 발도 특수 효과
-    isSwift?: boolean;  // 신속 발도 (단검류)
-    criticalCondition?: 'enemyDelay1';  // 크리티컬 조건
-    pierce?: boolean;  // 방어 무시
-    armorReduce?: number;  // 적 방어력 영구 감소 (0 이하로 내려가지 않음)
-  };
-}
 
 export const SWORDS: Record<string, SwordTemplate> = {
   // ===== 한국도 =====
@@ -98,6 +22,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🗡️',
     origin: 'korean',
     rarity: 'common',
+    category: 'sword',
     attack: 16,
     attackCount: 1,
     reach: 'single',
@@ -120,6 +45,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '⚔️',
     origin: 'korean',
     rarity: 'uncommon',
+    category: 'sword',
     attack: 13,
     attackCount: 1,
     reach: 'single',
@@ -146,6 +72,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🗡️',
     origin: 'japanese',
     rarity: 'uncommon',
+    category: 'dagger',
     attack: 8,
     attackCount: 2,
     reach: 'single',
@@ -170,20 +97,24 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🗡️',
     origin: 'korean',
     rarity: 'uncommon',
+    category: 'sword',
     attack: 14,
     attackCount: 1,
-    reach: 'double',
-    defense: 25,
-    pierce: 2,        // 중간 수준
+    reach: 'single',
+    defense: 26,
+    pierce: 1,
     durability: 6,
     manaCost: 2,
-    description: '본국검법의 정수. 2적 범위.',
+    description: '본국검법의 정수. 상대의 공격의 흐름을 끊어내는 것에 특화되어 있다.',
+    specialEffect: '공격 시 적 대기+1',
+    delayIncreaseOnHit: 1,  // 공격 시 적 대기턴 +1
     drawAttack: { 
-      name: '본국세', 
+      name: '끊어내기', 
       multiplier: 1.0, 
-      reach: 'double', 
+      reach: 'single', 
       durabilityCost: 1,
-      effect: '2명 동시 타격' 
+      effect: '적의 공격의 흐름을 끊으며 틈을 만든다.',
+      delayIncrease: 1,  // 발도 시 대기 +1
     },
   },
   woldo: {
@@ -192,6 +123,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🌙',
     origin: 'korean',
     rarity: 'rare',
+    category: 'greatsword',
     attack: 22,
     attackCount: 1,
     reach: 'triple',
@@ -217,6 +149,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '⚔️',
     origin: 'japanese',
     rarity: 'common',
+    category: 'sword',
     attack: 15,
     attackCount: 1,
     reach: 'single',
@@ -239,6 +172,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🔪',
     origin: 'japanese',
     rarity: 'common',
+    category: 'dagger',  // 단검류
     attack: 10,
     attackCount: 2,
     reach: 'single',
@@ -252,8 +186,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
       multiplier: 1.0, 
       reach: 'single', 
       durabilityCost: 1,
-      effect: '적 대기 1일 때 크리티컬! (300% 데미지)',
+      effect: '1회만 공격. 적 대기 1일 때 크리티컬! (50뎀)',
       criticalCondition: 'enemyDelay1',
+      criticalMultiplier: 5.0,  // 크리티컬 500% = 10 * 5 = 50
     },
   },
   nodachi: {
@@ -262,6 +197,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🔱',
     origin: 'japanese',
     rarity: 'rare',
+    category: 'greatsword',
     attack: 25,
     attackCount: 1,
     reach: 'double',
@@ -286,6 +222,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🐉',
     origin: 'chinese',
     rarity: 'rare',
+    category: 'greatsword',
     attack: 28,
     attackCount: 1,
     reach: 'all',
@@ -311,6 +248,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '✨',
     origin: 'unique',
     rarity: 'unique',
+    category: 'unique',
     attack: 30,
     attackCount: 2,
     reach: 'double',
@@ -337,6 +275,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '⭐',
     origin: 'korean',
     rarity: 'unique',
+    category: 'unique',
     attack: 28,
     attackCount: 3,
     reach: 'single',
@@ -363,6 +302,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '☯',
     origin: 'korean',
     rarity: 'unique',
+    category: 'unique',
     attack: 32,
     attackCount: 2,
     reach: 'double',
@@ -389,6 +329,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '👹',
     origin: 'japanese',
     rarity: 'unique',
+    category: 'unique',
     attack: 35,
     attackCount: 2,
     reach: 'single',
@@ -415,6 +356,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🌸',
     origin: 'japanese',
     rarity: 'unique',
+    category: 'unique',
     attack: 25,
     attackCount: 3,
     reach: 'double',
@@ -440,6 +382,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🌊',
     origin: 'japanese',
     rarity: 'unique',
+    category: 'unique',
     attack: 30,
     attackCount: 2,
     reach: 'all',
@@ -461,11 +404,12 @@ export const SWORDS: Record<string, SwordTemplate> = {
 };
 
 // 유니크 무기 목록
-export const UNIQUE_SWORDS = ['jangwang', 'chilseong', 'saingum', 'muramasa', 'masamune', 'kusanagi'];
+// 보스 보상용 유니크 무기 (잔광 제외)
+export const UNIQUE_SWORDS_BOSS = ['chilseong', 'saingum', 'muramasa', 'masamune', 'kusanagi'];
 
-// 랜덤 유니크 무기 생성
+// 랜덤 유니크 무기 생성 (보스 보상용 - 잔광 제외)
 export function getRandomUniqueSword(): SwordCard {
-  const uniqueId = UNIQUE_SWORDS[Math.floor(Math.random() * UNIQUE_SWORDS.length)];
+  const uniqueId = UNIQUE_SWORDS_BOSS[Math.floor(Math.random() * UNIQUE_SWORDS_BOSS.length)];
   return createSwordCard(uniqueId)!;
 }
 
@@ -484,6 +428,7 @@ export function createSwordCard(swordId: string, prefix?: string, suffix?: strin
     // 특수 장착 효과 복사
     bleedOnHit: template.bleedOnHit,
     armorBreakOnHit: template.armorBreakOnHit,
+    delayIncreaseOnHit: template.delayIncreaseOnHit,
   };
   
   // 접두사 적용
@@ -492,9 +437,12 @@ export function createSwordCard(swordId: string, prefix?: string, suffix?: strin
     sword.displayName = `${p.name} ${sword.name}`;
     
     if (p.effect.type === 'durability') {
-      if (p.id === 'rusty') {
-        sword.durability = 1;
-        sword.currentDurability = 1;
+      if (p.id === 'chipped') {
+        // 이가 빠진: 단검류는 내구도 1, 나머지는 내구도 2
+        const isDagger = template.category === 'dagger';
+        const chippedDurability = isDagger ? 1 : 2;
+        sword.durability = chippedDurability;
+        sword.currentDurability = chippedDurability;
       } else {
         sword.durability = Math.max(1, sword.durability + p.effect.value);
         sword.currentDurability = sword.durability;
@@ -531,31 +479,30 @@ export function getRandomSword(wave: number = 1): SwordCard {
   
   const randomId = pool[Math.floor(Math.random() * pool.length)];
   
-  // 인첸트 확률
-  let prefix: string | undefined;
-  let suffix: string | undefined;
+  // 80% 확률로 '이가 빠진' 인첸트
+  const prefix = Math.random() < 0.80 ? 'chipped' : undefined;
   
-  const prefixRoll = Math.random();
-  if (prefixRoll < 0.1) {
-    prefix = 'rusty';
-  } else if (prefixRoll < 0.2) {
-    prefix = 'broken';
-  } else if (prefixRoll < 0.25 && wave >= 3) {
-    prefix = 'sharp';
-  } else if (prefixRoll < 0.3 && wave >= 5) {
-    prefix = 'swift';
-  } else if (prefixRoll < 0.35 && wave >= 5) {
-    prefix = 'sturdy';
-  }
+  return createSwordCard(randomId, prefix)!;
+}
+
+// 상점용 깨끗한 검 생성 (인첸트 없음)
+export function getCleanSword(wave: number = 1): SwordCard {
+  const swordIds = Object.keys(SWORDS).filter(id => SWORDS[id].rarity !== 'unique');
   
-  const suffixRoll = Math.random();
-  if (suffixRoll < 0.05 && wave >= 5) {
-    suffix = 'ofBlood';
-  } else if (suffixRoll < 0.1 && wave >= 5) {
-    suffix = 'ofWounds';
-  }
+  // 레어도 필터 (웨이브에 따라)
+  let pool = swordIds.filter(id => {
+    const rarity = SWORDS[id].rarity;
+    if (wave < 3) return rarity === 'common';
+    if (wave < 6) return rarity === 'common' || rarity === 'uncommon';
+    return true;
+  });
   
-  return createSwordCard(randomId, prefix, suffix)!;
+  if (pool.length === 0) pool = swordIds;
+  
+  const randomId = pool[Math.floor(Math.random() * pool.length)];
+  
+  // 인첸트 없이 깨끗한 상태로 생성
+  return createSwordCard(randomId)!;
 }
 
 // 유니크 무기 "잔광" 생성

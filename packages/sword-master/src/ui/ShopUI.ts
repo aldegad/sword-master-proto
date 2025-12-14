@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { SwordCard } from '../types';
-import { getRandomSword } from '../data/swords';
+import { getCleanSword } from '../data/swords';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
 
@@ -128,7 +128,7 @@ export class ShopUI {
     const itemCount = 5 + Math.floor(Math.random() * 4);  // 5~8개
     
     for (let i = 0; i < itemCount; i++) {
-      const sword = getRandomSword(wave);
+      const sword = getCleanSword(wave);  // 상점은 깨끗한 검만 판매
       // 가격 계산: 기본 공격력 * 5 + 등급 보정
       let basePrice = sword.attack * 5;
       
@@ -136,12 +136,7 @@ export class ShopUI {
       if (sword.rarity === 'rare') basePrice *= 2.5;
       if (sword.rarity === 'unique') basePrice *= 4;
       
-      // 접두사/접미사에 따른 가격 조정
-      if (sword.prefix?.id === 'rusty' || sword.prefix?.id === 'broken') {
-        basePrice *= 0.5;
-      } else if (sword.prefix?.id === 'sharp' || sword.prefix?.id === 'swift') {
-        basePrice *= 1.3;
-      }
+      // 상점은 깨끗한 검만 판매하므로 인첸트 가격 조정 불필요
       
       const price = Math.floor(basePrice / 5) * 5;  // 5 단위로 반올림
       

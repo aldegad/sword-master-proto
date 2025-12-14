@@ -158,10 +158,13 @@ export class CardRenderer {
       align: 'center',
     }).setOrigin(0.5);
     
-    // 내구도/방어
-    const durColor = sword.durability === 1 ? COLORS_STR.secondary.main : (canAfford ? COLORS_STR.primary.main : COLORS_STR.text.disabled);
+    // 내구도/방어 (이가 빠진 인첸트면 빨간색)
+    const isChipped = sword.prefix?.id === 'chipped';
+    const durColor = isChipped ? '#E74C3C' : 
+                     (sword.durability === 1 ? COLORS_STR.secondary.main : 
+                     (canAfford ? COLORS_STR.primary.main : COLORS_STR.text.disabled));
     const durText = this.scene.add.text(0, 43, `내구${sword.durability} 방${sword.defense}`, {
-      font: '18px monospace',
+      font: isChipped ? 'bold 18px monospace' : '18px monospace',
       color: durColor,
     }).setOrigin(0.5);
     
@@ -300,10 +303,13 @@ export class CardRenderer {
     yPos += 34;
     
     const reachText = REACH_MAP[sword.reach] || sword.reach;
+    
+    // 이가 빠진 인첸트 확인
+    const isChipped = sword.prefix?.id === 'chipped';
+    
     const stats = [
       `공격력: ${sword.attack}  |  타수: ${sword.attackCount}회`,
       `범위: ${reachText}  |  관통: ${sword.pierce}`,
-      `내구도: ${sword.durability}  |  방어: ${sword.defense}%`,
     ];
     
     stats.forEach(stat => {
@@ -315,6 +321,35 @@ export class CardRenderer {
       container.add(text);
       yPos += text.height > 24 ? text.height + 4 : 28;
     });
+    
+    // 내구도/방어 (이가 빠진이면 내구도만 빨간색)
+    const durLabel = this.scene.add.text(-width/2 + 30, yPos, '내구도: ', {
+      font: '20px monospace',
+      color: COLORS_STR.text.secondary,
+    });
+    container.add(durLabel);
+    
+    const durValue = this.scene.add.text(-width/2 + 30 + durLabel.width, yPos, `${sword.durability}`, {
+      font: isChipped ? 'bold 20px monospace' : '20px monospace',
+      color: isChipped ? '#E74C3C' : COLORS_STR.text.secondary,
+    });
+    container.add(durValue);
+    
+    const defText = this.scene.add.text(-width/2 + 30 + durLabel.width + durValue.width, yPos, `  |  방어: ${sword.defense}%`, {
+      font: '20px monospace',
+      color: COLORS_STR.text.secondary,
+    });
+    container.add(defText);
+    
+    // 이가 빠진 경고 표시
+    if (isChipped) {
+      const warnText = this.scene.add.text(width/2 - 30, yPos, '⚠️', {
+        font: '18px Arial',
+      }).setOrigin(1, 0);
+      container.add(warnText);
+    }
+    
+    yPos += 28;
     
     yPos += 12;
     
@@ -336,10 +371,10 @@ export class CardRenderer {
     // 발도 기본 정보
     const drawReach = REACH_MAP[drawAtk.reach] || drawAtk.reach;
     
-    // 실제 데미지 계산
+    // 발도는 항상 1타 (무기 타수와 무관)
     const baseDamage = Math.floor(sword.attack * drawAtk.multiplier);
-    const totalHits = sword.attackCount;
-    const totalDamage = baseDamage * totalHits;
+    const drawHits = 1;  // 발도는 항상 1타!
+    const totalDamage = baseDamage * drawHits;
     
     // 버프 정보 가져오기
     const buffInfo = this.getBuffInfo();
@@ -352,9 +387,9 @@ export class CardRenderer {
     container.add(drawLine1);
     yPos += 28;
     
-    // 실제 데미지 표시
+    // 실제 데미지 표시 (발도는 1타)
     const damageText = this.scene.add.text(-width/2 + 30, yPos,
-      `데미지: ${baseDamage} x ${totalHits}타 = ${totalDamage}`, {
+      `데미지: ${baseDamage} x ${drawHits}타 = ${totalDamage}`, {
       font: 'bold 20px monospace',
       color: HIGHLIGHT_COLOR,
     });
@@ -364,14 +399,14 @@ export class CardRenderer {
     // 버프 적용 데미지 (버프가 있을 때만)
     if (buffInfo.hasBuffs) {
       const buffedBase = Math.floor((sword.attack + buffInfo.attackBonus) * drawAtk.multiplier * buffInfo.focusMultiplier);
-      const buffedTotal = buffedBase * totalHits;
+      const buffedTotal = buffedBase * drawHits;
       
       let buffDesc = '';
       if (buffInfo.attackBonus > 0) buffDesc += `+${buffInfo.attackBonus}공`;
       if (buffInfo.focusMultiplier > 1.0) buffDesc += ` x${buffInfo.focusMultiplier}집중`;
       
       const buffedText = this.scene.add.text(-width/2 + 30, yPos,
-        `✨버프: ${buffedBase} x ${totalHits}타 = ${buffedTotal} (${buffDesc.trim()})`, {
+        `✨버프: ${buffedBase} x ${drawHits}타 = ${buffedTotal} (${buffDesc.trim()})`, {
         font: 'bold 18px monospace',
         color: BUFF_COLOR,
       });
@@ -387,17 +422,22 @@ export class CardRenderer {
     container.add(drawLine2);
     yPos += 28;
     
-    // 발도 특수 효과들
+    // 발도 특수 효과들 - 크리티컬 조건
     if (drawAtk.criticalCondition) {
+      const critMultiplier = drawAtk.criticalMultiplier || 1.5;
+      const critPercent = Math.floor(critMultiplier * 100);
+      const critDamage = Math.floor(baseDamage * critMultiplier);
+      
       const critMap: Record<string, string> = {
-        'enemyDelay1': '적 대기가 1일 때 크리티컬! (300%)',
+        'enemyDelay1': `적 대기 1일 때 크리티컬!\n(${critPercent}% = ${critDamage}뎀)`,
       };
       const critText = this.scene.add.text(-width/2 + 30, yPos, `⭐ ${critMap[drawAtk.criticalCondition] || drawAtk.criticalCondition}`, {
         font: 'bold 20px monospace',
         color: '#FF6B6B',
+        wordWrap: { width: width - 60 },
       });
       container.add(critText);
-      yPos += 32;
+      yPos += critText.height + 8;
     } else if (drawAtk.effect) {
       // criticalCondition이 없을 때만 effect 표시 (중복 방지)
       const effectText = this.scene.add.text(-width/2 + 30, yPos, `💫 ${drawAtk.effect}`, {

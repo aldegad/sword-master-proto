@@ -30,6 +30,9 @@ spawnWaveEnemies() {
       this.showBossWarning(() => {
         this.createEnemySprite(enemies[0]);
         this.playBossEntrance(enemies[0]);
+        // 보스 스프라이트 생성 후 액션 큐 초기화 및 표시 업데이트
+        this.resetEnemyActionQueue(enemies[0], true);
+        this.updateEnemyActionDisplay();
       });
     } else {
       enemies.forEach(enemy => this.createEnemySprite(enemy));
@@ -422,9 +425,29 @@ spawnWaveEnemies() {
   }
   
   resetEnemyActionQueue(enemy: Enemy, isFirstTurn: boolean = false) {
-    // 도발 스킬과 일반 스킬 분리
+    // 호출 쿨다운 감소 (첫 턴이 아닐 때)
+    if (!isFirstTurn && enemy.summonCooldown !== undefined && enemy.summonCooldown > 0) {
+      enemy.summonCooldown--;
+    }
+    
+    // 호출 스킬 체크
+    const summonAction = enemy.actions.find(a => a.effect?.type === 'summon');
+    
+    // 호출 쿨다운이 0이고 호출 스킬이 있으면 호출만 실행 (다른 공격 안함)
+    if (summonAction && (enemy.summonCooldown === undefined || enemy.summonCooldown <= 0)) {
+      enemy.actionQueue = [{
+        ...summonAction,
+        currentDelay: summonAction.delay,
+      }];
+      enemy.currentActionIndex = 0;
+      return;
+    }
+    
+    // 도발 스킬과 일반 스킬 분리 (summon 스킬 제외)
     const tauntAction = enemy.actions.find(a => a.type === 'taunt');
-    const nonTauntActions = enemy.actions.filter(a => a.type !== 'taunt');
+    const nonTauntActions = enemy.actions.filter(a => 
+      a.type !== 'taunt' && a.effect?.type !== 'summon'
+    );
     
     // 일반 스킬을 랜덤하게 섞기
     const shuffledActions = [...nonTauntActions].sort(() => Math.random() - 0.5);

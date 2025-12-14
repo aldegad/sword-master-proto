@@ -229,16 +229,33 @@ export class CardSystem {
       // 크리티컬 조건을 발도 실행 전에 미리 체크! (대기 감소보다 먼저)
       const drawAtk = sword.drawAttack;
       let preCriticalCheck = false;
+      let targets: Enemy[];
+      if (targetEnemy) {
+        targets = this.scene.combatSystem.getTargetsByReachFromEnemy(drawAtk.reach, targetEnemy);
+      } else {
+        targets = this.scene.combatSystem.getTargetsByReach(drawAtk.reach);
+      }
+      
       if (drawAtk.criticalCondition === 'enemyDelay1') {
-        let targets: Enemy[];
-        if (targetEnemy) {
-          targets = this.scene.combatSystem.getTargetsByReachFromEnemy(drawAtk.reach, targetEnemy);
-        } else {
-          targets = this.scene.combatSystem.getTargetsByReach(drawAtk.reach);
-        }
         preCriticalCheck = targets.some(enemy => 
           enemy.actionQueue.length > 0 && enemy.actionQueue[0].currentDelay === 1
         );
+      }
+      
+      // 대기턴 증가 효과를 대기턴 감소 전에 즉시 적용!
+      if (sword.delayIncreaseOnHit && sword.delayIncreaseOnHit > 0) {
+        targets.forEach(enemy => {
+          if (enemy.hp > 0) {
+            this.scene.combatSystem.increaseEnemyDelay(enemy, sword.delayIncreaseOnHit!);
+          }
+        });
+      }
+      if (drawAtk.delayIncrease && drawAtk.delayIncrease > 0) {
+        targets.forEach(enemy => {
+          if (enemy.hp > 0) {
+            this.scene.combatSystem.increaseEnemyDelay(enemy, drawAtk.delayIncrease!);
+          }
+        });
       }
       
       this.scene.time.delayedCall(150, () => {
@@ -284,7 +301,14 @@ export class CardSystem {
     // 크리티컬: 미리 체크한 값 사용 (대기 감소 전에 체크됨)
     const isCritical = preCritical;
     if (isCritical) {
-      damage *= 3.0;  // 크리티컬 300%
+      const critMultiplier = drawAtk.criticalMultiplier || 1.5;  // 기본 150%
+      damage *= critMultiplier;
+    }
+    
+    // 크리티컬 시 특별 애니메이션
+    if (isCritical) {
+      this.executeCriticalAnimation(sword, targets, damage, drawAtk);
+      return;  // 애니메이션 내에서 데미지 처리
     }
     
     this.scene.animationHelper.playerAttack();
@@ -297,10 +321,6 @@ export class CardSystem {
       this.scene.animationHelper.showMessage(`⚡ ${drawAtk.name}! (신속 발도)`, COLORS.message.info);
     } else {
       this.scene.animationHelper.showMessage(`⚔️ ${drawAtk.name}!`, COLORS.message.warning);
-    }
-    
-    if (isCritical) {
-      this.scene.animationHelper.showMessage('💥 크리티컬!', COLORS.message.error);
     }
     
     targets.forEach(enemy => {
@@ -357,6 +377,8 @@ export class CardSystem {
           }
         }
       }
+      
+      // 대기턴 증가 효과는 equipSword에서 즉시 처리됨 (대기턴 감소 전에 적용되어야 함)
     });
     
     // 집중 버프 소모
@@ -366,6 +388,110 @@ export class CardSystem {
     // (발도가 신속이면 executeCard에서 이미 스킵됨)
     
     this.scene.events.emit('statsUpdated');
+  }
+  
+  /**
+   * 크리티컬 특별 애니메이션 (와키자시 먼저 찌르기 등)
+   */
+  private executeCriticalAnimation(
+    sword: SwordCard, 
+    targets: Enemy[], 
+    damage: number,
+    drawAtk: SwordCard['drawAttack']
+  ) {
+    const scene = this.scene;
+    const width = scene.cameras.main.width;
+    const height = scene.cameras.main.height;
+    
+    // 1. 화면 어둡게 (오버레이)
+    const overlay = scene.add.rectangle(width/2, height/2, width, height, 0x000000, 0.7);
+    overlay.setDepth(3000);
+    
+    // 2. 이모지 클로즈업 (화면 중앙)
+    const emoji = scene.add.text(width/2, height/2, sword.emoji, {
+      font: '200px Arial',
+    }).setOrigin(0.5).setAlpha(0).setDepth(3001);
+    
+    // 3. 스킬명 표시
+    const skillName = scene.add.text(width/2, height/2 + 150, `⚡ ${drawAtk.name}!`, {
+      font: 'bold 48px monospace',
+      color: '#FF4444',
+      stroke: '#000000',
+      strokeThickness: 6,
+    }).setOrigin(0.5).setAlpha(0).setDepth(3001);
+    
+    // 애니메이션 시퀀스
+    scene.tweens.add({
+      targets: emoji,
+      alpha: 1,
+      scale: { from: 0.3, to: 1.2 },
+      duration: 300,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // 스킬명 페이드인
+        scene.tweens.add({
+          targets: skillName,
+          alpha: 1,
+          duration: 150,
+        });
+        
+        // 잠시 대기 후 타격
+        scene.time.delayedCall(400, () => {
+          // 이모지/스킬명 빠르게 사라짐
+          scene.tweens.add({
+            targets: [emoji, skillName],
+            alpha: 0,
+            duration: 100,
+          });
+          
+          // 4. 화면 붉게 물들이기
+          const redFlash = scene.add.rectangle(width/2, height/2, width, height, 0xFF0000, 0.5);
+          redFlash.setDepth(3002);
+          
+          // 5. 화면 흔들림
+          scene.cameras.main.shake(200, 0.02);
+          
+          // 플레이어 공격 애니메이션
+          scene.animationHelper.playerAttack();
+          
+          // 크리티컬 메시지
+          const critMultiplier = drawAtk.criticalMultiplier || 1.5;
+          scene.animationHelper.showMessage(`💥 크리티컬! (${critMultiplier * 100}%)`, COLORS.message.error);
+          
+          // 데미지 적용
+          targets.forEach(enemy => {
+            const weaponPierce = sword.pierce || 0;
+            const effectiveDefense = Math.max(0, enemy.defense - weaponPierce);
+            const actualDamage = drawAtk.pierce ? damage : Math.max(1, damage - effectiveDefense);
+            scene.combatSystem.damageEnemy(enemy, actualDamage, true);
+          });
+          
+          // 붉은 플래시 페이드아웃
+          scene.tweens.add({
+            targets: redFlash,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => redFlash.destroy(),
+          });
+          
+          // 오버레이 페이드아웃
+          scene.tweens.add({
+            targets: overlay,
+            alpha: 0,
+            duration: 400,
+            onComplete: () => {
+              overlay.destroy();
+              emoji.destroy();
+              skillName.destroy();
+            },
+          });
+          
+          // 집중 버프 소모
+          scene.playerState.buffs = scene.playerState.buffs.filter(b => b.id !== 'focus');
+          scene.events.emit('statsUpdated');
+        });
+      },
+    });
   }
   
   // ========== 스킬 사용 ==========
@@ -702,6 +828,15 @@ drawCards(count: number) {
     const enemy = this.scene.gameState.enemies.find(e => e.id === enemyId);
     if (!enemy) return;
     
+    // 도발 중인 적이 있으면 그 적만 타겟 가능
+    const tauntingEnemy = this.scene.gameState.enemies.find(
+      e => e.isTaunting && (e.tauntDuration ?? 0) > 0
+    );
+    if (tauntingEnemy && enemy.id !== tauntingEnemy.id) {
+      this.scene.animationHelper.showMessage('🛡️ 도발된 적만 공격 가능!', COLORS.message.error);
+      return;
+    }
+    
     this.useCardOnTarget(this.scene.pendingCard.index, enemy);
     this.cancelTargeting();
   }
@@ -727,17 +862,28 @@ drawCards(count: number) {
     }
   }
   
-  // ========== 유니크 무기 ==========
+  // ========== 잔광 (특수 유니크 무기) ==========
   
-  tryAddUniqueWeapon() {
-    const lightBladePassive = this.scene.playerState.passives.find(p => p.id === 'lightBlade');
-    if (!lightBladePassive || lightBladePassive.level === 0) return;
+  /**
+   * 턴 시작 시 잔광 출현 확률 체크
+   * - 맨손이고 손패가 12장 미만: 33%
+   * - 무기를 쥐고 있고 손패가 12장 미만: 5%
+   */
+  trySpawnJangwang() {
+    const hand = this.scene.playerState.hand;
+    const currentSword = this.scene.playerState.currentSword;
     
-    const chance = lightBladePassive.effect.value * lightBladePassive.level;
+    // 손패가 12장이면 등장 불가
+    if (hand.length >= 12) return;
+    
+    // 맨손이면 33%, 무기 있으면 5%
+    const chance = currentSword === null ? 0.33 : 0.05;
+    
     if (Math.random() < chance) {
       const jangwang = createJangwang();
       this.scene.playerState.hand.push({ type: 'sword', data: jangwang });
       this.scene.animationHelper.showMessage('✨ 잔광이 나타났다!', COLORS.message.levelUp);
+      this.scene.events.emit('handUpdated');
     }
   }
   

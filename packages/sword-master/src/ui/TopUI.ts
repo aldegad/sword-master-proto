@@ -26,8 +26,9 @@ export class TopUI {
   private phaseText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
   
-  // 버프 툴팁
-  private buffTooltip!: Phaser.GameObjects.Container;
+  // 패시브 UI
+  private passiveContainer!: Phaser.GameObjects.Container;
+  private passiveTooltip!: Phaser.GameObjects.Container;
   
   constructor(scene: UIScene) {
     this.scene = scene;
@@ -116,73 +117,109 @@ export class TopUI {
       color: '#ffd700',
     }).setOrigin(1, 0);
     
-    // 스탯 표시 (버프만, 방어율은 SwordInfoUI에 표시)
-    // 반투명 배경과 함께 아래로 배치
+    // 패시브 표시 영역
     this.statsText = this.scene.add.text(38, 560, '', {
       font: 'bold 20px monospace',
       color: COLORS_STR.text.muted,
-      backgroundColor: '#0a0a1580',  // 반투명 배경
-      padding: { x: 15, y: 8 },
     });
+    this.statsText.setVisible(false);
     
-    // 버프 툴팁 생성
-    this.createBuffTooltip();
+    // 패시브 컨테이너 (아이콘 형태로 표시)
+    this.passiveContainer = this.scene.add.container(38, 145);
     
-    // 버프 텍스트에 마우스 이벤트 추가
-    this.statsText.setInteractive({ useHandCursor: true });
-    this.statsText.on('pointerover', () => this.showBuffTooltip());
-    this.statsText.on('pointerout', () => this.hideBuffTooltip());
+    // 패시브 툴팁 생성
+    this.createPassiveTooltip();
   }
   
-  private createBuffTooltip() {
-    this.buffTooltip = this.scene.add.container(38, 600);
-    this.buffTooltip.setVisible(false);
-    this.buffTooltip.setDepth(1000);
+  private createPassiveTooltip() {
+    this.passiveTooltip = this.scene.add.container(38, 200);
+    this.passiveTooltip.setVisible(false);
+    this.passiveTooltip.setDepth(1000);
   }
   
-  private showBuffTooltip() {
-    const buffs = this.scene.gameScene.playerState.buffs;
-    if (buffs.length === 0) return;
+  private updatePassiveDisplay() {
+    this.passiveContainer.removeAll(true);
     
-    // 기존 툴팁 내용 제거
-    this.buffTooltip.removeAll(true);
+    const passives = this.scene.gameScene.playerState.passives;
+    const displayPassives = passives.filter(p => p.level > 0);
     
-    // 툴팁 내용 생성
-    const lines: string[] = ['◈ 활성 버프'];
-    buffs.forEach(buff => {
-      let description = '';
-      if (buff.id === 'focus') {
-        description = `다음 공격 데미지 +${buff.value * 100}%`;
-      } else if (buff.id === 'sharpen') {
-        description = `공격력 +${buff.value}`;
-      } else if (buff.type === 'defense') {
-        description = `방어율 +${buff.value}%`;
-      } else {
-        description = `공격력 +${buff.value}`;
-      }
-      lines.push(`  ${buff.name}: ${description} (${buff.duration}턴 남음)`);
+    if (displayPassives.length === 0) return;
+    
+    // 패시브 라벨
+    const label = this.scene.add.text(0, 0, '🔮 패시브', {
+      font: 'bold 18px monospace',
+      color: COLORS_STR.rarity.unique,
     });
+    this.passiveContainer.add(label);
+    
+    // 패시브 아이콘들 (가로 배열)
+    let xOffset = 120;
+    displayPassives.forEach(passive => {
+      const icon = this.createPassiveIcon(xOffset, passive);
+      this.passiveContainer.add(icon);
+      xOffset += 55;
+    });
+  }
+  
+  private createPassiveIcon(x: number, passive: import('../types').PlayerPassive): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(x, 0);
+    
+    // 배경
+    const bg = this.scene.add.rectangle(0, 0, 50, 36, COLORS.background.dark, 0.9);
+    bg.setStrokeStyle(2, COLORS.rarity.unique);
+    
+    // 아이콘 (패시브별로 다른 이모지)
+    let emoji = '🔮';
+    if (passive.id === 'waitIncrease') emoji = '⏳';
+    else if (passive.id === 'perfectCast') emoji = '✨';
+    else if (passive.id === 'defenseBonus') emoji = '🛡️';
+    
+    const icon = this.scene.add.text(-10, 0, emoji, { font: '16px Arial' }).setOrigin(0.5);
+    
+    // 레벨
+    const level = this.scene.add.text(14, 0, `${passive.level}`, {
+      font: 'bold 14px monospace',
+      color: COLORS_STR.rarity.unique,
+    }).setOrigin(0.5);
+    
+    container.add([bg, icon, level]);
+    
+    // 툴팁 인터랙션
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerover', () => this.showPassiveTooltip(passive, x));
+    bg.on('pointerout', () => this.hidePassiveTooltip());
+    
+    return container;
+  }
+  
+  private showPassiveTooltip(passive: import('../types').PlayerPassive, x: number) {
+    this.passiveTooltip.removeAll(true);
+    
+    const lines = [
+      `🔮 ${passive.name} Lv.${passive.level}/${passive.maxLevel}`,
+      passive.description,
+    ];
     
     const tooltipText = lines.join('\n');
     
     // 배경
-    const bg = this.scene.add.rectangle(0, 0, 350, 30 + buffs.length * 28, COLORS.background.black, 0.95);
+    const bg = this.scene.add.rectangle(x, 0, 280, 60, COLORS.background.black, 0.95);
     bg.setOrigin(0, 0);
-    bg.setStrokeStyle(2, COLORS.primary.main);
+    bg.setStrokeStyle(2, COLORS.rarity.unique);
     
     // 텍스트
-    const text = this.scene.add.text(10, 8, tooltipText, {
+    const text = this.scene.add.text(x + 10, 8, tooltipText, {
       font: '16px monospace',
       color: COLORS_STR.text.secondary,
       lineSpacing: 6,
     });
     
-    this.buffTooltip.add([bg, text]);
-    this.buffTooltip.setVisible(true);
+    this.passiveTooltip.add([bg, text]);
+    this.passiveTooltip.setVisible(true);
   }
   
-  private hideBuffTooltip() {
-    this.buffTooltip.setVisible(false);
+  private hidePassiveTooltip() {
+    this.passiveTooltip.setVisible(false);
   }
   
   updateHpBar() {
@@ -224,21 +261,11 @@ export class TopUI {
     
     this.updateHpBar();
     this.updateManaDisplay();
+    this.updatePassiveDisplay();
     
     // 레벨 표시 업데이트
-    const expNeeded = player.level * 25;  // 필요 경험치 절반
+    const expNeeded = this.scene.gameScene.getExpNeeded();
     this.levelText.setText(`LV.${player.level} [${player.exp}/${expNeeded}]`);
-    
-    // 버프만 표시 (방어율은 SwordInfoUI에서 표시) + 남은 턴수
-    const buffs = player.buffs;
-    if (buffs.length > 0) {
-      const buffTexts = buffs.map(b => `${b.name}(${b.duration})`);
-      this.statsText.setText(`✨ ${buffTexts.join(', ')}`);
-      this.statsText.setVisible(true);
-    } else {
-      this.statsText.setText('');
-      this.statsText.setVisible(false);  // 버프 없으면 숨김
-    }
     
     this.waveText.setText(`제 ${game.currentWave} 파`);
     this.turnText.setText(`${game.turn} 순`);
