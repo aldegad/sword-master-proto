@@ -212,7 +212,7 @@ export const SKILLS: Record<string, SkillCard> = {
     name: '빈틈!',
     emoji: '💨',
     type: 'attack',
-    attackMultiplier: 0.6,
+    attackMultiplier: 1,
     attackCount: 1,
     reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
