@@ -11,7 +11,7 @@ export class ActionButtonsUI {
   private waitBtn!: Phaser.GameObjects.Container;
   private exchangeBtn!: Phaser.GameObjects.Container;
   
-  waitUsedThisTurn: boolean = false;
+  waitUsedCount: number = 0;  // 이번 턴에 사용한 대기 횟수
   exchangeUsedThisTurn: boolean = false;
   
   constructor(scene: UIScene) {
@@ -129,12 +129,16 @@ export class ActionButtonsUI {
   
   useWait() {
     if (this.scene.gameScene.gameState.phase !== 'combat') return;
-    if (this.waitUsedThisTurn) {
-      this.scene.gameScene.showMessage('대기는 턴당 1번만!', 0xe94560);
+    
+    const maxWait = this.scene.gameScene.getMaxWaitCount();
+    const remaining = maxWait - this.waitUsedCount;
+    
+    if (remaining <= 0) {
+      this.scene.gameScene.showMessage(`대기는 턴당 ${maxWait}번만!`, 0xe94560);
       return;
     }
     
-    this.waitUsedThisTurn = true;
+    this.waitUsedCount++;
     this.updateWaitButton();
     
     // 모든 적의 대기턴 -1
@@ -143,7 +147,8 @@ export class ActionButtonsUI {
     // 아군 카운트 효과 -1 (강타, 패리 등)
     this.scene.gameScene.combatSystem.reduceCountEffects();
     
-    this.scene.gameScene.showMessage('대기... 적/아군 대기 -1', COLORS.success.main);
+    const newRemaining = maxWait - this.waitUsedCount;
+    this.scene.gameScene.showMessage(`대기... 적/아군 대기 -1 (${newRemaining}/${maxWait})`, COLORS.success.main);
     
     this.scene.gameScene.events.emit('statsUpdated');
   }
@@ -177,16 +182,17 @@ export class ActionButtonsUI {
     const bg = this.waitBtn.getAt(0) as Phaser.GameObjects.Rectangle;
     const text = this.waitBtn.getAt(1) as Phaser.GameObjects.Text;
     
-    const remaining = this.waitUsedThisTurn ? 0 : 1;
+    const maxWait = this.scene.gameScene.getMaxWaitCount();
+    const remaining = maxWait - this.waitUsedCount;
     
-    if (this.waitUsedThisTurn) {
+    if (remaining <= 0) {
       bg.setStrokeStyle(1, COLORS.border.dark);
       text.setColor(COLORS_STR.text.disabled);
-      text.setText(`‖ 대기 [${remaining}/1]`);
+      text.setText(`‖ 대기 [${remaining}/${maxWait}]`);
     } else {
       bg.setStrokeStyle(2, COLORS.success.main);
       text.setColor(COLORS_STR.success.main);
-      text.setText(`‖ 대기 [${remaining}/1]`);
+      text.setText(`‖ 대기 [${remaining}/${maxWait}]`);
     }
   }
   
@@ -212,7 +218,7 @@ export class ActionButtonsUI {
   }
   
   resetWaitButton() {
-    this.waitUsedThisTurn = false;
+    this.waitUsedCount = 0;
     this.exchangeUsedThisTurn = false;
     this.updateWaitButton();
     this.updateExchangeButton();

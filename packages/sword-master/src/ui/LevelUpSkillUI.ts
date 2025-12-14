@@ -1,15 +1,15 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
-import type { Card, SwordCard, SkillCard } from '../types';
+import type { Card, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
 
 /**
- * 보상 선택 UI - 전투 승리 후 보상 카드 선택 (CardRenderer 사용)
+ * 레벨업 스킬 선택 UI
  */
-export class RewardSelectionUI {
+export class LevelUpSkillUI {
   private scene: UIScene;
-  private rewardContainer!: Phaser.GameObjects.Container;
+  private container!: Phaser.GameObjects.Container;
   private cardRenderer!: CardRenderer;
   
   constructor(scene: UIScene) {
@@ -19,51 +19,58 @@ export class RewardSelectionUI {
   }
   
   private create() {
-    this.rewardContainer = this.scene.add.container(0, 0);
-    this.rewardContainer.setVisible(false);
-    this.rewardContainer.setDepth(2000);
+    this.container = this.scene.add.container(0, 0);
+    this.container.setVisible(false);
+    this.container.setDepth(2000);
   }
   
   show() {
-    this.rewardContainer.removeAll(true);
+    this.container.removeAll(true);
     
     const width = this.scene.cameras.main.width;
     const height = this.scene.cameras.main.height;
-    const rewardCards = this.scene.gameScene.rewardCards;
+    const skillCards = this.scene.gameScene.levelUpSkillCards;
     
-    if (rewardCards.length === 0) return;
+    if (skillCards.length === 0) return;
     
     // 배경 오버레이
     const overlay = this.scene.add.rectangle(width/2, height/2, width, height, COLORS.background.overlay, 0.85);
-    this.rewardContainer.add(overlay);
+    this.container.add(overlay);
     
     // 제목
-    const title = this.scene.add.text(width/2, 100, '🎁 보상 카드를 선택하세요!', {
+    const title = this.scene.add.text(width/2, 80, '🎉 레벨 업! 스킬을 선택하세요!', {
       font: 'bold 48px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
-    this.rewardContainer.add(title);
+    this.container.add(title);
     
-    // 상세 카드 크기 사용
+    // 현재 레벨 표시
+    const levelText = this.scene.add.text(width/2, 130, `LV.${this.scene.gameScene.playerState.level}`, {
+      font: 'bold 36px monospace',
+      color: '#FFD700',
+    }).setOrigin(0.5);
+    this.container.add(levelText);
+    
+    // 카드 배치
     const cardWidth = CARD_SIZE.DETAIL.width;
     const spacing = 40;
-    const totalWidth = rewardCards.length * cardWidth + (rewardCards.length - 1) * spacing;
+    const totalWidth = skillCards.length * cardWidth + (skillCards.length - 1) * spacing;
     const startX = (width - totalWidth) / 2 + cardWidth / 2;
     
-    rewardCards.forEach((card, index) => {
+    skillCards.forEach((card, index) => {
       const x = startX + index * (cardWidth + spacing);
-      const y = height / 2;  // 중앙 배치
+      const y = height / 2;
       
-      const cardContainer = this.createRewardCard(card, x, y, index);
-      this.rewardContainer.add(cardContainer);
+      const cardContainer = this.createSkillCard(card, x, y, index);
+      this.container.add(cardContainer);
     });
     
-    // 건너뛰기 버튼 (스케일)
-    const skipBtn = this.scene.add.container(width/2, height - 188);
-    const skipBg = this.scene.add.rectangle(0, 0, 375, 94, COLORS.background.dark, 0.9);
+    // 건너뛰기 버튼
+    const skipBtn = this.scene.add.container(width/2, height - 100);
+    const skipBg = this.scene.add.rectangle(0, 0, 250, 60, COLORS.background.dark, 0.9);
     skipBg.setStrokeStyle(3, COLORS.text.muted);
     const skipText = this.scene.add.text(0, 0, '건너뛰기', {
-      font: 'bold 32px monospace',
+      font: 'bold 28px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     skipBtn.add([skipBg, skipText]);
@@ -78,21 +85,22 @@ export class RewardSelectionUI {
       skipText.setColor(COLORS_STR.text.muted);
     });
     skipBg.on('pointerdown', () => {
-      this.scene.gameScene.skipReward();
+      this.scene.gameScene.skipLevelUpSkill();
     });
     
-    this.rewardContainer.add(skipBtn);
-    this.rewardContainer.setVisible(true);
+    this.container.add(skipBtn);
+    this.container.setVisible(true);
   }
   
-  private createRewardCard(card: Card, x: number, y: number, index: number): Phaser.GameObjects.Container {
+  private createSkillCard(card: Card, x: number, y: number, index: number): Phaser.GameObjects.Container {
     const wrapper = this.scene.add.container(x, y);
     
     // CardRenderer로 상세 카드 생성
-    const detailCard = this.cardRenderer.createDetailCard(card, null);
+    const sword = this.scene.gameScene.playerState.currentSword;
+    const detailCard = this.cardRenderer.createDetailCard(card, sword);
     wrapper.add(detailCard);
     
-    // 선택 버튼 추가
+    // 선택 버튼
     const cardHeight = CARD_SIZE.DETAIL.height;
     const selectBtn = this.scene.add.rectangle(0, cardHeight / 2 + 50, 180, 60, COLORS.success.main, 0.9);
     selectBtn.setStrokeStyle(4, COLORS.primary.light);
@@ -102,21 +110,17 @@ export class RewardSelectionUI {
     }).setOrigin(0.5);
     wrapper.add([selectBtn, selectText]);
     
-    // 인터랙션 영역 (카드 전체)
+    // 인터랙션 영역
     const hitArea = this.scene.add.rectangle(0, 0, CARD_SIZE.DETAIL.width, cardHeight, 0x000000, 0);
     hitArea.setInteractive({ useHandCursor: true });
     wrapper.add(hitArea);
     
-    // 테두리 색상
-    const isSword = card.type === 'sword';
-    const isSwiftSkill = !isSword && (card.data as SkillCard).isSwift === true;
-    const borderColor = isSword 
-      ? COLORS.rarity[(card.data as SwordCard).rarity as keyof typeof COLORS.rarity || 'common']
-      : (isSwiftSkill ? COLORS.card.swift : COLORS.card.skill);
+    const skill = card.data as SkillCard;
+    const isSwift = skill.isSwift === true;
+    const borderColor = isSwift ? COLORS.card.swift : COLORS.card.skill;
     
     const onHover = () => {
       wrapper.setScale(1.05);
-      // 카드 배경의 테두리 강조 (첫 번째 자식이 배경)
       const bg = detailCard.getAt(0) as Phaser.GameObjects.Rectangle;
       if (bg) bg.setStrokeStyle(8, COLORS.primary.light);
     };
@@ -128,7 +132,7 @@ export class RewardSelectionUI {
     };
     
     const onSelect = () => {
-      this.scene.gameScene.selectRewardCard(index);
+      this.scene.gameScene.selectLevelUpSkill(index);
     };
     
     hitArea.on('pointerover', onHover);
@@ -143,7 +147,6 @@ export class RewardSelectionUI {
   }
   
   hide() {
-    this.rewardContainer.removeAll(true);
-    this.rewardContainer.setVisible(false);
+    this.container.setVisible(false);
   }
 }

@@ -1,5 +1,6 @@
 import type { GameScene } from '../scenes/GameScene';
 import { COLORS } from '../constants/colors';
+import { CARD_LAYOUT } from '../ui/CardUI';
 
 /**
  * 애니메이션 헬퍼 - 모든 애니메이션 효과 담당
@@ -9,6 +10,104 @@ export class AnimationHelper {
   
   constructor(scene: GameScene) {
     this.scene = scene;
+  }
+  
+  // ========== 카드 드로우/무덤 애니메이션 ==========
+  
+  /**
+   * 덱에서 카드 드로우 애니메이션
+   */
+  cardDraw(emoji: string, cardIndex: number): Promise<void> {
+    return new Promise((resolve) => {
+      const deckX = 100;  // 덱 위치 (좌측)
+      const deckY = this.scene.cameras.main.height - 150;
+      
+      // 손패 영역 중앙 계산 (카드 인덱스에 따라 위치 분산)
+      const handY = this.scene.cameras.main.height - 120;
+      const handCenterX = this.scene.cameras.main.width / 2;
+      const spread = 80;  // 카드 간 간격
+      const handX = handCenterX + (cardIndex - 2) * spread;  // 중앙 기준 분산
+      
+      // 카드 생성 - 덱에서 시작
+      const card = this.scene.add.container(deckX, deckY);
+      card.setDepth(2000 + cardIndex);
+      
+      const bg = this.scene.add.rectangle(0, 0, 100, 140, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(4, COLORS.primary.dark);
+      
+      const emojiText = this.scene.add.text(0, 0, emoji, {
+        font: '45px Arial',
+      }).setOrigin(0.5);
+      
+      card.add([bg, emojiText]);
+      card.setScale(0.5);  // 시작 크기
+      card.setAlpha(1);    // 바로 보이게
+      
+      // 덱에서 손패로 날아가는 애니메이션 (호를 그리며)
+      this.scene.tweens.add({
+        targets: card,
+        x: handX,
+        y: handY - 50,  // 위로 올라갔다가
+        scale: 1.0,
+        duration: 250,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          // 손패로 내려오면서 사라짐
+          this.scene.tweens.add({
+            targets: card,
+            y: handY + 20,
+            alpha: 0,
+            scale: 0.7,
+            duration: 200,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+              card.destroy();
+              resolve();
+            },
+          });
+        },
+      });
+    });
+  }
+  
+  /**
+   * 카드가 무덤으로 가는 애니메이션
+   */
+  cardToGrave(startX: number, startY: number, emoji: string): Promise<void> {
+    return new Promise((resolve) => {
+      const graveX = 56;  // 무덤 위치 (좌측 하단)
+      const graveY = this.scene.cameras.main.height - 34;
+      
+      // 카드 생성
+      const card = this.scene.add.container(startX, startY);
+      card.setDepth(1500);
+      
+      const bg = this.scene.add.rectangle(0, 0, 100, 125, COLORS.background.dark, 0.9);
+      bg.setStrokeStyle(2, COLORS.text.muted);
+      
+      const emojiText = this.scene.add.text(0, 0, emoji, {
+        font: '32px Arial',
+      }).setOrigin(0.5);
+      
+      card.add([bg, emojiText]);
+      card.setScale(0.6);
+      
+      // 무덤으로 날아가며 회전하며 사라지는 애니메이션
+      this.scene.tweens.add({
+        targets: card,
+        x: graveX,
+        y: graveY,
+        scale: 0.2,
+        rotation: Math.PI * 0.5,
+        alpha: 0.3,
+        duration: 400,
+        ease: 'Power2',
+        onComplete: () => {
+          card.destroy();
+          resolve();
+        },
+      });
+    });
   }
   
   // ========== 플레이어 애니메이션 ==========
@@ -195,7 +294,7 @@ export class AnimationHelper {
         y: targetY - 56,
         scale: 0.6,
         rotation: Math.PI,
-        duration: 250,
+        duration: 120,  // 더 빠르게!
         ease: 'Power3',
         onComplete: () => {
           // 임팩트 효과 (스케일)
@@ -246,7 +345,79 @@ export class AnimationHelper {
   }
   
   /**
-   * 스킬 카드 사용 애니메이션 - 카드가 적에게 날아감 (스케일 적용)
+   * 스킬 카드 사용 애니메이션 - 카드가 적에게 날아가고 무덤으로 (2단계)
+   */
+  cardToEnemyAndGrave(startX: number, startY: number, targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
+    return new Promise((resolve) => {
+      const height = this.scene.cameras.main.height;
+      // 무덤 위치 (좌측 하단 - GRAVE 표시 위치)
+      const graveX = 80;
+      const graveY = height - 60;
+      
+      // 카드 모양 컨테이너 - CARD_LAYOUT 상수 사용
+      const card = this.scene.add.container(startX, startY);
+      card.setDepth(5000);  // 손패 UI보다 앞에
+      
+      const bg = this.scene.add.rectangle(0, 0, CARD_LAYOUT.CARD_WIDTH - 7, CARD_LAYOUT.CARD_HEIGHT, COLORS.background.dark, 0.95);
+      bg.setStrokeStyle(5, COLORS.message.success);
+      
+      const emojiText = this.scene.add.text(0, -30, emoji, {
+        font: '51px Arial',
+      }).setOrigin(0.5);
+      
+      const nameText = this.scene.add.text(0, 60, name.slice(0, 4), {
+        font: 'bold 20px monospace',
+        color: '#4a7c59',
+      }).setOrigin(0.5);
+      
+      card.add([bg, emojiText, nameText]);
+      
+      // 1단계: 적에게 날아가는 애니메이션
+      this.scene.tweens.add({
+        targets: card,
+        x: targetX,
+        y: targetY - 56,
+        scale: 0.5,
+        rotation: Math.PI * 0.3,
+        duration: 300,
+        ease: 'Power3',
+        onComplete: () => {
+          // 임팩트 효과
+          const impact = this.scene.add.text(targetX, targetY - 56, '💥', {
+            font: '90px Arial',
+          }).setOrigin(0.5);
+          impact.setDepth(5001);
+          
+          this.scene.tweens.add({
+            targets: impact,
+            scale: 1.5,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => impact.destroy(),
+          });
+          
+          // 2단계: 무덤으로 튕겨나감 (느리게)
+          this.scene.tweens.add({
+            targets: card,
+            x: graveX,
+            y: graveY,
+            scale: 0.2,
+            alpha: 0.4,
+            rotation: -0.5,
+            duration: 500,  // 느리게
+            ease: 'Quad.easeInOut',
+            onComplete: () => {
+              card.destroy();
+              resolve();
+            },
+          });
+        },
+      });
+    });
+  }
+  
+  /**
+   * 스킬 카드 사용 애니메이션 - 카드가 적에게만 날아감 (대기 스킬용)
    */
   cardToEnemy(startX: number, startY: number, targetX: number, targetY: number, emoji: string, name: string): Promise<void> {
     return new Promise((resolve) => {

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { CountEffect } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { CARD_SIZE } from './CardRenderer';
 
 /**
  * 카운트 효과 UI - 활성화된 카운트 스킬 효과 표시
@@ -96,85 +97,99 @@ export class CountEffectUI {
   private showTooltip(effect: CountEffect, x: number, y: number) {
     this.tooltipContainer.removeAll(true);
     
-    // 효과별 설명 생성
-    let description = '';
-    let title = `${effect.emoji} ${effect.name}`;
+    // 카드 형식 툴팁
+    const width = CARD_SIZE.DETAIL.width;
+    let height = 300;
+    
+    // 효과 타입별 색상
     let titleColor: string = COLORS_STR.success.dark;
-    let titleColorHex: number = COLORS.success.dark;
+    let borderColor: number = COLORS.success.dark;
+    
+    if (effect.type === 'chargeAttack') {
+      titleColor = COLORS_STR.primary.dark;
+      borderColor = COLORS.primary.dark;
+    } else if (effect.type === 'countDefense' && !effect.data.counterAttack) {
+      titleColor = '#6b8e9f';
+      borderColor = 0x6b8e9f;
+    }
+    
+    // 카드 형태 배경
+    const bg = this.scene.add.rectangle(0, 0, width, height, COLORS.background.dark, 0.98);
+    bg.setStrokeStyle(5, borderColor);
+    this.tooltipContainer.add(bg);
+    
+    let yPos = -height / 2 + 30;
+    
+    // 헤더 (이모지 + 이름)
+    const emoji = this.scene.add.text(-width/2 + 20, yPos, effect.emoji, { font: '50px Arial' });
+    const name = this.scene.add.text(-width/2 + 80, yPos + 8, effect.name, {
+      font: 'bold 24px monospace',
+      color: titleColor,
+    });
+    this.tooltipContainer.add([emoji, name]);
+    yPos += 60;
+    
+    // 대기 시간 (강조)
+    const delayText = this.scene.add.text(0, yPos, `⏳ 남은 대기: ${effect.remainingDelays}`, {
+      font: 'bold 22px monospace',
+      color: '#FFD700',
+    }).setOrigin(0.5, 0);
+    this.tooltipContainer.add(delayText);
+    yPos += 40;
+    
+    // 구분선
+    const line = this.scene.add.rectangle(0, yPos, width - 40, 2, borderColor, 0.5);
+    this.tooltipContainer.add(line);
+    yPos += 20;
+    
+    // 효과 정보
+    const infoLines: string[] = [];
     
     switch (effect.type) {
       case 'countDefense':
+        infoLines.push(`◆ 방어율: x${effect.data.defenseMultiplier || 5}`);
         if (effect.data.counterAttack) {
-          // 반격 있는 방어 (검 얽기 등)
-          titleColor = COLORS_STR.success.dark;
-          titleColorHex = COLORS.success.dark;
-          description = [
-            `남은 대기: ${effect.remainingDelays}`,
-            '',
-            `방어율 x${effect.data.defenseMultiplier || 5} 적용`,
-            '방어 성공 시 반격 발동!',
-            '',
-            `반격 배수: x${effect.data.attackMultiplier || 1.0}`,
-          ].join('\n');
+          infoLines.push('');
+          infoLines.push('◆ 방어 성공 시 반격!');
+          infoLines.push(`   반격 배수: x${effect.data.attackMultiplier || 1.0}`);
         } else {
-          // 반격 없는 방어 (쳐내기 등)
-          titleColor = '#6b8e9f';
-          titleColorHex = 0x6b8e9f;
-          description = [
-            `남은 대기: ${effect.remainingDelays}`,
-            '',
-            `방어율 x${effect.data.defenseMultiplier || 10} 적용`,
-            '1회 방어 시 효과 소멸',
-          ].join('\n');
+          infoLines.push('');
+          infoLines.push('◆ 1회 방어 후 소멸');
         }
         break;
         
       case 'chargeAttack':
-        titleColor = COLORS_STR.primary.dark;
-        titleColorHex = COLORS.primary.dark;
-        description = [
-          `남은 대기: ${effect.remainingDelays}`,
-          '',
-          `대기 완료 시 공격 발동!`,
-          `공격 배수: x${effect.data.attackMultiplier || 1.0}`,
-          effect.data.attackCount ? `추가 타수: +${effect.data.attackCount}` : '',
-        ].filter(line => line).join('\n');
+        infoLines.push('◆ 대기 완료 시 공격 발동!');
+        infoLines.push(`   공격 배수: x${effect.data.attackMultiplier || 1.0}`);
+        if (effect.data.skillAttackCount && effect.data.skillAttackCount > 1) {
+          infoLines.push(`   타수 배율: x${effect.data.skillAttackCount}`);
+        }
+        break;
+        
+      case 'flowRead':
+        infoLines.push('◆ 대기할수록 강해짐!');
+        infoLines.push(`   현재 방어율: x${effect.data.defenseScaling?.[effect.maxDelays! - effect.remainingDelays] || 1}`);
+        infoLines.push(`   현재 반격: x${effect.data.counterScaling?.[effect.maxDelays! - effect.remainingDelays] || 0.25}`);
         break;
     }
     
-    // 툴팁 크기 계산 (스케일)
-    const lines = description.split('\n').length;
-    const tooltipHeight = 113 + lines * 34;
-    const tooltipWidth = 375;
+    infoLines.forEach(line => {
+      const text = this.scene.add.text(-width/2 + 30, yPos, line, {
+        font: '18px monospace',
+        color: COLORS_STR.text.secondary,
+      });
+      this.tooltipContainer.add(text);
+      yPos += 26;
+    });
     
-    // 배경 (스케일)
-    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, COLORS.background.dark, 0.98);
-    bg.setStrokeStyle(5, titleColorHex);
-    
-    // 제목 (스케일)
-    const titleText = this.scene.add.text(0, -tooltipHeight/2 + 28, title, {
-      font: 'bold 30px monospace',
-      color: titleColor,
-    }).setOrigin(0.5, 0);
-    
-    // 설명 (스케일)
-    const descText = this.scene.add.text(0, -tooltipHeight/2 + 84, description, {
-      font: '22px monospace',
-      color: COLORS_STR.text.primary,
-      align: 'center',
-      lineSpacing: 8,
-    }).setOrigin(0.5, 0);
-    
-    this.tooltipContainer.add([bg, titleText, descText]);
-    
-    // 위치 조정 (화면 밖으로 안 나가게)
+    // 위치 조정
     let tooltipX = x;
     let tooltipY = y;
-    if (tooltipX + tooltipWidth/2 > this.scene.cameras.main.width) {
-      tooltipX = this.scene.cameras.main.width - tooltipWidth/2 - 20;
+    if (tooltipX + width/2 > this.scene.cameras.main.width) {
+      tooltipX = this.scene.cameras.main.width - width/2 - 20;
     }
-    if (tooltipY + tooltipHeight/2 > this.scene.cameras.main.height) {
-      tooltipY = y - tooltipHeight;
+    if (tooltipY + height/2 > this.scene.cameras.main.height) {
+      tooltipY = y - height;
     }
     
     this.tooltipContainer.setPosition(tooltipX, tooltipY);

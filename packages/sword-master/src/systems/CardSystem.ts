@@ -64,9 +64,11 @@ export class CardSystem {
     // 마나 소모
     this.scene.playerState.mana -= manaCost;
     
-    // 카드 시작 위치 (손패 영역 중앙)
-    const cardStartX = this.scene.cameras.main.width / 2;
-    const cardStartY = this.scene.cameras.main.height - 90;
+    // UIScene 참조
+    const uiScene = this.scene.scene.get('UIScene') as import('../scenes/UIScene').UIScene;
+    
+    // 실제 카드 sprite 추출 (애니메이션 전에!)
+    const cardSprite = uiScene.cardUI.extractCardForAnimation(index);
     
     // 적 위치 계산 (무기/스킬 공통)
     const enemies = this.scene.gameState.enemies;
@@ -75,47 +77,79 @@ export class CardSystem {
     const targetX = targetSprite ? targetSprite.x : this.scene.cameras.main.width - 180;
     const targetY = targetSprite ? targetSprite.y : this.scene.GROUND_Y - 30;
     
+    // 무기 카드의 경우 맨손 여부 체크 (신속 발도 판단용)
+    const wasBarehanded = this.scene.playerState.currentSword === null;
+    
     if (card.type === 'sword') {
-      // 무기 카드: 적에게 날아가서 때리고 플레이어에게 돌아옴 (발도!)
-      this.scene.animationHelper.cardToPlayer(
-        cardStartX,
-        cardStartY,
-        targetX,
-        targetY,
-        card.data.emoji,
-        card.data.name
-      );
+      // 무기 카드: 실제 카드 sprite로 애니메이션
+      if (cardSprite) {
+        uiScene.animateCardToPlayer(cardSprite, targetX, targetY);
+      }
       this.equipSword(card.data, targetEnemy);
     } else {
-      // 스킬 카드: 적에게 날아가는 애니메이션
+      // 스킬 카드: 타입에 따라 다른 애니메이션
       const skill = card.data as SkillCard;
       const isChargeAttack = skill.effect?.type === 'chargeAttack';
+      const isCountDefense = skill.effect?.type === 'countDefense' || skill.effect?.type === 'flowRead';
+      const isAttackSkill = skill.type === 'attack' || skill.type === 'special';
       
-      if (enemies.length > 0) {
-        // 강타(chargeAttack)는 카운트 영역으로 날아감
-        if (isChargeAttack) {
-          this.scene.animationHelper.cardToCount(
-            cardStartX,
-            cardStartY,
-            card.data.emoji,
-            card.data.name
-          );
-        } else if (card.data.type === 'attack' || card.data.type === 'special' || card.data.type === 'defense') {
-          // 다른 공격/스페셜/방어 스킬은 적에게 날아감
-          this.scene.animationHelper.cardToEnemy(
-            cardStartX,
-            cardStartY,
-            targetX,
-            targetY,
-            card.data.emoji,
-            card.data.name
-          );
+      if (cardSprite && enemies.length > 0) {
+        // 강타(chargeAttack) 또는 대기 방어(countDefense, flowRead)는 카운트 영역으로 날아감
+        if (isChargeAttack || isCountDefense) {
+          uiScene.animateCardToCount(cardSprite);
+        } else if (isAttackSkill) {
+          // 공격 범위 계산 (무기 범위 + 스킬 범위 합산)
+          const sword = this.scene.playerState.currentSword;
+          const skillReach = skill.reach;
+          
+          // 실제 범위 계산 (single은 무기 범위, 아니면 스킬 범위)
+          let actualReach = skillReach;
+          if (skillReach === 'single' && sword) {
+            actualReach = sword.reach;
+          } else if (skillReach === 'swordDouble' && sword) {
+            // swordDouble: 무기 범위 x2
+            const swordTargetCount = this.scene.combatSystem.getTargetCountByReach(sword.reach);
+            actualReach = swordTargetCount * 2 >= 4 ? 'all' : 
+                         swordTargetCount * 2 === 2 ? 'double' :
+                         swordTargetCount * 2 === 3 ? 'triple' : 'double';
+          }
+          
+          // 클릭한 적 기준으로 타겟 리스트 가져오기
+          let targetEnemies: Enemy[];
+          if (target) {
+            targetEnemies = this.scene.combatSystem.getTargetsByReachFromEnemy(actualReach, target);
+          } else {
+            targetEnemies = this.scene.combatSystem.getTargetsByReach(actualReach);
+          }
+          
+          if (targetEnemies.length > 1) {
+            // 여러 적에게 카드가 날아감
+            const animTargets: Array<{x: number, y: number}> = [];
+            for (const enemy of targetEnemies) {
+              const enemySprite = this.scene.enemySprites.get(enemy.id);
+              if (enemySprite) {
+                animTargets.push({ x: enemySprite.x, y: enemySprite.y });
+              }
+            }
+            uiScene.animateCardToMultipleEnemies(cardSprite, animTargets);
+          } else {
+            // 단일 적
+            uiScene.animateCardToEnemyAndGrave(cardSprite, targetX, targetY);
+          }
+        } else {
+          // 버프/방어 스킬은 바로 무덤으로
+          uiScene.animateCardSpriteToGrave(cardSprite);
         }
+      } else if (cardSprite) {
+        // 적이 없을 때는 바로 무덤으로
+        uiScene.animateCardSpriteToGrave(cardSprite);
       }
       
       const success = this.useSkill(card.data, targetEnemy);
       if (!success) {
         this.scene.playerState.mana += manaCost;
+        // sprite는 이미 추출되었으므로 destroy
+        cardSprite?.destroy();
         return;
       }
     }
@@ -123,21 +157,28 @@ export class CardSystem {
     // 손패에서 제거
     this.scene.playerState.hand.splice(index, 1);
     
-    // 스킬 카드만 무덤으로 (1회용 스킬은 완전히 제거)
+    // 스킬 카드만 무덤으로 (1회용 스킬은 완전히 제거, 납도는 손패로 돌아옴)
     if (card.type === 'skill') {
+      const skill = card.data as SkillCard;
+      
       if (card.data.isConsumable) {
         this.scene.animationHelper.showMessage(`${card.data.emoji} ${card.data.name} 소멸!`, COLORS.message.discard);
+      } else if (skill.effect?.type === 'sheathe') {
+        // 납도 스킬은 손패로 돌아옴
+        this.scene.playerState.hand.push(card);
+        this.scene.animationHelper.showMessage(`${card.data.emoji} 납도 카드 손패로!`, COLORS.message.info);
       } else {
+        // 무덤으로
         this.scene.playerState.discard.push(card);
       }
     }
     
     // 신속 여부 체크:
     // - 스킬 카드: isSwift 속성 확인
-    // - 무기 카드: 발도 스킬의 isSwift 속성 확인
+    // - 무기 카드: 맨손이었으면 신속 발도
     const isSwift = card.type === 'skill' 
       ? card.data.isSwift 
-      : card.data.drawAttack?.isSwift;
+      : wasBarehanded;  // 맨손에서 발도 = 신속
     
     if (!isSwift) {
       // 일반 카드: 적 대기턴 -1 (적 공격 발생 가능)
@@ -161,6 +202,9 @@ export class CardSystem {
   // ========== 무기 장착 ==========
   
   equipSword(sword: SwordCard, targetEnemy?: Enemy) {
+    // 맨손 여부 체크 (발도 신속 결정용)
+    const wasBarehanded = this.scene.playerState.currentSword === null;
+    
     // 기존 무기가 있고 내구도가 남아있으면 무덤으로
     if (this.scene.playerState.currentSword && this.scene.playerState.currentSword.currentDurability > 0) {
       this.scene.playerState.discard.push({ 
@@ -177,17 +221,33 @@ export class CardSystem {
     this.scene.animationHelper.showMessage(`${sword.name} 장착!`, COLORS.message.success);
     
     // 발도 공격 실행 (타겟 지정 포함)
+    // 맨손이었으면 신속 발도!
     if (this.scene.gameState.phase === 'combat' && this.scene.gameState.enemies.length > 0) {
       // 무기 장착 = 공격으로 간주 (이어베기 조건용)
       this.scene.playerState.usedAttackThisTurn = true;
       
+      // 크리티컬 조건을 발도 실행 전에 미리 체크! (대기 감소보다 먼저)
+      const drawAtk = sword.drawAttack;
+      let preCriticalCheck = false;
+      if (drawAtk.criticalCondition === 'enemyDelay1') {
+        let targets: Enemy[];
+        if (targetEnemy) {
+          targets = this.scene.combatSystem.getTargetsByReachFromEnemy(drawAtk.reach, targetEnemy);
+        } else {
+          targets = this.scene.combatSystem.getTargetsByReach(drawAtk.reach);
+        }
+        preCriticalCheck = targets.some(enemy => 
+          enemy.actionQueue.length > 0 && enemy.actionQueue[0].currentDelay === 1
+        );
+      }
+      
       this.scene.time.delayedCall(150, () => {
-        this.executeDrawAttack(sword, targetEnemy);
+        this.executeDrawAttack(sword, targetEnemy, wasBarehanded, preCriticalCheck);
       });
     }
   }
   
-  executeDrawAttack(sword: SwordCard, targetEnemy?: Enemy) {
+  executeDrawAttack(sword: SwordCard, targetEnemy?: Enemy, wasBarehanded: boolean = false, preCritical: boolean = false) {
     const drawAtk = sword.drawAttack;
     
     if (sword.currentDurability < drawAtk.durabilityCost) {
@@ -221,24 +281,20 @@ export class CardSystem {
       targets = this.scene.combatSystem.getTargetsByReach(drawAtk.reach);
     }
     
-    // 크리티컬 조건 체크
-    let isCritical = false;
-    if (drawAtk.criticalCondition === 'enemyDelay1') {
-      // 적 중 대기가 1인 적이 있는지 확인
-      const hasDelay1Enemy = targets.some(enemy => 
-        enemy.actionQueue.length > 0 && enemy.actionQueue[0].currentDelay === 1
-      );
-      if (hasDelay1Enemy) {
-        isCritical = true;
-        damage *= 3.0;  // 크리티컬 300%
-      }
+    // 크리티컬: 미리 체크한 값 사용 (대기 감소 전에 체크됨)
+    const isCritical = preCritical;
+    if (isCritical) {
+      damage *= 3.0;  // 크리티컬 300%
     }
     
     this.scene.animationHelper.playerAttack();
     
+    // 맨손이었으면 신속 발도!
+    const isSwiftDraw = wasBarehanded;
+    
     // 메시지 표시
-    if (drawAtk.isSwift) {
-      this.scene.animationHelper.showMessage(`⚡ ${drawAtk.name}!`, COLORS.message.info);
+    if (isSwiftDraw) {
+      this.scene.animationHelper.showMessage(`⚡ ${drawAtk.name}! (신속 발도)`, COLORS.message.info);
     } else {
       this.scene.animationHelper.showMessage(`⚔️ ${drawAtk.name}!`, COLORS.message.warning);
     }
@@ -269,6 +325,34 @@ export class CardSystem {
           if (reduceAmount > 0) {
             this.scene.animationHelper.showMessage(`🔨 ${actualEnemy.name} 방어력 -${reduceAmount}!`, COLORS.message.warning);
             // UI 업데이트
+            this.scene.enemyManager.updateEnemySprite(actualEnemy);
+          }
+        }
+      }
+      
+      // 무기 장착 효과: 출혈 (bleedOnHit) - 중첩 가능
+      if (sword.bleedOnHit) {
+        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
+        if (actualEnemy) {
+          actualEnemy.bleeds.push({
+            damage: sword.bleedOnHit.damage,
+            duration: sword.bleedOnHit.duration,
+          });
+          this.scene.animationHelper.showMessage(`🩸 출혈! ${sword.bleedOnHit.damage}뎀/${sword.bleedOnHit.duration}턴`, COLORS.effect.damage);
+          // 디버프 UI 업데이트
+          this.scene.enemyManager.updateEnemySprite(actualEnemy);
+        }
+      }
+      
+      // 무기 장착 효과: 방어구 파괴 (armorBreakOnHit)
+      if (sword.armorBreakOnHit && sword.armorBreakOnHit > 0) {
+        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
+        if (actualEnemy) {
+          const oldDefense = actualEnemy.defense;
+          const reduceAmount = Math.min(sword.armorBreakOnHit, oldDefense);
+          actualEnemy.defense = Math.max(0, actualEnemy.defense - sword.armorBreakOnHit);
+          if (reduceAmount > 0) {
+            this.scene.animationHelper.showMessage(`🔨 방어력 -${reduceAmount}!`, COLORS.message.warning);
             this.scene.enemyManager.updateEnemySprite(actualEnemy);
           }
         }
@@ -319,7 +403,8 @@ export class CardSystem {
       this.scene.playerState.usedAttackThisTurn = true;
     } else if (skill.type === 'defense') {
       this.scene.combatSystem.executeDefense(skill);
-    } else if (skill.type === 'buff') {
+    } else if (skill.type === 'buff' || skill.type === 'draw') {
+      // buff와 draw 타입 모두 executeBuff에서 처리 (draw effect 포함)
       this.scene.combatSystem.executeBuff(skill);
     }
     
@@ -396,65 +481,72 @@ export class CardSystem {
     const card = cards[index];
     const sword = this.scene.playerState.currentSword;
     
-    if (card.type === 'sword') {
-      // 무기 카드: 장착 (발도 공격 포함)
-      this.scene.animationHelper.showMessage(`💃 ${card.data.name} 장착!`, COLORS.message.error);
-      this.equipSword(card.data as SwordCard, targetEnemy);
-      
-      this.scene.time.delayedCall(500, () => {
-        this.executeBladeDanceCards(cards, index + 1, targetEnemy);
-      });
-    } else {
-      // 스킬 카드
-      const skillCard = card.data as SkillCard;
-      
-      // 무기가 없거나 내구도가 부족하면 손패로
-      if (!sword || sword.currentDurability < skillCard.durabilityCost) {
-        this.scene.playerState.hand.push(card);
-        this.scene.animationHelper.showMessage(`${skillCard.name} → 손패`, COLORS.message.discard);
+    // UIScene에서 카드 미리보기 표시
+    const uiScene = this.scene.scene.get('UIScene') as import('../scenes/UIScene').UIScene;
+    
+    // 카드를 화면 중앙에 순차적으로 표시
+    uiScene.showBladeDanceCard(card, index + 1, cards.length, () => {
+      if (card.type === 'sword') {
+        // 무기 카드: 장착 (발도 공격 포함)
+        this.scene.animationHelper.showMessage(`💃 ${card.data.name} 장착!`, COLORS.message.error);
+        this.equipSword(card.data as SwordCard, targetEnemy);
         
-        this.scene.time.delayedCall(300, () => {
+        this.scene.time.delayedCall(500, () => {
           this.executeBladeDanceCards(cards, index + 1, targetEnemy);
         });
-        return;
-      }
-      
-      // 스킬 발동 (마나 소모 없이)
-      this.scene.animationHelper.showMessage(`💃 ${skillCard.name}!`, COLORS.message.success);
-      
-      // 내구도 소모
-      if (skillCard.durabilityCost > 0 && this.scene.playerState.currentSword) {
-        this.scene.playerState.currentSword.currentDurability -= skillCard.durabilityCost;
-        this.scene.updatePlayerWeaponDisplay();
+      } else {
+        // 스킬 카드
+        const skillCard = card.data as SkillCard;
         
-        if (this.scene.playerState.currentSword.currentDurability <= 0) {
-          this.scene.animationHelper.showMessage(`${this.scene.playerState.currentSword.name}이(가) 부서졌다!`, COLORS.message.error);
-          this.scene.playerState.currentSword = null;
-          this.scene.updatePlayerWeaponDisplay();
+        // 무기가 없거나 내구도가 부족하면 손패로
+        if (!sword || sword.currentDurability < skillCard.durabilityCost) {
+          this.scene.playerState.hand.push(card);
+          this.scene.animationHelper.showMessage(`${skillCard.name} → 손패`, COLORS.message.discard);
+          
+          this.scene.time.delayedCall(300, () => {
+            this.executeBladeDanceCards(cards, index + 1, targetEnemy);
+          });
+          return;
         }
+        
+        // 스킬 발동 (마나 소모 없이)
+        this.scene.animationHelper.showMessage(`💃 ${skillCard.name}!`, COLORS.message.success);
+        
+        // 내구도 소모
+        if (skillCard.durabilityCost > 0 && this.scene.playerState.currentSword) {
+          this.scene.playerState.currentSword.currentDurability -= skillCard.durabilityCost;
+          this.scene.updatePlayerWeaponDisplay();
+          
+          if (this.scene.playerState.currentSword.currentDurability <= 0) {
+            this.scene.animationHelper.showMessage(`${this.scene.playerState.currentSword.name}이(가) 부서졌다!`, COLORS.message.error);
+            this.scene.playerState.currentSword = null;
+            this.scene.updatePlayerWeaponDisplay();
+          }
+        }
+        
+        // 공격/방어/버프 실행
+        if (skillCard.type === 'attack' || skillCard.type === 'special') {
+          this.scene.combatSystem.executeAttack(skillCard, targetEnemy);
+        } else if (skillCard.type === 'defense') {
+          this.scene.combatSystem.executeDefense(skillCard);
+        }
+        // buff는 스킵 (검의 춤에서 버프는 발동하지 않음)
+        
+        // 무덤으로
+        this.scene.playerState.discard.push(card);
+        
+        this.scene.time.delayedCall(400, () => {
+          this.executeBladeDanceCards(cards, index + 1, targetEnemy);
+        });
       }
-      
-      // 공격/방어/버프 실행
-      if (skillCard.type === 'attack' || skillCard.type === 'special') {
-        this.scene.combatSystem.executeAttack(skillCard, targetEnemy);
-      } else if (skillCard.type === 'defense') {
-        this.scene.combatSystem.executeDefense(skillCard);
-      }
-      // buff는 스킵 (검의 춤에서 버프는 발동하지 않음)
-      
-      // 무덤으로
-      this.scene.playerState.discard.push(card);
-      
-      this.scene.time.delayedCall(400, () => {
-        this.executeBladeDanceCards(cards, index + 1, targetEnemy);
-      });
-    }
+    });
   }
   
   /**
-   * 납도 - 현재 무기의 발도 스킬 재시전
+   * 납도 - 무기를 손패로 되돌리고 맨손 상태로 만듦
+   * 납도 카드는 무덤 대신 손패로 돌아옴 (useSkill에서 처리)
    */
-  private executeSheathe(targetEnemy?: Enemy) {
+  private executeSheathe(_targetEnemy?: Enemy) {
     const sword = this.scene.playerState.currentSword;
     
     if (!sword) {
@@ -462,26 +554,33 @@ export class CardSystem {
       return;
     }
     
-    this.scene.animationHelper.showMessage('⚔️ 납도!', COLORS.message.warning);
+    this.scene.animationHelper.showMessage('⚔️ 납도! 무기를 손으로 되돌린다', COLORS.message.warning);
     
-    // 발도 공격 실행
-    this.scene.time.delayedCall(200, () => {
-      this.executeDrawAttack(sword, targetEnemy);
-    });
+    // 무기를 손패로 되돌림
+    this.scene.playerState.hand.push({ type: 'sword', data: { ...sword } });
+    
+    // 맨손 상태로
+    this.scene.playerState.currentSword = null;
+    this.scene.updatePlayerWeaponDisplay();
+    
+    this.scene.events.emit('handUpdated');
   }
   
   // ========== 카드 드로우 ==========
   
-  drawCards(count: number) {
-    // 카드 뽑기는 애니메이션 없음 (attak은 공격/장착용)
+drawCards(count: number) {
+    const drawnCards: Card[] = [];
+
     for (let i = 0; i < count; i++) {
+      // 손패가 최대일 때 가장 오래된 카드 버림
       if (this.scene.playerState.hand.length >= GAME_CONSTANTS.MAX_HAND_SIZE) {
         const discarded = this.scene.playerState.hand.shift();
         if (discarded) {
           this.scene.playerState.discard.push(discarded);
         }
       }
-      
+
+      // 덱이 비었으면 무덤 셔플
       if (this.scene.playerState.deck.length === 0) {
         if (this.scene.playerState.discard.length === 0) break;
         this.scene.playerState.deck = [...this.scene.playerState.discard];
@@ -489,12 +588,25 @@ export class CardSystem {
         this.shuffleArray(this.scene.playerState.deck);
         this.scene.animationHelper.showMessage('덱 셔플!', COLORS.message.warning);
       }
-      
+
       const card = this.scene.playerState.deck.pop();
       if (card) {
-        this.scene.playerState.hand.push(card);
+        drawnCards.push(card);
       }
     }
+    
+    // 드로우할 카드가 없으면 바로 업데이트
+    if (drawnCards.length === 0) {
+      this.scene.events.emit('handUpdated');
+      return;
+    }
+
+    // UIScene에서 애니메이션 + 카드 추가 (콜백 기반, 타이밍 추측 없음!)
+    const uiScene = this.scene.scene.get('UIScene') as import('../scenes/UIScene').UIScene;
+    uiScene.animateDrawCards(drawnCards, () => {
+      // 모든 드로우 완료 후 stats 업데이트
+      this.scene.events.emit('statsUpdated');
+    });
   }
   
   // ========== 카드 교환 ==========
@@ -556,10 +668,32 @@ export class CardSystem {
     this.scene.isTargetingMode = true;
     this.scene.pendingCard = { card, index };
     
+    // 공격 범위 계산
+    let reach = 'single';
+    const sword = this.scene.playerState.currentSword;
+    
+    if (card.type === 'sword') {
+      // 무기 카드: 발도 범위
+      reach = (card.data as SwordCard).drawAttack.reach;
+    } else {
+      // 스킬 카드: 스킬 범위 (single이면 무기 범위)
+      const skill = card.data as SkillCard;
+      if (skill.reach === 'single' && sword) {
+        reach = sword.reach;
+      } else if (skill.reach === 'swordDouble' && sword) {
+        const swordTargetCount = this.scene.combatSystem.getTargetCountByReach(sword.reach);
+        reach = swordTargetCount * 2 >= 4 ? 'all' : 
+               swordTargetCount * 2 === 2 ? 'double' :
+               swordTargetCount * 2 === 3 ? 'triple' : 'double';
+      } else {
+        reach = skill.reach;
+      }
+    }
+    
     const message = card.type === 'sword' ? '발도 공격 대상을 선택하세요' : '공격할 적을 선택하세요';
     this.scene.animationHelper.showMessage(message, COLORS.message.error);
     this.scene.events.emit('modeChanged');
-    this.scene.events.emit('targetingStarted');
+    this.scene.events.emit('targetingStarted', reach);
   }
   
   selectTarget(enemyId: string) {
@@ -614,6 +748,21 @@ export class CardSystem {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
     }
+  }
+  
+  /**
+   * 덱이 비어있으면 무덤을 셔플하여 덱으로 리필
+   * @returns 덱에 카드가 있으면 true, 둘 다 비어있으면 false
+   */
+  refillDeckIfNeeded(): boolean {
+    if (this.scene.playerState.deck.length === 0) {
+      if (this.scene.playerState.discard.length === 0) return false;
+      this.scene.playerState.deck = [...this.scene.playerState.discard];
+      this.scene.playerState.discard = [];
+      this.shuffleArray(this.scene.playerState.deck);
+      this.scene.animationHelper.showMessage('덱 셔플!', COLORS.message.warning);
+    }
+    return true;
   }
 }
 

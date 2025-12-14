@@ -136,12 +136,37 @@ export class CombatSystem {
             }
           }
           
-          // 출혈 효과 (첫 타격에만)
+// 출혈 효과 (첫 타격에만) - 중첩 가능
           if (hitIndex === 0 && skill.effect?.type === 'bleed') {
-            enemy.bleed = {
+            enemy.bleeds.push({
               damage: skill.effect.value,
               duration: skill.effect.duration || 3,
-            };
+            });
+            this.scene.animationHelper.showMessage(`🩸 출혈! ${skill.effect.value}뎀/${skill.effect.duration || 3}턴`, COLORS.effect.damage);
+            // 디버프 UI 업데이트
+            this.scene.enemyManager.updateEnemySprite(enemy);
+          }
+
+          // 무기 장착 효과: 출혈 (bleedOnHit) - 중첩 가능
+          if (hitIndex === 0 && sword.bleedOnHit) {
+            enemy.bleeds.push({
+              damage: sword.bleedOnHit.damage,
+              duration: sword.bleedOnHit.duration,
+            });
+            this.scene.animationHelper.showMessage(`🩸 출혈! ${sword.bleedOnHit.damage}뎀/${sword.bleedOnHit.duration}턴`, COLORS.effect.damage);
+            // 디버프 UI 업데이트
+            this.scene.enemyManager.updateEnemySprite(enemy);
+          }
+          
+          // 무기 장착 효과: 방어구 파괴 (armorBreakOnHit)
+          if (sword.armorBreakOnHit && sword.armorBreakOnHit > 0) {
+            const oldDefense = enemy.defense;
+            const reduceAmount = Math.min(sword.armorBreakOnHit, oldDefense);
+            enemy.defense = Math.max(0, enemy.defense - sword.armorBreakOnHit);
+            if (reduceAmount > 0) {
+              this.scene.animationHelper.showMessage(`🔨 방어력 -${reduceAmount}!`, COLORS.message.warning);
+              this.scene.enemyManager.updateEnemySprite(enemy);
+            }
           }
           
           // 스턴 효과 (첫 타격에만)
@@ -334,6 +359,10 @@ export class CombatSystem {
       // 덱에서 검 꺼내기 (상위 N개)
       const count = skill.effect.value || 3;
       let drawn = 0;
+      
+      // 덱이 비어있으면 무덤을 셔플하여 리필
+      this.scene.cardSystem.refillDeckIfNeeded();
+      
       const tempDeck = [...this.scene.playerState.deck];
       
       for (let i = 0; i < tempDeck.length && drawn < count; i++) {
@@ -348,6 +377,21 @@ export class CombatSystem {
         }
       }
       
+      // 아직 부족하면 다시 리필 시도
+      if (drawn < count && this.scene.cardSystem.refillDeckIfNeeded()) {
+        const tempDeck2 = [...this.scene.playerState.deck];
+        for (let i = 0; i < tempDeck2.length && drawn < count; i++) {
+          if (tempDeck2[i].type === 'sword') {
+            const cardIndex = this.scene.playerState.deck.indexOf(tempDeck2[i]);
+            if (cardIndex !== -1) {
+              const [card] = this.scene.playerState.deck.splice(cardIndex, 1);
+              this.scene.playerState.hand.push(card);
+              drawn++;
+            }
+          }
+        }
+      }
+      
       if (drawn > 0) {
         this.scene.animationHelper.showMessage(`🎴 검 ${drawn}자루 획득!`, COLORS.message.success);
       } else {
@@ -356,6 +400,10 @@ export class CombatSystem {
       this.scene.events.emit('handUpdated');
     } else if (skill.effect?.type === 'bladeGrab') {
       // 검 잡기: 덱 최상위 검 즉시 장착+발도, 그 다음 검은 손패로
+      
+      // 덱이 비어있으면 무덤을 셔플하여 리필
+      this.scene.cardSystem.refillDeckIfNeeded();
+      
       const deck = this.scene.playerState.deck;
       let firstSwordIndex = -1;
       let secondSwordIndex = -1;
@@ -380,22 +428,33 @@ export class CombatSystem {
       // 첫 번째 검: 즉시 장착 + 발도
       const [firstSword] = deck.splice(firstSwordIndex, 1);
       const swordData = firstSword.data as SwordCard;
-      this.scene.animationHelper.showMessage(`🔍 ${swordData.name} 잡았다!`, COLORS.message.success);
       
       // 두 번째 검이 있으면 손패로 (인덱스 조정 필요)
+      let secondSwordData: SwordCard | null = null;
       if (secondSwordIndex !== -1) {
         const adjustedIndex = secondSwordIndex > firstSwordIndex ? secondSwordIndex - 1 : secondSwordIndex;
         const [secondSword] = deck.splice(adjustedIndex, 1);
         this.scene.playerState.hand.push(secondSword);
-        this.scene.animationHelper.showMessage(`🎴 ${secondSword.data.name} 손패로!`, COLORS.message.info);
+        secondSwordData = secondSword.data as SwordCard;
       }
       
-      // 장착 + 발도 (약간의 딜레이 후)
-      this.scene.time.delayedCall(300, () => {
-        this.scene.cardSystem.equipSword(swordData);
-      });
+      // UIScene 가져오기
+      const uiScene = this.scene.scene.get('UIScene') as import('../scenes/UIScene').UIScene;
       
-      this.scene.events.emit('handUpdated');
+      // 검 미리보기 UI 표시 후 확인 버튼 누르면 장착
+      uiScene.showSwordPreview(swordData, '🔍 잡은 검!', () => {
+        // 장착 + 발도
+        this.scene.cardSystem.equipSword(swordData);
+        
+        // 두 번째 검 메시지
+        if (secondSwordData) {
+          this.scene.time.delayedCall(500, () => {
+            this.scene.animationHelper.showMessage(`🎴 ${secondSwordData!.name} 손패로!`, COLORS.message.info);
+          });
+        }
+        
+        this.scene.events.emit('handUpdated');
+      });
     } else if (skill.effect?.type === 'graveDrawTop') {
       // 무덤 상위 N장을 손패로 가져오기
       const count = skill.effect.value || 2;
@@ -594,18 +653,24 @@ export class CombatSystem {
     // 카운트 효과 소멸 처리
     if (activeCountEffect) {
       const shouldConsume = activeCountEffect.data.consumeOnSuccess ?? true;
+      const countAreaPos = { x: 206, y: 620 };  // 카운트 영역 위치
+      
       // consumeOnSuccess가 true면 방어 성공 시 소멸, 아니면 항상 소멸
       if (shouldConsume && parrySuccess) {
         this.scene.playerState.countEffects = this.scene.playerState.countEffects.filter(
           e => e.id !== activeCountEffect!.id
         );
         this.scene.animationHelper.showMessage(`${activeCountEffect.emoji} ${activeCountEffect.name} 효과 소멸!`, COLORS.message.muted);
+        // 무덤 애니메이션
+        this.scene.events.emit('cardToGrave', countAreaPos.x, countAreaPos.y, activeCountEffect.emoji);
       } else if (!shouldConsume) {
         // consumeOnSuccess가 false면 1회 사용 후 무조건 소멸
         this.scene.playerState.countEffects = this.scene.playerState.countEffects.filter(
           e => e.id !== activeCountEffect!.id
         );
         this.scene.animationHelper.showMessage(`${activeCountEffect.emoji} ${activeCountEffect.name} 효과 소멸!`, COLORS.message.muted);
+        // 무덤 애니메이션
+        this.scene.events.emit('cardToGrave', countAreaPos.x, countAreaPos.y, activeCountEffect.emoji);
       }
     }
     
@@ -660,6 +725,11 @@ export class CombatSystem {
     const expGain = Math.floor(enemy.maxHp / 2);
     this.gainExp(expGain);
     
+    // 은전 드롭
+    const silverDrop = this.calculateSilverDrop(enemy);
+    this.scene.playerState.silver += silverDrop;
+    this.scene.animationHelper.showMessage(`💰 +${silverDrop} 은전`, COLORS.message.warning);
+    
     const idx = this.scene.gameState.enemies.indexOf(enemy);
     if (idx > -1) {
       this.scene.gameState.enemies.splice(idx, 1);
@@ -676,6 +746,23 @@ export class CombatSystem {
     
     // 적이 없으면 자동 전투 종료
     this.scene.checkCombatEnd();
+  }
+  
+  /**
+   * 은전 드롭량 계산
+   */
+  private calculateSilverDrop(enemy: Enemy): number {
+    // 기본 드롭량 (HP 기반)
+    let baseDrop = Math.floor(enemy.maxHp / 5);
+    
+    // 보스는 추가 드롭
+    if (enemy.isBoss) {
+      baseDrop *= 3;
+    }
+    
+    // 약간의 랜덤 변동 (±30%)
+    const variance = Math.floor(baseDrop * 0.3);
+    return Math.max(1, baseDrop + Math.floor(Math.random() * variance * 2) - variance);
   }
   
   gainExp(amount: number) {
@@ -698,11 +785,21 @@ export class CombatSystem {
       this.scene.animationHelper.showMessage(`✨ 잔광의 검사 Lv.${lightBlade.level}!`, COLORS.message.warning);
     }
     
-    // 체력 +5, 마나 +1, 체력 풀 회복
+    // 체력 +5, 체력 풀 회복
     this.scene.playerState.maxHp += 5;
     this.scene.playerState.hp = this.scene.playerState.maxHp;
-    this.scene.playerState.maxMana += 1;
+    
+    // 마나 +1 (최대 10까지만)
+    if (this.scene.playerState.maxMana < 10) {
+      this.scene.playerState.maxMana += 1;
+    }
     this.scene.playerState.mana = this.scene.playerState.maxMana;
+    
+    // 대기 횟수 증가 알림 (레벨 3, 5, 7... 마다)
+    if (this.scene.playerState.level >= 3 && this.scene.playerState.level % 2 === 1) {
+      const maxWait = this.scene.getMaxWaitCount();
+      this.scene.animationHelper.showMessage(`⏳ 대기 횟수 증가! (${maxWait}회)`, COLORS.message.success);
+    }
   }
   
   // ========== 유틸리티 ==========
@@ -814,6 +911,10 @@ export class CombatSystem {
         // 방어 효과 만료 메시지
         this.scene.animationHelper.showMessage('⏳ 효과 만료!', COLORS.message.muted);
       }
+      
+      // 카운트 효과 종료 시 무덤으로 가는 애니메이션
+      const countAreaPos = { x: 206, y: 620 };  // 카운트 영역 위치
+      this.scene.events.emit('cardToGrave', countAreaPos.x, countAreaPos.y, effect.emoji);
     }
     
     // 만료된 효과 제거
@@ -938,12 +1039,19 @@ export class CombatSystem {
   
   applyBleedDamage() {
     this.scene.gameState.enemies.forEach(enemy => {
-      if (enemy.bleed && enemy.bleed.duration > 0) {
-        this.damageEnemy(enemy, enemy.bleed.damage);
-        enemy.bleed.duration--;
-        if (enemy.bleed.duration <= 0) {
-          delete enemy.bleed;
-        }
+      if (enemy.bleeds.length > 0) {
+        // 모든 출혈 데미지 적용
+        enemy.bleeds.forEach((bleed, index) => {
+          this.scene.animationHelper.showMessage(`🩸 ${enemy.name} 출혈${enemy.bleeds.length > 1 ? `(${index + 1})` : ''}! -${bleed.damage}`, COLORS.effect.damage);
+          this.damageEnemy(enemy, bleed.damage);
+          bleed.duration--;
+        });
+        
+        // 만료된 출혈 제거
+        enemy.bleeds = enemy.bleeds.filter(bleed => bleed.duration > 0);
+        
+        // 디버프 UI 업데이트
+        this.scene.enemyManager.updateEnemySprite(enemy);
       }
     });
   }

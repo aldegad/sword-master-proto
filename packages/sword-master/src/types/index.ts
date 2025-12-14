@@ -58,6 +58,9 @@ export interface SwordCard {
   // 인첸트
   prefix?: SwordPrefix;
   suffix?: SwordSuffix;
+  // 특수 장착 효과
+  bleedOnHit?: { damage: number; duration: number }; // 장착 중 모든 공격에 출혈
+  armorBreakOnHit?: number; // 장착 중 모든 공격에 적 방어력 감소
 }
 
 // 스킬 카드 (검술)
@@ -65,7 +68,7 @@ export interface SkillCard {
   id: string;
   name: string;
   emoji: string;             // 이모지 아이콘
-  type: 'attack' | 'defense' | 'buff' | 'special';
+  type: 'attack' | 'defense' | 'buff' | 'special' | 'draw';
   attackMultiplier: number;  // 공격력 배수
   attackCount: number;       // 공격 횟수
   reach: ReachType;          // 공격 범위
@@ -154,6 +157,8 @@ export interface PlayerState {
   // 경험치 & 레벨
   exp: number;
   level: number;
+  // 은전
+  silver: number;
 }
 
 // 버프/디버프
@@ -169,13 +174,13 @@ export interface Buff {
 export interface EnemyAction {
   id: string;
   name: string;
-  type: 'attack' | 'charge' | 'defend' | 'special' | 'buff';
+  type: 'attack' | 'charge' | 'defend' | 'special' | 'buff' | 'taunt';
   damage: number;
   delay: number;          // 기본 대기턴
   currentDelay: number;   // 현재 남은 대기턴
   description: string;
   effect?: {
-    type: 'bleed' | 'stun' | 'debuff' | 'heal';
+    type: 'bleed' | 'stun' | 'debuff' | 'heal' | 'taunt';
     value: number;
     duration?: number;
   };
@@ -188,31 +193,36 @@ export interface Enemy {
   emoji: string;             // 이모지 아이콘
   hp: number;
   maxHp: number;
-  attack: number;
   defense: number;
   x: number;
-  actions: EnemyAction[];    // 적의 스킬/행동 목록
+  actions: EnemyAction[];    // 적의 스킬/행동 목록 (일반 적용)
+  actionTemplates?: EnemyAction[];  // 보스 전용: 행동 템플릿 (매 턴 랜덤 선택)
   actionQueue: EnemyAction[]; // 현재 행동 큐
   currentActionIndex: number; // 현재 준비 중인 행동
   isStunned: number;         // 스턴 남은 턴
-  bleed?: { damage: number; duration: number };
+  bleeds: { damage: number; duration: number }[];  // 출혈 중첩 (배열)
   actionsPerTurn?: { min: number; max: number };  // 턴당 스킬 사용 수 제한
+  isBoss?: boolean;          // 보스 여부
+  isTaunting?: boolean;      // 도발 중 여부
+  tauntDuration?: number;    // 도발 남은 턴
 }
 
 // 게임 상태
 export interface GameState {
-  phase: 'running' | 'combat' | 'victory' | 'paused' | 'gameOver';
+  phase: 'running' | 'combat' | 'victory' | 'paused' | 'gameOver' | 'event';
   turn: number;
   score: number;
   distance: number;
   enemies: Enemy[];
   currentWave: number;       // 현재 웨이브
   enemiesDefeated: number;   // 처치한 적 수
+  eventsThisTier: number;    // 이번 티어에서 발생한 이벤트 수
+  lastEventWave: number;     // 마지막 이벤트 발생 웨이브
 }
 
 // 상수
 export const GAME_CONSTANTS = {
-  MAX_HAND_SIZE: 10,
+  MAX_HAND_SIZE: 12,
   INITIAL_DRAW: 5,
   DRAW_PER_TURN: 2,
   INITIAL_MANA: 5,

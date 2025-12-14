@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import type { PlayerState, GameState, Card } from '../types';
 import { GAME_CONSTANTS } from '../types';
-import { createSwordCard, getRandomSword } from '../data/swords';
+import { createSwordCard, getRandomSword, getRandomUniqueSword } from '../data/swords';
+import { isBossWave, getCurrentTier, ENEMIES_TIER1, ENEMIES_TIER2, createEnemy } from '../data/enemies';
+import { getRandomEvent, getRandomOutcome, type GameEvent, type EventChoice, type EventOutcome } from '../data/events';
 import { createSkillCard, getStarterDeck, getRandomSkill } from '../data/skills';
 import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../systems';
 import { COLORS, COLORS_STR } from '../constants/colors';
@@ -42,13 +44,22 @@ export class GameScene extends Phaser.Scene {
   isTargetingMode: boolean = false;
   pendingCard: { card: Card; index: number } | null = null;
   
-  // 보상 카드 선택
+// 보상 카드 선택
   rewardCards: Card[] = [];
   
+  // 레벨업 스킬 선택
+  levelUpSkillCards: Card[] = [];
+
   // 스킬 효과로 인한 카드 선택
   skillSelectCards: Card[] = [];
   skillSelectType: 'searchSword' | 'graveRecall' | 'graveEquip' | null = null;
   pendingSkillCard: Card | null = null;  // 취소 시 복구할 카드
+  
+  // 이벤트 전투 후 보상
+  pendingEventReward: EventOutcome | null = null;
+  
+  // 이벤트 스킬 선택 여부 (레벨업 vs 이벤트 구분용)
+  isEventSkillSelection: boolean = false;
   
   constructor() {
     super({ key: 'GameScene' });
@@ -130,6 +141,7 @@ export class GameScene extends Phaser.Scene {
       ],
       exp: 0,
       level: 1,
+      silver: 0,  // 은전
     };
     
     this.gameState = {
@@ -140,6 +152,8 @@ export class GameScene extends Phaser.Scene {
       enemies: [],
       currentWave: 0,
       enemiesDefeated: 0,
+      eventsThisTier: 0,       // 이번 티어에서 발생한 이벤트 수
+      lastEventWave: 0,        // 마지막 이벤트 발생 웨이브
     };
   }
 
@@ -497,10 +511,290 @@ export class GameScene extends Phaser.Scene {
 
   encounterEnemies() {
     this.isMoving = false;
-    this.gameState.phase = 'combat';
     this.gameState.currentWave++;
     
+    // 티어 변경 시 이벤트 카운터 리셋
+    const currentTier = getCurrentTier(this.gameState.currentWave);
+    const prevTier = getCurrentTier(this.gameState.currentWave - 1);
+    if (currentTier !== prevTier && this.gameState.currentWave > 1) {
+      this.gameState.eventsThisTier = 0;
+    }
+    
+    // 이벤트 발생 체크 (보스 웨이브 제외)
+    if (this.shouldTriggerEvent()) {
+      this.triggerRandomEvent();
+      return;
+    }
+    
+    // 일반 전투 시작
+    this.gameState.phase = 'combat';
     this.enemyManager.spawnWaveEnemies();
+    this.startCombat();
+  }
+  
+  /**
+   * 이벤트 발생 여부 확인
+   * - 티어당 2번 발생: 1-4 사이 1번, 6-9 사이 1번
+   * - 보스 웨이브(5, 10)에서는 발생하지 않음
+   */
+  private shouldTriggerEvent(): boolean {
+    const wave = this.gameState.currentWave;
+    
+    // 보스 웨이브 제외
+    if (isBossWave(wave)) return false;
+    
+    // 이미 2번 발생했으면 X
+    if (this.gameState.eventsThisTier >= 2) return false;
+    
+    // 티어 내 웨이브 번호 (1~10)
+    const waveInTier = ((wave - 1) % 10) + 1;
+    
+    // 첫 번째 이벤트: 1~4 사이에서 발생
+    if (this.gameState.eventsThisTier === 0) {
+      if (waveInTier >= 1 && waveInTier <= 4) {
+        // 4웨이브에서 아직 안 터졌으면 무조건 발생
+        if (waveInTier === 4) return true;
+        // 그 외에는 40% 확률
+        return Math.random() < 0.4;
+      }
+      return false;
+    }
+    
+    // 두 번째 이벤트: 6~9 사이에서 발생
+    if (this.gameState.eventsThisTier === 1) {
+      if (waveInTier >= 6 && waveInTier <= 9) {
+        // 9웨이브에서 아직 안 터졌으면 무조건 발생
+        if (waveInTier === 9) return true;
+        // 그 외에는 40% 확률
+        return Math.random() < 0.4;
+      }
+      return false;
+    }
+    
+    return false;
+  }
+  
+  /**
+   * 랜덤 이벤트 발생
+   */
+  private triggerRandomEvent() {
+    this.gameState.phase = 'event';
+    this.gameState.eventsThisTier++;
+    this.gameState.lastEventWave = this.gameState.currentWave;
+    
+    const tier = getCurrentTier(this.gameState.currentWave);
+    const event = getRandomEvent(tier);
+    
+    this.animationHelper.showMessage('❗ 이벤트 발생!', COLORS.primary.dark);
+    
+    // UIScene의 EventUI 표시
+    const uiScene = this.scene.get('UIScene') as import('./UIScene').UIScene;
+    
+    this.time.delayedCall(500, () => {
+      uiScene.eventUI.show(event, (choice: EventChoice) => {
+        this.handleEventChoice(event, choice);
+      });
+    });
+  }
+  
+  /**
+   * 이벤트 선택지 처리
+   */
+  private handleEventChoice(_event: GameEvent, choice: EventChoice) {
+    const outcome = getRandomOutcome(choice.outcomes);
+    
+    const uiScene = this.scene.get('UIScene') as import('./UIScene').UIScene;
+    
+    uiScene.eventUI.showOutcome(outcome, () => {
+      this.applyEventOutcome(outcome);
+    });
+  }
+  
+  /**
+   * 이벤트 결과 적용
+   */
+  private applyEventOutcome(outcome: EventOutcome) {
+    const uiScene = this.scene.get('UIScene') as import('./UIScene').UIScene;
+    
+    switch (outcome.type) {
+      case 'reward':
+        // 은전 획득
+        this.playerState.silver += outcome.value || 0;
+        this.animationHelper.showMessage(`💰 +${outcome.value} 은전!`, COLORS.primary.dark);
+        this.time.delayedCall(1000, () => {
+          this.startMoving();
+        });
+        break;
+        
+      case 'damage':
+        // 데미지
+        this.playerState.hp -= outcome.value || 0;
+        this.animationHelper.showMessage(`💥 -${outcome.value} HP!`, COLORS.secondary.dark);
+        if (this.playerState.hp <= 0) {
+          this.gameOver();
+          return;
+        }
+        this.time.delayedCall(1000, () => {
+          this.startMoving();
+        });
+        break;
+        
+      case 'heal':
+        // 회복
+        const healAmount = Math.min(outcome.value || 0, this.playerState.maxHp - this.playerState.hp);
+        this.playerState.hp += healAmount;
+        this.animationHelper.showMessage(`💚 +${healAmount} HP!`, COLORS.success.dark);
+        this.time.delayedCall(1000, () => {
+          this.startMoving();
+        });
+        break;
+        
+      case 'combat':
+        // 이벤트 전투
+        this.time.delayedCall(500, () => {
+          this.startEventCombat(outcome.enemyType || 'bandit');
+        });
+        break;
+        
+      case 'combat_then_reward':
+        // 전투 후 무조건 보상
+        this.pendingEventReward = outcome;
+        this.time.delayedCall(500, () => {
+          this.startEventCombat(outcome.enemyType || 'bandit');
+        });
+        break;
+        
+      case 'combat_then_choose':
+        // 전투 후 보상 선택
+        this.pendingEventReward = outcome;
+        this.time.delayedCall(500, () => {
+          this.startEventCombat(outcome.enemyType || 'bandit');
+        });
+        break;
+        
+      case 'shop':
+        // 상점 열기
+        this.time.delayedCall(500, () => {
+          uiScene.shopUI.show(this.gameState.currentWave, () => {
+            this.startMoving();
+          });
+        });
+        break;
+        
+      case 'skill_select':
+        // 스킬 선택 (비급 발견)
+        this.showEventSkillSelection();
+        break;
+        
+      case 'skill_select_paid':
+        // 유료 스킬 선택 (사당 참배)
+        const cost = outcome.silverCost || 50;
+        if (this.playerState.silver >= cost) {
+          this.playerState.silver -= cost;
+          this.animationHelper.showMessage(`💰 -${cost} 은전`, COLORS.text.muted);
+          this.showEventSkillSelection();
+        } else {
+          this.animationHelper.showMessage('은전이 부족합니다!', COLORS.message.error);
+          this.time.delayedCall(1000, () => {
+            this.startMoving();
+          });
+        }
+        break;
+        
+      case 'nothing':
+      default:
+        // 아무 일 없음
+        this.time.delayedCall(1000, () => {
+          this.startMoving();
+        });
+        break;
+    }
+    
+    this.events.emit('statsUpdated');
+  }
+  
+  /**
+   * 이벤트 스킬 선택 (비급 발견)
+   */
+  private showEventSkillSelection() {
+    // 이벤트 스킬 선택임을 표시 (무기 보상 없음)
+    this.isEventSkillSelection = true;
+    
+    // 랜덤 스킬 3개 생성
+    this.levelUpSkillCards = [];
+    for (let i = 0; i < 3; i++) {
+      const skill = getRandomSkill();
+      this.levelUpSkillCards.push({ type: 'skill', data: skill });
+    }
+    
+    this.animationHelper.showMessage('📜 비급의 오의를 선택하세요!', COLORS.primary.dark);
+    this.events.emit('showLevelUpSkillSelection');
+  }
+  
+  /**
+   * 이벤트 전투 후 보상 선택 UI 표시
+   */
+  showEventCombatRewardChoice() {
+    if (!this.pendingEventReward) return;
+    
+    const outcome = this.pendingEventReward;
+    const uiScene = this.scene.get('UIScene') as import('./UIScene').UIScene;
+    
+    if (outcome.type === 'combat_then_reward') {
+      // 무조건 은전 보상
+      const silver = outcome.value || 50;
+      this.playerState.silver += silver;
+      this.animationHelper.showMessage(`💰 +${silver} 은전! (결투 승리 보상)`, COLORS.primary.dark);
+      this.pendingEventReward = null;
+      this.time.delayedCall(1000, () => {
+        this.startMoving();
+      });
+    } else if (outcome.type === 'combat_then_choose' && outcome.rewardOptions) {
+      // 보상 선택
+      uiScene.eventUI.showRewardChoice(
+        outcome.rewardOptions.heal || 0,
+        outcome.rewardOptions.silver || 0,
+        (choice: 'heal' | 'silver') => {
+          if (choice === 'heal') {
+            const heal = outcome.rewardOptions!.heal || 0;
+            const healAmount = Math.min(heal, this.playerState.maxHp - this.playerState.hp);
+            this.playerState.hp += healAmount;
+            this.animationHelper.showMessage(`💚 +${healAmount} HP! (무사의 치료)`, COLORS.success.dark);
+          } else {
+            const silver = outcome.rewardOptions!.silver || 0;
+            this.playerState.silver += silver;
+            this.animationHelper.showMessage(`💰 +${silver} 은전! (무사의 보답)`, COLORS.primary.dark);
+          }
+          this.pendingEventReward = null;
+          this.events.emit('statsUpdated');
+          this.time.delayedCall(1000, () => {
+            this.startMoving();
+          });
+        }
+      );
+    }
+  }
+  
+  /**
+   * 이벤트 전투 시작 (특정 적과 싸움)
+   */
+  private startEventCombat(enemyType: string) {
+    this.gameState.phase = 'combat';
+    
+    // 티어에 맞는 적 템플릿 찾기
+    const tier = getCurrentTier(this.gameState.currentWave);
+    const pool = tier === 1 ? ENEMIES_TIER1 : ENEMIES_TIER2;
+    const template = pool[enemyType];
+    
+    if (template) {
+      const enemy = createEnemy(template, 700);
+      this.gameState.enemies = [enemy];
+      this.enemyManager.createEnemySprite(enemy);
+    } else {
+      // 못 찾으면 일반 적 소환
+      this.enemyManager.spawnWaveEnemies();
+    }
+    
     this.startCombat();
   }
 
@@ -510,14 +804,18 @@ export class GameScene extends Phaser.Scene {
     
     this.cardSystem.tryAddUniqueWeapon();
     
-    // 첫 전투: 5장 드로우, 이후 전투: 2장 드로우 (턴 시작처럼)
+    // 레벨별 드로우 수: 레벨 1-2는 2장, 레벨 3+는 3장
+    const drawCount = this.getDrawCount();
+    
+    // 첫 전투: 5장 드로우, 이후 전투: 레벨별 드로우
     if (this.gameState.currentWave === 1) {
       this.cardSystem.drawCards(GAME_CONSTANTS.INITIAL_DRAW);
     } else {
-      this.cardSystem.drawCards(GAME_CONSTANTS.DRAW_PER_TURN);
+      this.cardSystem.drawCards(drawCount);
     }
     
-    this.enemyManager.initializeEnemyActions();
+    // 첫 턴이므로 isFirstTurn = true (도발 적은 도발을 첫 스킬로 사용)
+    this.enemyManager.initializeEnemyActions(true);
     
     this.animationHelper.showMessage(`제 ${this.gameState.currentWave} 파 - 전투 시작!`, COLORS.secondary.dark);
     
@@ -537,26 +835,38 @@ export class GameScene extends Phaser.Scene {
     // 강타로 적이 모두 죽었을 수 있으므로 체크
     if (this.checkCombatEnd()) return;
     
-    // 2. 적 행동이 순차적으로 끝날 때까지 대기
+    // 2. 출혈 데미지 적용 (적 턴 시작 시 바로!)
+    this.combatSystem.applyBleedDamage();
+    
+    // 출혈로 적이 죽었을 수 있으므로 체크
+    if (this.checkCombatEnd()) return;
+    
+    // 3. 적 행동이 순차적으로 끝날 때까지 대기
     await this.enemyManager.executeRemainingEnemyActions();
     
     // 이번 턴 공격 여부 리셋 (다음 턴을 위해)
     this.playerState.usedAttackThisTurn = false;
     
-    this.combatSystem.applyBleedDamage();
     this.combatSystem.reduceBuff();
     
     this.gameState.enemies.forEach(enemy => {
       if (enemy.isStunned > 0) enemy.isStunned--;
+      // 도발 지속시간 감소
+      if (enemy.isTaunting && (enemy.tauntDuration ?? 0) > 0) {
+        enemy.tauntDuration!--;
+        if (enemy.tauntDuration === 0) {
+          enemy.isTaunting = false;
+        }
+      }
     });
     
     if (this.checkCombatEnd()) return;
     
     this.gameState.turn++;
     
-    this.playerState.mana = this.playerState.maxMana;
-    this.cardSystem.drawCards(GAME_CONSTANTS.DRAW_PER_TURN);
-    
+this.playerState.mana = this.playerState.maxMana;
+    this.cardSystem.drawCards(this.getDrawCount());
+
     this.enemyManager.initializeEnemyActions();
     
     this.events.emit('turnEnded');
@@ -568,52 +878,217 @@ export class GameScene extends Phaser.Scene {
     if (this.gameState.enemies.length === 0 && this.gameState.phase === 'combat') {
       this.gameState.phase = 'victory';
       this.animationHelper.showMessage('승리!', COLORS.success.dark);
-      
-      // 손패와 덱 상태 유지 (리셋 안함)
-      // 버프/카운트 효과만 초기화
+
+      // 버프/카운트 효과 초기화 (덱/손패/무덤은 그대로 유지)
       this.playerState.buffs = [];
       this.playerState.countEffects = [];
       
-      // 보상 카드 3장 생성
-      this.generateRewardCards();
+      this.events.emit('handUpdated');
+
+      // 이벤트 전투 보상이 있으면 우선 처리
+      if (this.pendingEventReward) {
+        this.time.delayedCall(1000, () => {
+          this.showEventCombatRewardChoice();
+        });
+        return true;
+      }
+
+      // 보스 처치 여부 확인
+      const wasBossFight = isBossWave(this.gameState.currentWave);
       
-      // 1초 후 보상 선택 UI 표시
-      this.time.delayedCall(1000, () => {
-        this.events.emit('showRewardSelection');
-      });
+      // 경험치 획득 (보스는 2배)
+      const expGained = (10 + this.gameState.currentWave * 5) * (wasBossFight ? 2 : 1);
+      this.playerState.exp += expGained;
+      const expNeeded = this.getExpNeeded();
+      
+      if (wasBossFight) {
+        // 보스 처치: 특별 보상 (스킬 2개 + 유니크 무기 1개 중 선택)
+        this.animationHelper.showMessage(`💀 보스 처치! 특별 보상!`, COLORS.primary.dark);
+        this.time.delayedCall(1500, () => {
+          this.showBossRewardSelection();
+        });
+      } else if (this.playerState.exp >= expNeeded) {
+        // 레벨업!
+        this.playerState.exp -= expNeeded;
+        this.playerState.level++;
+        this.animationHelper.showMessage(`🎉 레벨 업! LV.${this.playerState.level}`, COLORS.primary.dark);
+        
+        // 레벨업 스킬 선택 → 무기 보상 순서로
+        this.time.delayedCall(1000, () => {
+          this.showLevelUpSkillSelection();
+        });
+      } else {
+        // 보상 카드 3장 생성 (무기만)
+        this.generateRewardCards();
+        
+        // 1초 후 보상 선택 UI 표시
+        this.time.delayedCall(1000, () => {
+          this.events.emit('showRewardSelection');
+        });
+      }
       
       return true;
     }
     return false;
   }
   
-  generateRewardCards() {
-    this.rewardCards = [];
-    
+  /**
+   * 레벨업에 필요한 경험치
+   */
+  getExpNeeded(): number {
+    return 50 + (this.playerState.level - 1) * 25;
+  }
+  
+  /**
+   * 레벨업 스킬 선택 UI
+   */
+  showLevelUpSkillSelection() {
+    // 랜덤 스킬 3개 생성
+    this.levelUpSkillCards = [];
     for (let i = 0; i < 3; i++) {
-      // 33% 확률로 무기, 67% 확률로 스킬
-      if (Math.random() < 0.33) {
-        const sword = getRandomSword(this.gameState.currentWave);
-        this.rewardCards.push({ type: 'sword', data: sword });
-      } else {
-        const skill = getRandomSkill();
-        this.rewardCards.push({ type: 'skill', data: skill });
-      }
+      const skill = getRandomSkill();
+      this.levelUpSkillCards.push({ type: 'skill', data: skill });
+    }
+    this.events.emit('showLevelUpSkillSelection');
+  }
+  
+  /**
+   * 레벨업 스킬 선택
+   */
+  selectLevelUpSkill(index: number) {
+    if (index < 0 || index >= this.levelUpSkillCards.length) return;
+    
+    const selectedCard = this.levelUpSkillCards[index];
+    this.playerState.deck.push(selectedCard);
+    this.cardSystem.shuffleArray(this.playerState.deck);
+    
+    this.animationHelper.showMessage(`${selectedCard.data.name} 스킬 획득!`, COLORS.success.dark);
+    
+    this.levelUpSkillCards = [];
+    this.events.emit('levelUpSkillSelected');
+    
+    // 이벤트 스킬 선택이면 무기 보상 없이 이동
+    if (this.isEventSkillSelection) {
+      this.isEventSkillSelection = false;
+      this.time.delayedCall(500, () => {
+        this.startMoving();
+      });
+      return;
+    }
+    
+    // 레벨업 후 무기 보상
+    this.generateRewardCards();
+    this.time.delayedCall(500, () => {
+      this.events.emit('showRewardSelection');
+    });
+  }
+  
+  skipLevelUpSkill() {
+    this.levelUpSkillCards = [];
+    this.events.emit('levelUpSkillSelected');
+    
+    // 이벤트 스킬 선택이면 무기 보상 없이 이동
+    if (this.isEventSkillSelection) {
+      this.isEventSkillSelection = false;
+      this.time.delayedCall(500, () => {
+        this.startMoving();
+      });
+      return;
+    }
+    
+    // 무기 보상
+    this.generateRewardCards();
+    this.time.delayedCall(500, () => {
+      this.events.emit('showRewardSelection');
+    });
+  }
+  
+  // ========== 보스 보상 ==========
+  
+  bossRewardCards: Card[] = [];
+  
+  /**
+   * 보스 처치 보상 UI (스킬 2개 + 유니크 무기 1개)
+   */
+  showBossRewardSelection() {
+    this.bossRewardCards = [];
+    
+    // 랜덤 스킬 2개
+    for (let i = 0; i < 2; i++) {
+      const skill = getRandomSkill();
+      this.bossRewardCards.push({ type: 'skill', data: skill });
+    }
+    
+    // 유니크 무기 1개
+    const uniqueSword = getRandomUniqueSword();
+    this.bossRewardCards.push({ type: 'sword', data: uniqueSword });
+    
+    this.events.emit('showBossRewardSelection');
+  }
+  
+  selectBossReward(index: number) {
+    if (index < 0 || index >= this.bossRewardCards.length) return;
+    
+    const selectedCard = this.bossRewardCards[index];
+    this.playerState.deck.push(selectedCard);
+    this.cardSystem.shuffleArray(this.playerState.deck);
+    
+    const isUnique = selectedCard.type === 'sword';
+    this.animationHelper.showMessage(
+      `${isUnique ? '⭐' : '📜'} ${selectedCard.data.name} 획득!`, 
+      isUnique ? COLORS.rarity.unique : COLORS.success.dark
+    );
+    
+    this.bossRewardCards = [];
+    this.events.emit('bossRewardSelected');
+    
+    // 레벨업 체크
+    const expNeeded = this.getExpNeeded();
+    if (this.playerState.exp >= expNeeded) {
+      this.playerState.exp -= expNeeded;
+      this.playerState.level++;
+      this.animationHelper.showMessage(`🎉 레벨 업! LV.${this.playerState.level}`, COLORS.primary.dark);
+      
+      this.time.delayedCall(1000, () => {
+        this.showLevelUpSkillSelection();
+      });
+    } else {
+      // 일반 무기 보상
+      this.generateRewardCards();
+      this.time.delayedCall(500, () => {
+        this.events.emit('showRewardSelection');
+      });
     }
   }
   
-  selectRewardCard(index: number) {
+  skipBossReward() {
+    this.bossRewardCards = [];
+    this.events.emit('bossRewardSelected');
+    this.startMoving();
+  }
+  
+generateRewardCards() {
+    this.rewardCards = [];
+
+    // 무기만 3개 생성
+    for (let i = 0; i < 3; i++) {
+      const sword = getRandomSword(this.gameState.currentWave);
+      this.rewardCards.push({ type: 'sword', data: sword });
+    }
+  }
+  
+selectRewardCard(index: number) {
     if (index < 0 || index >= this.rewardCards.length) return;
-    
+
     const selectedCard = this.rewardCards[index];
-    this.playerState.hand.push(selectedCard);  // 손패로 바로 획득
-    
-    this.animationHelper.showMessage(`${selectedCard.data.name} 손패로 획득!`, COLORS.success.dark);
-    
+    this.playerState.deck.push(selectedCard);  // 덱에 추가
+    this.cardSystem.shuffleArray(this.playerState.deck);  // 덱 셔플
+
+    this.animationHelper.showMessage(`${selectedCard.data.name} 덱에 추가!`, COLORS.success.dark);
+
     this.rewardCards = [];
     this.events.emit('rewardSelected');
-    this.events.emit('handUpdated');
-    
+
     // 다음 웨이브로 이동
     this.time.delayedCall(500, () => {
       this.startMoving();
@@ -624,6 +1099,22 @@ export class GameScene extends Phaser.Scene {
     this.rewardCards = [];
     this.events.emit('rewardSelected');
     this.startMoving();
+  }
+  
+  /**
+   * 레벨별 드로우 수 반환
+   * 항상 2장 (레벨별 드로우 증가 삭제)
+   */
+  getDrawCount(): number {
+    return 2;
+  }
+  
+  /**
+   * 레벨별 대기 가능 횟수 반환
+   * 기본 1회, 레벨 3부터 2레벨당 +1회
+   */
+  getMaxWaitCount(): number {
+    return 1 + Math.floor((this.playerState.level - 1) / 2);
   }
   
   // ========== 스킬 효과 카드 선택 ==========
@@ -705,16 +1196,9 @@ export class GameScene extends Phaser.Scene {
     this.events.emit('statsUpdated');
   }
   
-  // 전투 종료 시 덱 리셋
+  // 전투 종료 시 덱 리셋 (현재는 아무것도 하지 않음 - 덱/손패/무덤 유지)
   resetDeck() {
-    // 손패 + 무덤 → 덱으로
-    this.playerState.deck.push(...this.playerState.hand);
-    this.playerState.deck.push(...this.playerState.discard);
-    this.playerState.hand = [];
-    this.playerState.discard = [];
-    
-    // 덱 셔플
-    this.cardSystem.shuffleArray(this.playerState.deck);
+    // 덱, 손패, 무덤 모두 그대로 유지
     
     // 턴 리셋
     this.gameState.turn = 1;

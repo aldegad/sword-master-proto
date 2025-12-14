@@ -21,6 +21,7 @@ export class TopUI {
   private statsText!: Phaser.GameObjects.Text;
   private turnText!: Phaser.GameObjects.Text;
   private scoreText!: Phaser.GameObjects.Text;
+  private silverText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
@@ -107,6 +108,12 @@ export class TopUI {
     this.scoreText = this.scene.add.text(width - 38, 56, '', {
       font: 'bold 22px monospace',
       color: COLORS_STR.primary.main,
+    }).setOrigin(1, 0);
+    
+    // 은전 표시
+    this.silverText = this.scene.add.text(width - 38, 88, '', {
+      font: 'bold 20px monospace',
+      color: '#ffd700',
     }).setOrigin(1, 0);
     
     // 스탯 표시 (버프만, 방어율은 SwordInfoUI에 표시)
@@ -236,6 +243,7 @@ export class TopUI {
     this.waveText.setText(`제 ${game.currentWave} 파`);
     this.turnText.setText(`${game.turn} 순`);
     this.scoreText.setText(`공 ${game.score}`);
+    this.silverText.setText(`💰 ${player.silver} 은전`);
     
     const phaseText: Record<string, string> = {
       running: '▶ 이동중...',
@@ -243,6 +251,7 @@ export class TopUI {
       victory: '★ 승리!',
       paused: '‖ 일시정지',
       gameOver: '✕ 패배',
+      event: '❗ 이벤트',
     };
     this.phaseText.setText(phaseText[game.phase] || '');
   }

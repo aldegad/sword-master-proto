@@ -74,6 +74,9 @@ interface SwordTemplate {
   manaCost: number;
   description: string;
   specialEffect?: string;
+  // 특수 장착 효과
+  bleedOnHit?: { damage: number; duration: number };  // 장착 중 모든 공격에 출혈
+  armorBreakOnHit?: number;  // 장착 중 모든 공격에 적 방어력 감소
   drawAttack: {
     name: string;
     multiplier: number;
@@ -95,7 +98,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🗡️',
     origin: 'korean',
     rarity: 'common',
-    attack: 12,
+    attack: 16,
     attackCount: 1,
     reach: 'single',
     defense: 20,
@@ -111,21 +114,22 @@ export const SWORDS: Record<string, SwordTemplate> = {
       effect: '기본기에 충실' 
     },
   },
-  haegapdo: {
-    id: 'haegapdo',
-    name: '해갑도',
+  pagapdo: {
+    id: 'pagapdo',
+    name: '파갑도',
     emoji: '⚔️',
     origin: 'korean',
     rarity: 'uncommon',
-    attack: 18,
+    attack: 13,
     attackCount: 1,
     reach: 'single',
-    defense: 15,
+    defense: 16,
     pierce: 5,        // 갑옷 관통 특화!
     durability: 5,
     manaCost: 2,
-    description: '갑옷을 뚫는 관통력.',
-    specialEffect: '관통 5',
+    description: '갑옷을 부수는 도검. 장착 중 모든 공격에 방어력 감소.',
+    specialEffect: '방어구 파괴',
+    armorBreakOnHit: 2,   // 모든 공격에 방어력 -2
     drawAttack: { 
       name: '파갑일섬', 
       multiplier: 1.3, 
@@ -136,27 +140,28 @@ export const SWORDS: Record<string, SwordTemplate> = {
       armorReduce: 5,     // 방어력 영구 감소
     },
   },
-  yedogeom: {
-    id: 'yedogeom',
-    name: '예도검',
-    emoji: '🔪',
-    origin: 'korean',
-    rarity: 'common',
-    attack: 10,
+  yoroidoshi: {
+    id: 'yoroidoshi',
+    name: '요이도로시',
+    emoji: '🗡️',
+    origin: 'japanese',
+    rarity: 'uncommon',
+    attack: 8,
     attackCount: 2,
     reach: 'single',
-    defense: 12,
-    pierce: 0,        // 단검류 - 낮은 관통
-    durability: 8,
+    defense: 10,
+    pierce: 2,        // 갑옷 꿰뚫기
+    durability: 7,
     manaCost: 1,
-    description: '예법과 실전을 겸비한 검. 2타.',
+    description: '갑옷을 꿰뚫기 위한 단검. 장착 중 모든 공격에 출혈.',
+    specialEffect: '출혈 부여',
+    bleedOnHit: { damage: 6, duration: 3 },
     drawAttack: { 
-      name: '쌍발도', 
-      multiplier: 0.6, 
+      name: '관통자', 
+      multiplier: 1, 
       reach: 'single', 
-      durabilityCost: 2,
-      effect: '2회 연속 타격',
-      isSwift: true,
+      durabilityCost: 1,
+      effect: '출혈: 5데미지/3턴',
     },
   },
   bongukgeom: {
@@ -234,7 +239,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     emoji: '🔪',
     origin: 'japanese',
     rarity: 'common',
-    attack: 8,
+    attack: 10,
     attackCount: 2,
     reach: 'single',
     defense: 8,
@@ -247,8 +252,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
       multiplier: 1.0, 
       reach: 'single', 
       durabilityCost: 1,
-      effect: '적 대기 1일 때 크리티컬!',
-      isSwift: true,
+      effect: '적 대기 1일 때 크리티컬! (300% 데미지)',
       criticalCondition: 'enemyDelay1',
     },
   },
@@ -311,7 +315,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     attackCount: 2,
     reach: 'double',
     defense: 0,
-    pierce: 5,        // 유니크 관통 특화!
+    pierce: 5,
     durability: 1,
     manaCost: 0,
     description: '사라지는 빛의 검. 단 한 번의 섬광.',
@@ -321,10 +325,149 @@ export const SWORDS: Record<string, SwordTemplate> = {
       multiplier: 3.0, 
       reach: 'all', 
       durabilityCost: 1,
-      effect: '눈부신 빛으로 전체 적 관통' 
+      effect: '눈부신 빛으로 전체 적 관통',
+      pierce: true,
+    },
+  },
+  
+  // 한국 유니크 - 칠성검
+  chilseong: {
+    id: 'chilseong',
+    name: '칠성검',
+    emoji: '⭐',
+    origin: 'korean',
+    rarity: 'unique',
+    attack: 28,
+    attackCount: 3,
+    reach: 'single',
+    defense: 15,
+    pierce: 3,
+    durability: 7,
+    manaCost: 2,
+    description: '북두칠성의 기운을 담은 신검. 백제의 영검.',
+    specialEffect: '일곱 별의 가호',
+    drawAttack: { 
+      name: '칠성일섬', 
+      multiplier: 2.5, 
+      reach: 'single', 
+      durabilityCost: 1,
+      effect: '별빛이 검에 깃들어 베기',
+      criticalCondition: 'enemyDelay1',
+    },
+  },
+  
+  // 한국 유니크 - 사인검
+  saingum: {
+    id: 'saingum',
+    name: '사인검',
+    emoji: '☯',
+    origin: 'korean',
+    rarity: 'unique',
+    attack: 32,
+    attackCount: 2,
+    reach: 'double',
+    defense: 20,
+    pierce: 2,
+    durability: 5,
+    manaCost: 3,
+    description: '조선의 의검. 악을 베고 정의를 세운다.',
+    specialEffect: '정기가 깃든 검',
+    bleedOnHit: { damage: 6, duration: 3 },
+    drawAttack: { 
+      name: '파사검', 
+      multiplier: 2.0, 
+      reach: 'double', 
+      durabilityCost: 1,
+      effect: '사악한 기운을 베어낸다',
+    },
+  },
+  
+  // 일본 유니크 - 무라마사
+  muramasa: {
+    id: 'muramasa',
+    name: '무라마사',
+    emoji: '👹',
+    origin: 'japanese',
+    rarity: 'unique',
+    attack: 35,
+    attackCount: 2,
+    reach: 'single',
+    defense: 5,
+    pierce: 4,
+    durability: 4,
+    manaCost: 2,
+    description: '요도 무라마사. 피에 굶주린 마검.',
+    specialEffect: '피를 부르는 검',
+    bleedOnHit: { damage: 8, duration: 4 },
+    drawAttack: { 
+      name: '혈참', 
+      multiplier: 2.8, 
+      reach: 'single', 
+      durabilityCost: 1,
+      effect: '마검이 피를 원한다!',
+    },
+  },
+  
+  // 일본 유니크 - 마사무네
+  masamune: {
+    id: 'masamune',
+    name: '마사무네',
+    emoji: '🌸',
+    origin: 'japanese',
+    rarity: 'unique',
+    attack: 25,
+    attackCount: 3,
+    reach: 'double',
+    defense: 25,
+    pierce: 5,
+    durability: 6,
+    manaCost: 3,
+    description: '명검 마사무네. 검성의 영혼이 깃든 검.',
+    specialEffect: '검성의 가호',
+    drawAttack: { 
+      name: '무월', 
+      multiplier: 2.0, 
+      reach: 'all', 
+      durabilityCost: 1,
+      effect: '달빛처럼 고요하게, 그러나 날카롭게',
+    },
+  },
+  
+  // 일본 유니크 - 쿠사나기노츠루기
+  kusanagi: {
+    id: 'kusanagi',
+    name: '쿠사나기',
+    emoji: '🌊',
+    origin: 'japanese',
+    rarity: 'unique',
+    attack: 30,
+    attackCount: 2,
+    reach: 'all',
+    defense: 18,
+    pierce: 6,
+    durability: 5,
+    manaCost: 4,
+    description: '삼종신기 중 하나. 풀을 베는 검.',
+    specialEffect: '신검의 기운',
+    drawAttack: { 
+      name: '천총운검', 
+      multiplier: 3.0, 
+      reach: 'all', 
+      durabilityCost: 1,
+      effect: '신의 바람이 적을 베어낸다',
+      pierce: true,
     },
   },
 };
+
+// 유니크 무기 목록
+export const UNIQUE_SWORDS = ['jangwang', 'chilseong', 'saingum', 'muramasa', 'masamune', 'kusanagi'];
+
+// 랜덤 유니크 무기 생성
+export function getRandomUniqueSword(): SwordCard {
+  const uniqueId = UNIQUE_SWORDS[Math.floor(Math.random() * UNIQUE_SWORDS.length)];
+  return createSwordCard(uniqueId)!;
+}
 
 // ===== 검 생성 함수 =====
 
@@ -338,6 +481,9 @@ export function createSwordCard(swordId: string, prefix?: string, suffix?: strin
     currentDurability: template.durability,
     prefix: prefix ? PREFIXES[prefix] : undefined,
     suffix: suffix ? SUFFIXES[suffix] : undefined,
+    // 특수 장착 효과 복사
+    bleedOnHit: template.bleedOnHit,
+    armorBreakOnHit: template.armorBreakOnHit,
   };
   
   // 접두사 적용

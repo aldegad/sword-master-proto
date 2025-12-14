@@ -11,7 +11,7 @@ export const SKILLS: Record<string, SkillCard> = {
     name: '베기',
     emoji: '⚔️',
     type: 'attack',
-    attackMultiplier: 1.0,
+    attackMultiplier: 1.5,
     attackCount: 1,  // 무기 타수 x1
     reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
@@ -24,7 +24,7 @@ export const SKILLS: Record<string, SkillCard> = {
     name: '찌르기',
     emoji: '🗡️',
     type: 'attack',
-    attackMultiplier: 1.2,
+    attackMultiplier: 1.5,
     attackCount: 1,  // 무기 타수 x1
     reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
@@ -35,9 +35,9 @@ export const SKILLS: Record<string, SkillCard> = {
   },
 
   // ===== 연속기 (타수 배율 증가) =====
-  doubleSlash: {
-    id: 'doubleSlash',
-    name: '이연격',
+  consecutiveSlash: {
+    id: 'consecutiveSlash',
+    name: '연속베기',
     emoji: '⚡',
     type: 'attack',
     attackMultiplier: 0.7,
@@ -46,7 +46,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '두 번 베기. 무기 타수x2!',
+    description: '연속으로 베기. 무기 타수x2!',
   },
   tripleThrust: {
     id: 'tripleThrust',
@@ -63,10 +63,10 @@ export const SKILLS: Record<string, SkillCard> = {
   },
   flurry: {
     id: 'flurry',
-    name: '난무',
+    name: '마구 베기',
     emoji: '🌪️',
     type: 'attack',
-    attackMultiplier: 0.3,
+    attackMultiplier: 0.5,
     attackCount: 5,  // 무기 타수 x5
     reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
@@ -81,7 +81,7 @@ export const SKILLS: Record<string, SkillCard> = {
     name: '횡베기',
     emoji: '↔️',
     type: 'attack',
-    attackMultiplier: 0.8,
+    attackMultiplier: 1,
     attackCount: 1,
     reach: 'swordDouble',  // 무기 범위의 2배
     defenseBonus: 0,
@@ -94,8 +94,8 @@ export const SKILLS: Record<string, SkillCard> = {
     name: '회전참',
     emoji: '🌀',
     type: 'attack',
-    attackMultiplier: 0.6,
-    attackCount: 1,
+    attackMultiplier: 1,
+    attackCount: 2,
     reach: 'all',  // 자체 범위: 전체
     defenseBonus: 0,
     durabilityCost: 0,
@@ -107,13 +107,13 @@ export const SKILLS: Record<string, SkillCard> = {
     name: '월아참',
     emoji: '🌙',
     type: 'attack',
-    attackMultiplier: 1.0,
+    attackMultiplier: 1.2,
     attackCount: 1,
-    reach: 'triple',  // 자체 범위: 3적
+    reach: 'swordDouble',  // 무기 범위 x2
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '초승달 궤적으로 3적 베기.',
+    description: '초승달 궤적으로 무기 범위x2 베기.',
   },
 
   // ===== 강타기 (카운트 기반) =====
@@ -122,14 +122,14 @@ export const SKILLS: Record<string, SkillCard> = {
     name: '강타',
     emoji: '💥',
     type: 'attack',
-    attackMultiplier: 2.0,
+    attackMultiplier: 3.0,
     attackCount: 1,
     reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '1대기 후 강력한 일격! x2.0 데미지.',
-    effect: { type: 'chargeAttack', value: 2.0, duration: 1 },
+    description: '1대기 후 강력한 일격! x3.0 데미지.',
+    effect: { type: 'chargeAttack', value: 3.0, duration: 1 },
   },
   heavenSplitter: {
     id: 'heavenSplitter',
@@ -279,11 +279,11 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 1,
     durabilityCost: 1,
     manaCost: 1,
-    description: '2대기 동안 방어율 x5. 방어 성공 시 반격!',
+    description: '1대기 동안 방어율 x5. 방어 성공 시 반격!',
     effect: { 
       type: 'countDefense', 
       value: 5,              // 방어율 배수
-      duration: 2,           // 대기 시간 (1 → 2)
+      duration: 1,           // 대기 시간 (2 → 1)
       counterAttack: true,   // 반격 O
       counterMultiplier: 1.0,// 반격 배수
       consumeOnSuccess: true,// 방어 성공 시 소멸
@@ -391,32 +391,32 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 0,
-    description: '현재 무기의 발도 스킬 재시전!',
+    description: '무기를 손패로 되돌린다. 납도 카드도 손패로 돌아온다.',
     effect: { type: 'sheathe', value: 1 },
     isSwift: true,
   },
   
   // ===== 드로우/서치 스킬 (신속) =====
-  drawSword: {
-    id: 'drawSword',
-    name: '검 꺼내기',
+  setupBoard: {
+    id: 'setupBoard',
+    name: '판 짜기',
     emoji: '🎴',
-    type: 'buff',
+    type: 'draw',
     attackMultiplier: 0,
     attackCount: 0,
     reach: 'single',
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '덱 상위에서 검 3자루를 손패로 가져온다.',
-    effect: { type: 'drawSwords', value: 3 },
+    description: '덱에서 카드 2장을 드로우한다.',
+    effect: { type: 'draw', value: 2 },
     isSwift: true,
   },
   bladeSeeker: {
     id: 'bladeSeeker',
     name: '검 잡기',
     emoji: '🔍',
-    type: 'buff',
+    type: 'draw',
     attackMultiplier: 0,
     attackCount: 0,
     reach: 'single',
@@ -466,11 +466,11 @@ export const SKILLS: Record<string, SkillCard> = {
     type: 'special',
     attackMultiplier: 2.0,
     attackCount: 1,
-    reach: 'triple',  // 자체 범위: 3적
+    reach: 'swordDouble',  // 무기 범위 x2
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '검을 크게 휘둘러 3적을 x2.0으로 벤다.',
+    description: '검을 크게 휘둘러 무기 범위x2를 x2.0으로 벤다.',
     effect: { type: 'sweep', value: 3 },
   },
   bladeStorm: {
@@ -529,20 +529,20 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
   return {
     swords: [
       'katana', 'samjeongdo', 'wakizashi',  // 기본 3종 (동양검)
-      'yedogeom', 'bongukgeom',  // 추가 2종 (동양검)
-      'haegapdo', 'katana',  // 칼 2개 추가
+      'yoroidoshi', 'bongukgeom',  // 추가 2종 (요이도로시 = 구 예도검)
+      'pagapdo', 'katana',  // 칼 2개 추가 (파갑도 = 구 해갑도)
     ],
     skills: [
       'slash', 'slash',
       'thrust',              // thrust 하나 줄임
-      'doubleSlash',         // doubleSlash 하나 줄임
+      'consecutiveSlash',    // 연속베기 (구 이연격)
       'parry', 'parry',
       'quickSlash',
       'focus',
       'powerStrike',
       'sweepingBlow',
       'slashAndDraw',        // 베며 가다듬기
-      'drawSword', 'drawSword',
+      'setupBoard', 'setupBoard',
     ],
   };
 }

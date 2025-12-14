@@ -21,11 +21,117 @@ export class EnemyManager {
   
   // ========== 적 생성 ==========
   
-  spawnWaveEnemies() {
+spawnWaveEnemies() {
     const enemies = createWaveEnemies(this.scene.gameState.currentWave);
     this.scene.gameState.enemies = enemies;
+
+    // 보스 등장 시 WARNING 이펙트
+    if (enemies.length === 1 && enemies[0].isBoss) {
+      this.showBossWarning(() => {
+        this.createEnemySprite(enemies[0]);
+        this.playBossEntrance(enemies[0]);
+      });
+    } else {
+      enemies.forEach(enemy => this.createEnemySprite(enemy));
+    }
+  }
+  
+  /**
+   * 보스 WARNING 이펙트
+   */
+  private showBossWarning(onComplete: () => void) {
+    const width = this.scene.cameras.main.width;
+    const height = this.scene.cameras.main.height;
     
-    enemies.forEach(enemy => this.createEnemySprite(enemy));
+    // 화면 플래시
+    const flash = this.scene.add.rectangle(width/2, height/2, width, height, 0xff0000, 0);
+    flash.setDepth(3000);
+    
+    // WARNING 텍스트
+    const warningContainer = this.scene.add.container(width/2, height/2);
+    warningContainer.setDepth(3001);
+    
+    const warningBg = this.scene.add.rectangle(0, 0, 800, 200, 0x000000, 0.8);
+    warningBg.setStrokeStyle(6, 0xff0000);
+    
+    const warningText = this.scene.add.text(0, -30, '⚠️ WARNING ⚠️', {
+      font: 'bold 72px monospace',
+      color: '#ff0000',
+    }).setOrigin(0.5);
+    
+    const bossText = this.scene.add.text(0, 50, 'BOSS APPROACHING', {
+      font: 'bold 36px monospace',
+      color: '#ffff00',
+    }).setOrigin(0.5);
+    
+    warningContainer.add([warningBg, warningText, bossText]);
+    warningContainer.setAlpha(0);
+    
+    // 플래시 애니메이션
+    this.scene.tweens.add({
+      targets: flash,
+      alpha: { from: 0, to: 0.5 },
+      duration: 200,
+      yoyo: true,
+      repeat: 2,
+    });
+    
+    // WARNING 표시 애니메이션
+    this.scene.tweens.add({
+      targets: warningContainer,
+      alpha: { from: 0, to: 1 },
+      duration: 300,
+      onComplete: () => {
+        // 깜빡임
+        this.scene.tweens.add({
+          targets: warningContainer,
+          alpha: { from: 1, to: 0.5 },
+          duration: 150,
+          yoyo: true,
+          repeat: 4,
+          onComplete: () => {
+            // 사라지기
+            this.scene.tweens.add({
+              targets: [warningContainer, flash],
+              alpha: 0,
+              duration: 500,
+              onComplete: () => {
+                warningContainer.destroy();
+                flash.destroy();
+                onComplete();
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  /**
+   * 보스 등장 연출 (쿵!)
+   */
+  private playBossEntrance(enemy: Enemy) {
+    const container = this.scene.enemySprites.get(enemy.id);
+    if (!container) return;
+    
+    // 화면 위에서 내려오기
+    const originalY = container.y;
+    container.y = -200;
+    container.setScale(1.5);
+    
+    // 쿵! 하고 내려오기
+    this.scene.tweens.add({
+      targets: container,
+      y: originalY,
+      scale: 1.2,  // 보스는 약간 크게
+      duration: 600,
+      ease: 'Bounce.easeOut',
+      onComplete: () => {
+        // 화면 흔들기
+        this.scene.cameras.main.shake(300, 0.02);
+        this.scene.animationHelper.showMessage(`💀 ${enemy.name} 등장!`, 0xff0000);
+      }
+    });
   }
   
   createEnemySprite(enemy: Enemy) {
@@ -80,7 +186,11 @@ export class EnemyManager {
     // 방어력이 0이면 숨김
     defenseContainer.setVisible(enemy.defense > 0);
     
-    container.add([emoji, nameText, hpBarBg, hpBar, hpText, defenseContainer]);
+    // 디버프 컨테이너 (방어력 옆에 가로로 배치)
+    const debuffContainer = this.scene.add.container(10, 38);
+    (container as any).debuffContainer = debuffContainer;
+    
+    container.add([emoji, nameText, hpBarBg, hpBar, hpText, defenseContainer, debuffContainer]);
     
     // 타겟 강조 효과 (숨김 상태, 스케일)
     const targetHighlight = this.scene.add.rectangle(0, -19, 169, 206, COLORS.secondary.dark, 0);
@@ -116,6 +226,9 @@ export class EnemyManager {
       }
     });
     container.add(hitArea);
+    
+    // 디버프 컨테이너를 hitArea 위로 올림 (인터랙션이 가려지지 않도록)
+    container.bringToTop(debuffContainer);
     
     this.scene.enemySprites.set(enemy.id, container);
     
@@ -171,6 +284,115 @@ export class EnemyManager {
         defenseText.setColor(COLORS_STR.secondary.light);
       }
     }
+    
+    // 디버프 표시 업데이트
+    this.updateDebuffDisplay(enemy, container);
+  }
+  
+  /**
+   * 적 디버프 UI 업데이트
+   */
+  private updateDebuffDisplay(enemy: Enemy, container: Phaser.GameObjects.Container) {
+    const debuffContainer = (container as any).debuffContainer as Phaser.GameObjects.Container;
+    if (!debuffContainer) return;
+    
+    // 기존 디버프 아이콘 제거
+    debuffContainer.removeAll(true);
+    
+    let xOffset = 0;
+    const spacing = 58;  // 디버프 아이콘 간격
+    
+    // 출혈 디버프 (중첩 표시)
+    enemy.bleeds.forEach((bleed, index) => {
+      if (bleed.duration > 0) {
+        const bleedIcon = this.createDebuffIcon(
+          xOffset, 0,
+          '🩸',
+          `${bleed.duration}`,
+          COLORS.secondary.dark,
+          `출혈${enemy.bleeds.length > 1 ? ` #${index + 1}` : ''}: 턴마다 ${bleed.damage} 피해\n${bleed.duration}턴 남음`
+        );
+        debuffContainer.add(bleedIcon);
+        xOffset += spacing;
+      }
+    });
+    
+    // 스턴 디버프
+    if (enemy.isStunned > 0) {
+      const stunIcon = this.createDebuffIcon(
+        xOffset, 0,
+        '💫',
+        `${enemy.isStunned}`,
+        COLORS.primary.dark,
+        `기절: 행동 불가\n${enemy.isStunned}턴 남음`
+      );
+      debuffContainer.add(stunIcon);
+      xOffset += spacing;
+    }
+    
+    // 도발 버프 (적 관점에서는 버프)
+    if (enemy.isTaunting && (enemy.tauntDuration ?? 0) > 0) {
+      const tauntIcon = this.createDebuffIcon(
+        xOffset, 0,
+        '🛡️',
+        `${enemy.tauntDuration}`,
+        COLORS.secondary.main,
+        `도발: 이 적만 타겟 가능\n${enemy.tauntDuration}턴 남음`
+      );
+      debuffContainer.add(tauntIcon);
+      xOffset += spacing;
+    }
+    
+    // 디버프 컨테이너를 hitArea 위로 올림
+    container.bringToTop(debuffContainer);
+  }
+  
+  /**
+   * 디버프 아이콘 생성 (툴팁 포함)
+   */
+  private createDebuffIcon(
+    x: number,
+    y: number,
+    emoji: string,
+    countText: string,
+    bgColor: number,
+    tooltipText: string
+  ): Phaser.GameObjects.Container {
+    const iconContainer = this.scene.add.container(x, y);
+    
+    // 배경
+    const bg = this.scene.add.rectangle(0, 0, 52, 38, COLORS.background.dark, 0.9);
+    bg.setStrokeStyle(2, bgColor);
+    
+    // 이모지
+    const icon = this.scene.add.text(-12, 0, emoji, {
+      font: '20px Arial',
+    }).setOrigin(0.5);
+    
+    // 카운트
+    const count = this.scene.add.text(14, 0, countText, {
+      font: 'bold 18px monospace',
+      color: COLORS_STR.text.primary,
+    }).setOrigin(0.5);
+    
+    iconContainer.add([bg, icon, count]);
+    
+    // 인터랙션 (툴팁용)
+    bg.setInteractive({ useHandCursor: true });
+    
+    bg.on('pointerover', () => {
+      bg.setFillStyle(COLORS.background.medium, 0.95);
+      iconContainer.setScale(1.15);
+      this.showDebuffTooltip(iconContainer.x, iconContainer.y - 50, tooltipText);
+    });
+    
+    bg.on('pointerout', () => {
+      bg.setFillStyle(COLORS.background.dark, 0.9);
+      iconContainer.setScale(1);
+      this.hideDebuffTooltip();
+    });
+    
+    return iconContainer;
   }
   
   removeEnemySprite(enemyId: string) {
@@ -191,17 +413,21 @@ export class EnemyManager {
   
   // ========== 적 행동 ==========
   
-  initializeEnemyActions() {
+  initializeEnemyActions(isFirstTurn: boolean = false) {
     this.scene.gameState.enemies.forEach(enemy => {
-      this.resetEnemyActionQueue(enemy);
+      this.resetEnemyActionQueue(enemy, isFirstTurn);
     });
     // 적 행동 표시 업데이트
     this.updateEnemyActionDisplay();
   }
   
-  resetEnemyActionQueue(enemy: Enemy) {
-    // 스킬을 랜덤하게 섞기
-    const shuffledActions = [...enemy.actions].sort(() => Math.random() - 0.5);
+  resetEnemyActionQueue(enemy: Enemy, isFirstTurn: boolean = false) {
+    // 도발 스킬과 일반 스킬 분리
+    const tauntAction = enemy.actions.find(a => a.type === 'taunt');
+    const nonTauntActions = enemy.actions.filter(a => a.type !== 'taunt');
+    
+    // 일반 스킬을 랜덤하게 섞기
+    const shuffledActions = [...nonTauntActions].sort(() => Math.random() - 0.5);
     
     // 턴당 스킬 수 결정
     let actionCount: number;
@@ -213,8 +439,17 @@ export class EnemyManager {
       actionCount = shuffledActions.length;
     }
     
+    // 도발 중인 적은 첫 턴에 도발 스킬을 무조건 첫 번째로 사용
+    let selectedActions: typeof enemy.actions;
+    if (isFirstTurn && enemy.isTaunting && tauntAction) {
+      // 도발 스킬을 맨 앞에 배치
+      selectedActions = [tauntAction, ...shuffledActions.slice(0, actionCount - 1)];
+    } else {
+      selectedActions = shuffledActions.slice(0, actionCount);
+    }
+    
     // 선택된 수만큼 스킬을 큐에 추가
-    enemy.actionQueue = shuffledActions.slice(0, actionCount).map(action => ({
+    enemy.actionQueue = selectedActions.map(action => ({
       ...action,
       currentDelay: action.delay,
     }));
@@ -529,6 +764,54 @@ export class EnemyManager {
     if (this.actionTooltip) {
       this.actionTooltip.destroy();
       this.actionTooltip = null;
+    }
+  }
+  
+  // ========== 디버프 툴팁 ==========
+  
+  private debuffTooltip: Phaser.GameObjects.Container | null = null;
+  
+  private showDebuffTooltip(_localX: number, _localY: number, text: string) {
+    this.hideDebuffTooltip();
+    
+    // 디버프 아이콘 위치에서 화면 전역 좌표 계산
+    // (디버프 컨테이너는 적 컨테이너 안에 있음)
+    // 일단 마우스 위치 기준으로 표시
+    const pointer = this.scene.input.activePointer;
+    const x = pointer.worldX;
+    const y = pointer.worldY - 60;
+    
+    const tooltip = this.scene.add.container(x, y);
+    tooltip.setDepth(3100);
+    
+    // 배경
+    const lines = text.split('\n');
+    const tooltipHeight = 26 + lines.length * 28;
+    const tooltipWidth = 200;
+    
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, COLORS.background.dark, 0.95);
+    bg.setStrokeStyle(2, COLORS.secondary.dark);
+    bg.setOrigin(0.5, 1);
+    tooltip.add(bg);
+    
+    // 텍스트
+    let textY = -tooltipHeight + 18;
+    lines.forEach((line, idx) => {
+      const lineText = this.scene.add.text(0, textY, line, {
+        font: idx === 0 ? 'bold 18px monospace' : '16px monospace',
+        color: idx === 0 ? COLORS_STR.secondary.dark : COLORS_STR.text.primary,
+      }).setOrigin(0.5, 0);
+      tooltip.add(lineText);
+      textY += 28;
+    });
+    
+    this.debuffTooltip = tooltip;
+  }
+  
+  private hideDebuffTooltip() {
+    if (this.debuffTooltip) {
+      this.debuffTooltip.destroy();
+      this.debuffTooltip = null;
     }
   }
 }

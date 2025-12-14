@@ -3,6 +3,54 @@ import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
 
+// 카드 레이아웃 상수
+export const CARD_LAYOUT = {
+  CARD_WIDTH: 172,
+  CARD_HEIGHT: 253,
+  MAX_SPACING: 8,
+  MAX_TOTAL_WIDTH: 1700,
+  CONTAINER_Y_OFFSET: 145,  // height - this = container Y
+};
+
+/**
+ * 카드 위치 계산 유틸리티
+ * @param handSize 손패 카드 수
+ * @param cardIndex 카드 인덱스
+ * @param screenWidth 화면 너비
+ * @param screenHeight 화면 높이
+ * @returns { x, y } 카드의 절대 화면 좌표
+ */
+export function calculateCardPosition(
+  handSize: number,
+  cardIndex: number,
+  screenWidth: number,
+  screenHeight: number
+): { x: number; y: number } {
+  const { CARD_WIDTH, MAX_SPACING, MAX_TOTAL_WIDTH, CONTAINER_Y_OFFSET } = CARD_LAYOUT;
+  
+  // 간격 계산
+  let spacing = MAX_SPACING;
+  let totalWidth = handSize * (CARD_WIDTH + spacing) - spacing;
+  
+  if (totalWidth > MAX_TOTAL_WIDTH && handSize > 1) {
+    spacing = (MAX_TOTAL_WIDTH - CARD_WIDTH) / (handSize - 1) - CARD_WIDTH;
+    totalWidth = MAX_TOTAL_WIDTH;
+  }
+  
+  // 컨테이너 기준 상대 좌표
+  const startX = -totalWidth / 2 + CARD_WIDTH / 2;
+  const relativeX = startX + cardIndex * (CARD_WIDTH + spacing);
+  
+  // 절대 좌표 변환 (컨테이너 위치 + 상대 좌표)
+  const containerX = screenWidth / 2;
+  const containerY = screenHeight - CONTAINER_Y_OFFSET;
+  
+  return {
+    x: containerX + relativeX,
+    y: containerY,
+  };
+}
+
 /**
  * 카드 UI - 손패 표시 및 카드 렌더링
  */
@@ -13,9 +61,38 @@ export class CardUI {
   private cardSprites: Phaser.GameObjects.Container[] = [];
   private graveText!: Phaser.GameObjects.Text;
   
+  // 드로우 애니메이션용 예약 슬롯 (미리 공간 확보)
+  private pendingCardCount: number = 0;
+  
   constructor(scene: UIScene) {
     this.scene = scene;
     this.create();
+  }
+  
+  /**
+   * 드로우할 카드 수만큼 빈 슬롯 예약
+   * - 레이아웃 계산 시 이 수만큼 추가 공간 확보
+   * - 애니메이션이 정확한 위치로 날아갈 수 있게 함
+   */
+  reserveSlots(count: number) {
+    this.pendingCardCount = count;
+    this.updateCardDisplay();
+  }
+  
+  /**
+   * 예약 슬롯 하나 소비 (카드가 실제로 추가될 때)
+   */
+  consumeReservedSlot() {
+    if (this.pendingCardCount > 0) {
+      this.pendingCardCount--;
+    }
+  }
+  
+  /**
+   * 예약 슬롯 초기화
+   */
+  clearReservedSlots() {
+    this.pendingCardCount = 0;
   }
   
   private create() {
@@ -58,27 +135,121 @@ export class CardUI {
     this.graveText.setDepth(100);  // 손패 배경보다 앞으로
   }
   
+  /**
+   * 카드 컨테이너의 절대 좌표 반환
+   */
+  getContainerPosition(): { x: number; y: number } {
+    return {
+      x: this.cardContainer.x,
+      y: this.cardContainer.y,
+    };
+  }
+  
+  /**
+   * 특정 인덱스의 카드 sprite를 애니메이션용으로 추출
+   * - cardSprites 배열에서 제거
+   * - cardContainer에서 제거
+   * - 절대 좌표로 변환
+   * @returns 추출된 카드 container (또는 null)
+   */
+  extractCardForAnimation(index: number): Phaser.GameObjects.Container | null {
+    if (index < 0 || index >= this.cardSprites.length) {
+      return null;
+    }
+    
+    const cardSprite = this.cardSprites[index];
+    
+    // 절대 좌표 계산 (컨테이너 좌표 + 카드의 상대 좌표)
+    const absoluteX = this.cardContainer.x + cardSprite.x;
+    const absoluteY = this.cardContainer.y + cardSprite.y;
+    
+    // cardContainer에서 제거 (destroy하지 않음)
+    this.cardContainer.remove(cardSprite, false);
+    
+    // cardSprites 배열에서 제거
+    this.cardSprites.splice(index, 1);
+    
+    // 절대 좌표로 설정
+    cardSprite.setPosition(absoluteX, absoluteY);
+    
+    // depth를 높여서 다른 UI 위에 표시
+    cardSprite.setDepth(5000);
+    
+    return cardSprite;
+  }
+  
   updateCardDisplay() {
+    const hand = this.scene.gameScene.playerState.hand;
+    const cardWidth = 172;  // 스케일
+    const maxSpacing = 8;  // 기본 간격
+    const maxTotalWidth = 1700;  // 최대 표시 너비
+    
+    // 레이아웃 계산 시 예약 슬롯 포함 (미리 공간 확보)
+    const totalCardCount = hand.length + this.pendingCardCount;
+    
+    // 카드가 많을 때 겹치게 정렬
+    let spacing = maxSpacing;
+    let totalWidth = totalCardCount * (cardWidth + spacing) - spacing;
+    
+    if (totalWidth > maxTotalWidth && totalCardCount > 1) {
+      // 카드가 많으면 간격을 줄여서 겹치게
+      spacing = (maxTotalWidth - cardWidth) / (totalCardCount - 1) - cardWidth;
+      totalWidth = maxTotalWidth;
+    }
+    
+    // 총 카드 수가 0일 때 처리
+    if (totalCardCount <= 0) {
+      this.cardSprites.forEach(sprite => sprite.destroy());
+      this.cardSprites = [];
+      const player = this.scene.gameScene.playerState;
+      this.graveText.setText(`🪦 GRAVE: ${player.discard.length}`);
+      // 카드가 없으면 툴팁도 숨김
+      this.scene.tooltipUI.hide();
+      return;
+    }
+    
+    const startX = -totalWidth / 2 + cardWidth / 2;
+    
+    // 이전 카드 위치 저장
+    const prevPositions = this.cardSprites.map(sprite => sprite.x);
+    const prevCount = this.cardSprites.length;
+    
+    // 기존 카드 제거 전 툴팁 숨김 (pointerout 이벤트가 발생하지 않으므로)
+    this.scene.tooltipUI.hide();
+    
+    // 기존 카드 제거
     this.cardSprites.forEach(sprite => sprite.destroy());
     this.cardSprites = [];
     
-    const hand = this.scene.gameScene.playerState.hand;
-    const cardWidth = 172;  // 스케일
-    const spacing = 8;  // 스케일
-    const totalWidth = hand.length * (cardWidth + spacing) - spacing;
-    const startX = -totalWidth / 2 + cardWidth / 2;
-    
     hand.forEach((card, index) => {
-      const x = startX + index * (cardWidth + spacing);
-      const cardSprite = this.createCardSprite(card, x, 0, index);
+      const targetX = startX + index * (cardWidth + spacing);
+      
+      // 새 카드인지 기존 카드인지 판단
+      const isNewCard = index >= prevCount;
+      const startX_anim = isNewCard 
+        ? targetX  // 새 카드는 바로 목표 위치에 (드로우 애니메이션이 날아오므로)
+        : (prevPositions[index] ?? targetX);  // 기존 카드는 이전 위치에서
+      
+      const cardSprite = this.createCardSprite(card, startX_anim, 0, index);
+      cardSprite.setDepth(index);
       this.cardContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
+      
+      // 위치가 다르면 tween으로 이동 (기존 카드들이 옆으로 밀리는 효과)
+      if (startX_anim !== targetX) {
+        this.scene.tweens.add({
+          targets: cardSprite,
+          x: targetX,
+          duration: 200,
+          ease: 'Quad.easeOut',
+        });
+      }
     });
     
     // 무덤 표시 업데이트
     const player = this.scene.gameScene.playerState;
     this.graveText.setText(`🪦 GRAVE: ${player.discard.length}`);
-98  }
+  }
   
   private createCardSprite(card: Card, x: number, y: number, index: number): Phaser.GameObjects.Container {
     const container = this.scene.add.container(x, y);
@@ -222,10 +393,10 @@ export class CardUI {
     
     // 스탯 - 간략화 (스케일)
     const reachMap: Record<string, string> = {
-      single: '①',
-      double: '②',
-      triple: '③',
-      all: '∞',
+      single: '1적',
+      double: '2적',
+      triple: '3적',
+      all: '전체',
     };
     
     const statsText = this.scene.add.text(0, 9, `공${sword.attack} ${sword.attackCount}타 ${reachMap[sword.reach]}`, {
@@ -285,10 +456,10 @@ export class CardUI {
     
     // 스탯
     const reachMap: Record<string, string> = {
-      single: '①',
-      double: '②',
-      triple: '③',
-      all: '∞',
+      single: '1적',
+      double: '2적',
+      triple: '3적',
+      all: '전체',
     };
     
     // 간결한 스탯 표시 (스케일)
