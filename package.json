@@ -8,7 +8,8 @@
     "build:game": "pnpm --filter sword-master build",
     "deploy:game": "pnpm --filter sword-master build && pnpm --filter sword-master run deploy",
     "dev:sprite": "pnpm --filter sprite-generator dev",
-    "build:sprite": "pnpm --filter sprite-generator build"
+    "build:sprite": "pnpm --filter sprite-generator build",
+    "deploy:sprite": "pnpm --filter sprite-generator build && pnpm --filter sprite-generator run deploy"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

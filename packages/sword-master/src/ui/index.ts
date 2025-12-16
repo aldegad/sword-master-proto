@@ -12,3 +12,4 @@ export { LevelUpSkillUI } from './LevelUpSkillUI';
 export { BossRewardUI } from './BossRewardUI';
 export { EventUI } from './EventUI';
 export { ShopUI } from './ShopUI';
+export { DeckViewerUI } from './DeckViewerUI';

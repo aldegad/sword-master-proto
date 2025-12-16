@@ -1,14 +1,10 @@
-import type { ExtractedFrame } from './video-processor';
-import type { SpriteSheetMetadata } from './sprite-generator';
-
-export interface SpriteImportOptions {
-  frameWidth: number;
-  frameHeight: number;
-  columns?: number;
-  rows?: number;
-  totalFrames?: number;
-  startIndex?: number;
-}
+import type {
+  ExtractedFrame,
+  SpriteSheetMetadata,
+  SpriteImportOptions,
+  FrameSizeSuggestion,
+  ImageInfo,
+} from '@/types';
 
 /**
  * 스프라이트 시트를 개별 프레임으로 분할하는 클래스
@@ -19,7 +15,7 @@ export class SpriteImporter {
   /**
    * 이미지 파일 로드
    */
-  async loadImage(file: File): Promise<HTMLImageElement> {
+  async loadImage(file: File): Promise<{ image: HTMLImageElement; url: string; info: ImageInfo }> {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) {
         reject(new Error('이미지 파일만 업로드할 수 있습니다.'));
@@ -31,7 +27,11 @@ export class SpriteImporter {
 
       img.onload = () => {
         this.image = img;
-        resolve(img);
+        resolve({
+          image: img,
+          url,
+          info: { width: img.width, height: img.height },
+        });
       };
 
       img.onerror = () => {
@@ -54,7 +54,7 @@ export class SpriteImporter {
         try {
           const metadata = JSON.parse(reader.result as string) as SpriteSheetMetadata;
           resolve(metadata);
-        } catch (error) {
+        } catch {
           reject(new Error('JSON 파일을 파싱할 수 없습니다.'));
         }
       };
@@ -70,7 +70,7 @@ export class SpriteImporter {
   /**
    * 이미지 메타데이터 가져오기
    */
-  getImageInfo() {
+  getImageInfo(): ImageInfo {
     if (!this.image) {
       throw new Error('이미지가 로드되지 않았습니다.');
     }
@@ -124,11 +124,7 @@ export class SpriteImporter {
       const ctx = frameCanvas.getContext('2d')!;
 
       // 해당 영역을 캔버스에 그리기
-      ctx.drawImage(
-        this.image,
-        x, y, frameWidth, frameHeight,
-        0, 0, frameWidth, frameHeight
-      );
+      ctx.drawImage(this.image, x, y, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
 
       frames.push({
         index: i,
@@ -138,7 +134,7 @@ export class SpriteImporter {
       });
 
       if (onProgress) {
-        onProgress((i + 1) / totalFrames * 100, i + 1, totalFrames);
+        onProgress(((i + 1) / totalFrames) * 100, i + 1, totalFrames);
       }
     }
 
@@ -169,11 +165,7 @@ export class SpriteImporter {
       const ctx = frameCanvas.getContext('2d')!;
 
       // 해당 영역을 캔버스에 그리기
-      ctx.drawImage(
-        this.image!,
-        x, y, w, h,
-        0, 0, w, h
-      );
+      ctx.drawImage(this.image!, x, y, w, h, 0, 0, w, h);
 
       frames.push({
         index: i,
@@ -183,7 +175,7 @@ export class SpriteImporter {
       });
 
       if (onProgress) {
-        onProgress((i + 1) / totalFrames * 100, i + 1, totalFrames);
+        onProgress(((i + 1) / totalFrames) * 100, i + 1, totalFrames);
       }
     });
 
@@ -193,12 +185,12 @@ export class SpriteImporter {
   /**
    * 프레임 크기 자동 추정 (정사각형에 가깝게)
    */
-  estimateFrameSize(): { width: number; height: number; columns: number; rows: number }[] {
+  estimateFrameSize(): FrameSizeSuggestion[] {
     if (!this.image) {
       throw new Error('이미지가 로드되지 않았습니다.');
     }
 
-    const suggestions: { width: number; height: number; columns: number; rows: number }[] = [];
+    const suggestions: FrameSizeSuggestion[] = [];
     const { width, height } = this.image;
 
     // 가능한 열/행 조합 찾기
@@ -242,3 +234,4 @@ export class SpriteImporter {
     }
   }
 }
+

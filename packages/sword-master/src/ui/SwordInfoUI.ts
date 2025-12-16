@@ -12,7 +12,6 @@ export class SwordInfoUI {
   private swordInfoText!: Phaser.GameObjects.Text;
   private swordEmoji!: Phaser.GameObjects.Text;
   private specialEffectText!: Phaser.GameObjects.Text;
-  private deckText!: Phaser.GameObjects.Text;
   private infoPanel!: Phaser.GameObjects.Rectangle;
   private tooltipContainer!: Phaser.GameObjects.Container;
   private cardRenderer!: CardRenderer;
@@ -48,15 +47,6 @@ export class SwordInfoUI {
       font: 'bold 18px monospace',
       color: '#FFD700',
     });
-    
-    // 덱 정보 - 손패 우측 하단에 배치
-    const width = this.scene.cameras.main.width;
-    const height = this.scene.cameras.main.height;
-    this.deckText = this.scene.add.text(width - 56, height - 34, '', {
-      font: 'bold 26px monospace',
-      color: COLORS_STR.text.muted,
-    }).setOrigin(1, 0);
-    this.deckText.setDepth(100);  // 손패 배경보다 앞으로
     
     // 툴팁 컨테이너
     this.tooltipContainer = this.scene.add.container(0, 0);
@@ -97,7 +87,6 @@ export class SwordInfoUI {
   
   update() {
     this.updateSwordInfo();
-    this.updateDeckInfo();
   }
   
   private updateSwordInfo() {
@@ -186,11 +175,5 @@ export class SwordInfoUI {
       this.infoPanel.setStrokeStyle(3, COLORS.border.medium);
       this.infoPanel.setFillStyle(COLORS.background.dark, 0.95);
     }
-  }
-  
-  private updateDeckInfo() {
-    const player = this.scene.gameScene.playerState;
-    // 덱 정보만 표시 (LV은 TopUI로 이동)
-    this.deckText.setText(`📚 DECK: ${player.deck.length}`);
   }
 }

@@ -60,6 +60,8 @@ export class CardUI {
   private cardContainer!: Phaser.GameObjects.Container;
   private cardSprites: Phaser.GameObjects.Container[] = [];
   private graveText!: Phaser.GameObjects.Text;
+  private deckButton!: Phaser.GameObjects.Container;
+  private deckCountText!: Phaser.GameObjects.Text;
   
   // 드로우 애니메이션용 예약 슬롯 (미리 공간 확보)
   private pendingCardCount: number = 0;
@@ -133,6 +135,38 @@ export class CardUI {
       color: COLORS_STR.text.muted,
     });
     this.graveText.setDepth(100);  // 손패 배경보다 앞으로
+    
+    // 덱 버튼 (손패 우측 하단)
+    this.deckButton = this.scene.add.container(width - 100, height - 50);
+    
+    const deckBg = this.scene.add.rectangle(0, 0, 140, 50, COLORS.background.dark, 0.9);
+    deckBg.setStrokeStyle(2, COLORS.primary.dark);
+    
+    const deckIcon = this.scene.add.text(-50, 0, '📚', {
+      font: '24px Arial',
+    }).setOrigin(0.5);
+    
+    this.deckCountText = this.scene.add.text(10, 0, 'DECK: 0', {
+      font: 'bold 18px monospace',
+      color: COLORS_STR.primary.main,
+    }).setOrigin(0.5);
+    
+    this.deckButton.add([deckBg, deckIcon, this.deckCountText]);
+    this.deckButton.setDepth(100);
+    
+    // 덱 버튼 클릭 이벤트
+    deckBg.setInteractive({ useHandCursor: true });
+    deckBg.on('pointerover', () => {
+      deckBg.setStrokeStyle(3, COLORS.primary.light);
+      this.deckButton.setScale(1.05);
+    });
+    deckBg.on('pointerout', () => {
+      deckBg.setStrokeStyle(2, COLORS.primary.dark);
+      this.deckButton.setScale(1);
+    });
+    deckBg.on('pointerdown', () => {
+      this.scene.deckViewerUI.show();
+    });
   }
   
   /**
@@ -249,6 +283,9 @@ export class CardUI {
     // 무덤 표시 업데이트
     const player = this.scene.gameScene.playerState;
     this.graveText.setText(`🪦 GRAVE: ${player.discard.length}`);
+    
+    // 덱 카운트 업데이트
+    this.deckCountText.setText(`DECK: ${player.deck.length}`);
   }
   
   private createCardSprite(card: Card, x: number, y: number, index: number): Phaser.GameObjects.Container {

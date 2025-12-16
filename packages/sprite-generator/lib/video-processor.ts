@@ -1,16 +1,4 @@
-export interface ExtractOptions {
-  fps: number;
-  startTime: number;
-  endTime: number;
-  scale: number;
-}
-
-export interface ExtractedFrame {
-  index: number;
-  timestamp: number;
-  canvas: HTMLCanvasElement;
-  dataUrl: string;
-}
+import type { ExtractOptions, ExtractedFrame, VideoMetadata } from '@/types';
 
 /**
  * 동영상에서 프레임을 추출하는 클래스
@@ -31,7 +19,7 @@ export class VideoProcessor {
   /**
    * 동영상 파일 로드
    */
-  async loadVideo(file: File): Promise<HTMLVideoElement> {
+  async loadVideo(file: File): Promise<{ video: HTMLVideoElement; url: string; metadata: VideoMetadata }> {
     return new Promise((resolve, reject) => {
       // 기존 src 정리
       if (this.video.src) {
@@ -43,7 +31,11 @@ export class VideoProcessor {
       const onLoadedMetadata = () => {
         this.video.removeEventListener('loadedmetadata', onLoadedMetadata);
         this.video.removeEventListener('error', onError);
-        resolve(this.video);
+        resolve({
+          video: this.video,
+          url,
+          metadata: this.getMetadata(),
+        });
       };
 
       const onError = () => {
@@ -57,14 +49,14 @@ export class VideoProcessor {
       this.video.addEventListener('error', onError);
 
       this.video.src = url;
-      this.video.load(); // 명시적으로 load 호출
+      this.video.load();
     });
   }
 
   /**
    * 동영상 메타데이터 가져오기
    */
-  getMetadata() {
+  getMetadata(): VideoMetadata {
     return {
       duration: this.video.duration,
       width: this.video.videoWidth,
@@ -116,7 +108,7 @@ export class VideoProcessor {
       });
 
       if (onProgress) {
-        onProgress((i + 1) / totalFrames * 100, i + 1, totalFrames);
+        onProgress(((i + 1) / totalFrames) * 100, i + 1, totalFrames);
       }
     }
 
@@ -160,3 +152,4 @@ export class VideoProcessor {
     }
   }
 }
+

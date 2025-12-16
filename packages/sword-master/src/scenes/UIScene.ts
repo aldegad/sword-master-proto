@@ -17,6 +17,7 @@ import {
   BossRewardUI,
   EventUI,
   ShopUI,
+  DeckViewerUI,
   calculateCardPosition,
   CARD_LAYOUT,
 } from '../ui';
@@ -42,6 +43,7 @@ export class UIScene extends Phaser.Scene {
   bossRewardUI!: BossRewardUI;
   eventUI!: EventUI;
   shopUI!: ShopUI;
+  deckViewerUI!: DeckViewerUI;
   
   // 무기 없음 경고 UI
   noWeaponWarning!: Phaser.GameObjects.Container;
@@ -73,6 +75,7 @@ export class UIScene extends Phaser.Scene {
     this.bossRewardUI = new BossRewardUI(this);
     this.eventUI = new EventUI(this);
     this.shopUI = new ShopUI(this);
+    this.deckViewerUI = new DeckViewerUI(this);
     
     // 무기 없음 경고 UI 생성
     this.createNoWeaponWarning();

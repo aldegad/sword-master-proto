@@ -52,30 +52,36 @@ export class RewardSelectionUI {
     
     rewardCards.forEach((card, index) => {
       const x = startX + index * (cardWidth + spacing);
-      const y = height / 2;  // 중앙 배치
+      const y = height / 2 - 80;  // 중앙보다 위로 배치 (겹침 방지)
       
       const cardContainer = this.createRewardCard(card, x, y, index);
       this.rewardContainer.add(cardContainer);
     });
     
-    // 건너뛰기 버튼 (스케일)
-    const skipBtn = this.scene.add.container(width/2, height - 188);
+    // 건너뛰기 버튼 (아래로 이동 + 은전 추가)
+    const skipBtn = this.scene.add.container(width/2, height - 100);
     const skipBg = this.scene.add.rectangle(0, 0, 375, 94, COLORS.background.dark, 0.9);
-    skipBg.setStrokeStyle(3, COLORS.text.muted);
-    const skipText = this.scene.add.text(0, 0, '건너뛰기', {
+    skipBg.setStrokeStyle(3, COLORS.primary.dark);
+    const skipText = this.scene.add.text(0, -12, '건너뛰기', {
       font: 'bold 32px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
-    skipBtn.add([skipBg, skipText]);
+    const silverText = this.scene.add.text(0, 24, '💰 +20 은전', {
+      font: 'bold 22px monospace',
+      color: '#ffd700',
+    }).setOrigin(0.5);
+    skipBtn.add([skipBg, skipText, silverText]);
     
     skipBg.setInteractive({ useHandCursor: true });
     skipBg.on('pointerover', () => {
       skipBg.setStrokeStyle(5, COLORS.primary.light);
       skipText.setColor(COLORS_STR.primary.light);
+      skipBtn.setScale(1.05);
     });
     skipBg.on('pointerout', () => {
-      skipBg.setStrokeStyle(3, COLORS.text.muted);
+      skipBg.setStrokeStyle(3, COLORS.primary.dark);
       skipText.setColor(COLORS_STR.text.muted);
+      skipBtn.setScale(1);
     });
     skipBg.on('pointerdown', () => {
       this.scene.gameScene.skipReward();

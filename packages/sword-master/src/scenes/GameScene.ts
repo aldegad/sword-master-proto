@@ -1310,8 +1310,13 @@ selectRewardCard(index: number) {
   }
   
   skipReward() {
+    // 건너뛰기 시 은전 20 획득
+    this.playerState.silver += 20;
+    this.animationHelper.showMessage('💰 +20 은전!', COLORS.message.warning);
+    
     this.rewardCards = [];
     this.events.emit('rewardSelected');
+    this.events.emit('statsUpdated');
     this.startMoving();
   }
   

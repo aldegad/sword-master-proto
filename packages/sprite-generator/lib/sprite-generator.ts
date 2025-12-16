@@ -1,44 +1,11 @@
-import type { ExtractedFrame } from './video-processor';
-
-export interface FrameWithOffset {
-  frame: ExtractedFrame;
-  offset: { x: number; y: number };
-}
-
-export interface SpriteSheetOptions {
-  columns?: number;
-  padding?: number;
-  backgroundColor?: string;
-}
-
-export interface SpriteSheetResult {
-  canvas: HTMLCanvasElement;
-  metadata: SpriteSheetMetadata;
-}
-
-export interface SpriteSheetMetadata {
-  frames: FrameMetadata[];
-  meta: {
-    image: string;
-    size: { width: number; height: number };
-    scale: number;
-    frameWidth: number;
-    frameHeight: number;
-    columns: number;
-    rows: number;
-    totalFrames: number;
-  };
-}
-
-export interface FrameMetadata {
-  filename: string;
-  frame: { x: number; y: number; w: number; h: number };
-  rotated: boolean;
-  trimmed: boolean;
-  spriteSourceSize: { x: number; y: number; w: number; h: number };
-  sourceSize: { w: number; h: number };
-  duration: number;
-}
+import type {
+  ExtractedFrame,
+  FrameWithOffset,
+  SpriteSheetOptions,
+  SpriteSheetResult,
+  SpriteSheetMetadata,
+  FrameMetadata,
+} from '@/types';
 
 /**
  * 프레임들을 스프라이트 시트로 합성하는 클래스
@@ -52,9 +19,9 @@ export class SpriteGenerator {
     options: SpriteSheetOptions = {}
   ): SpriteSheetResult {
     // 오프셋 없이 호출된 경우 기본 오프셋 적용
-    const framesWithOffsets: FrameWithOffset[] = frames.map(frame => ({
+    const framesWithOffsets: FrameWithOffset[] = frames.map((frame) => ({
       frame,
-      offset: { x: 0, y: 0 }
+      offset: { x: 0, y: 0 },
     }));
     return this.generateSpriteSheetWithOffsets(framesWithOffsets, options);
   }
@@ -108,7 +75,7 @@ export class SpriteGenerator {
       ctx.beginPath();
       ctx.rect(x, y, frameWidth, frameHeight);
       ctx.clip();
-      
+
       // 오프셋 적용하여 그리기
       ctx.drawImage(frame.canvas, x + offset.x, y + offset.y);
       ctx.restore();
@@ -188,3 +155,4 @@ export class SpriteGenerator {
     URL.revokeObjectURL(link.href);
   }
 }
+

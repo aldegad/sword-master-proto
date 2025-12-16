@@ -1,0 +1,13 @@
+{
+  "projects": {
+    "default": "sword-master-a7a97"
+  },
+  "targets": {
+    "sword-master-a7a97": {
+      "hosting": {
+        "sprite": ["sprite-generator"]
+      }
+    }
+  }
+}
+

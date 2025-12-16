@@ -529,7 +529,7 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
   return {
     swords: [
       'katana', 'samjeongdo', 'wakizashi',  // 기본 3종 (동양검)
-      'yoroidoshi', 'bongukgeom',  // 추가 2종 (요이도로시 = 구 예도검)
+      'bongukgeom',  // 추가 1종
       'pagapdo', 'katana',  // 칼 2개 추가 (파갑도 = 구 해갑도)
     ],
     skills: [
@@ -543,6 +543,7 @@ export function getStarterDeck(): { swords: string[]; skills: string[] } {
       'sweepingBlow',
       'slashAndDraw',        // 베며 가다듬기
       'setupBoard', 'setupBoard',
+      'followUpSlash',       // 이어베기 추가 (요이도로시 대체)
     ],
   };
 }

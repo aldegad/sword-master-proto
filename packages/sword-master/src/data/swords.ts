@@ -15,7 +15,9 @@ export const SUFFIXES: Record<string, SwordSuffix> = {
 };
 
 export const SWORDS: Record<string, SwordTemplate> = {
-  // ===== 한국도 =====
+  // ===== 장검 (sword) =====
+  
+  // --- 한국 장검 ---
   samjeongdo: {
     id: 'samjeongdo',
     name: '삼정도',
@@ -66,31 +68,6 @@ export const SWORDS: Record<string, SwordTemplate> = {
       armorReduce: 5,     // 방어력 영구 감소
     },
   },
-  yoroidoshi: {
-    id: 'yoroidoshi',
-    name: '요이도로시',
-    emoji: '🗡️',
-    origin: 'japanese',
-    rarity: 'uncommon',
-    category: 'dagger',
-    attack: 8,
-    attackCount: 2,
-    reach: 'single',
-    defense: 10,
-    pierce: 2,        // 갑옷 꿰뚫기
-    durability: 7,
-    manaCost: 1,
-    description: '갑옷을 꿰뚫기 위한 단검. 장착 중 모든 공격에 출혈.',
-    specialEffect: '출혈 부여',
-    bleedOnHit: { damage: 6, duration: 3 },
-    drawAttack: { 
-      name: '관통자', 
-      multiplier: 1, 
-      reach: 'single', 
-      durabilityCost: 1,
-      effect: '출혈: 5데미지/3턴',
-    },
-  },
   bongukgeom: {
     id: 'bongukgeom',
     name: '본국검',
@@ -117,32 +94,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
       delayIncrease: 1,  // 발도 시 대기 +1
     },
   },
-  woldo: {
-    id: 'woldo',
-    name: '월도',
-    emoji: '🌙',
-    origin: 'korean',
-    rarity: 'rare',
-    category: 'greatsword',
-    attack: 22,
-    attackCount: 1,
-    reach: 'triple',
-    defense: 30,
-    pierce: 3,        // 대형 도검
-    durability: 4,
-    manaCost: 3,
-    description: '초승달 모양 장수도. 3적 범위.',
-    specialEffect: '휩쓸기',
-    drawAttack: { 
-      name: '크게 베기', 
-      multiplier: 1.2, 
-      reach: 'all',
-      durabilityCost: 1,
-      effect: '월도를 크게 휘둘러 전체 베기!' 
-    },
-  },
-
-  // ===== 일본도 =====
+  
+  // --- 일본 장검 ---
   katana: {
     id: 'katana',
     name: '카타나',
@@ -164,6 +117,35 @@ export const SWORDS: Record<string, SwordTemplate> = {
       reach: 'single', 
       durabilityCost: 1,
       effect: '칼집에서 뽑으며 일섬!' 
+    },
+  },
+
+  // ===== 단검 (dagger) =====
+  
+  // --- 일본 단검 ---
+  yoroidoshi: {
+    id: 'yoroidoshi',
+    name: '요이도로시',
+    emoji: '🗡️',
+    origin: 'japanese',
+    rarity: 'uncommon',
+    category: 'dagger',
+    attack: 8,
+    attackCount: 2,
+    reach: 'single',
+    defense: 10,
+    pierce: 2,        // 갑옷 꿰뚫기
+    durability: 7,
+    manaCost: 1,
+    description: '갑옷을 꿰뚫기 위한 단검. 장착 중 모든 공격에 출혈.',
+    specialEffect: '출혈 부여',
+    bleedOnHit: { damage: 6, duration: 3 },
+    drawAttack: { 
+      name: '관통자', 
+      multiplier: 1, 
+      reach: 'single', 
+      durabilityCost: 1,
+      effect: '출혈: 5데미지/3턴',
     },
   },
   wakizashi: {
@@ -191,6 +173,36 @@ export const SWORDS: Record<string, SwordTemplate> = {
       criticalMultiplier: 5.0,  // 크리티컬 500% = 10 * 5 = 50
     },
   },
+
+  // ===== 대검 (greatsword) =====
+  
+  // --- 한국 대검 ---
+  woldo: {
+    id: 'woldo',
+    name: '월도',
+    emoji: '🌙',
+    origin: 'korean',
+    rarity: 'rare',
+    category: 'greatsword',
+    attack: 22,
+    attackCount: 1,
+    reach: 'triple',
+    defense: 30,
+    pierce: 3,        // 대형 도검
+    durability: 4,
+    manaCost: 3,
+    description: '초승달 모양 장수도. 3적 범위.',
+    specialEffect: '휩쓸기',
+    drawAttack: { 
+      name: '크게 베기', 
+      multiplier: 1.2, 
+      reach: 'all',
+      durabilityCost: 1,
+      effect: '월도를 크게 휘둘러 전체 베기!' 
+    },
+  },
+  
+  // --- 일본 대검 ---
   nodachi: {
     id: 'nodachi',
     name: '노다치',
@@ -214,8 +226,8 @@ export const SWORDS: Record<string, SwordTemplate> = {
       effect: '거대한 칼날로 휩쓴다' 
     },
   },
-
-  // ===== 중국검 =====
+  
+  // --- 중국 대검 ---
   guandao: {
     id: 'guandao',
     name: '언월도',
@@ -241,7 +253,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     },
   },
 
-  // ===== 유니크 무기 =====
+  // ===== 유니크 무기 (unique) =====
+  
+  // --- 유니크 (국적 없음) ---
   jangwang: {
     id: 'jangwang',
     name: '잔광',
@@ -268,7 +282,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     },
   },
   
-  // 한국 유니크 - 칠성검
+  // --- 한국 유니크 ---
   chilseong: {
     id: 'chilseong',
     name: '칠성검',
@@ -294,8 +308,6 @@ export const SWORDS: Record<string, SwordTemplate> = {
       criticalCondition: 'enemyDelay1',
     },
   },
-  
-  // 한국 유니크 - 사인검
   saingum: {
     id: 'saingum',
     name: '사인검',
@@ -322,7 +334,7 @@ export const SWORDS: Record<string, SwordTemplate> = {
     },
   },
   
-  // 일본 유니크 - 무라마사
+  // --- 일본 유니크 ---
   muramasa: {
     id: 'muramasa',
     name: '무라마사',
@@ -348,8 +360,6 @@ export const SWORDS: Record<string, SwordTemplate> = {
       effect: '마검이 피를 원한다!',
     },
   },
-  
-  // 일본 유니크 - 마사무네
   masamune: {
     id: 'masamune',
     name: '마사무네',
@@ -374,8 +384,6 @@ export const SWORDS: Record<string, SwordTemplate> = {
       effect: '달빛처럼 고요하게, 그러나 날카롭게',
     },
   },
-  
-  // 일본 유니크 - 쿠사나기노츠루기
   kusanagi: {
     id: 'kusanagi',
     name: '쿠사나기',
@@ -479,8 +487,8 @@ export function getRandomSword(wave: number = 1): SwordCard {
   
   const randomId = pool[Math.floor(Math.random() * pool.length)];
   
-  // 80% 확률로 '이가 빠진' 인첸트
-  const prefix = Math.random() < 0.80 ? 'chipped' : undefined;
+  // 20% 확률로 '이가 빠진' 인첸트
+  const prefix = Math.random() < 0.20 ? 'chipped' : undefined;
   
   return createSwordCard(randomId, prefix)!;
 }
