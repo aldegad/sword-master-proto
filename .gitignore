@@ -32,7 +32,6 @@ pnpm-debug.log*
 
 # Firebase
 .firebase/
-.firebaserc
 
 # Next.js
 .next/
