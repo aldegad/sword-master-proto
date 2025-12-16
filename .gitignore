@@ -28,6 +28,16 @@ pnpm-debug.log*
 # Cache
 .cache/
 .parcel-cache/
+.pnpm-store/
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Next.js
+.next/
+out/
+dist/
 
 # TypeScript
 *.tsbuildinfo
