@@ -29,7 +29,8 @@ export type PassiveEffectType =
   | 'attackBonus'         // 공격력 보너스
   | 'waitIncrease'        // 대기 횟수 증가
   | 'perfectCast'         // 완벽 시전 (내구도 상관없이)
-  | 'defenseBonus';       // 방어율 증가
+  | 'defenseBonus'        // 방어율 증가
+  | 'drawIncrease';       // 턴 드로우 증가
 
 // 플레이어 패시브 스킬
 export interface PlayerPassive {

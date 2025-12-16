@@ -11,7 +11,7 @@ export const GAME_CONSTANTS = {
   MAX_HAND_SIZE: 12,
   INITIAL_DRAW: 5,
   DRAW_PER_TURN: 2,
-  INITIAL_MANA: 5,
+  INITIAL_MANA: 3,
   MAX_MANA: 10,
   DECK_SIZE: 20,
 } as const;

@@ -23,6 +23,13 @@ export const PASSIVES: Record<string, PassiveTemplate> = {
     maxLevel: 10,
     effect: { type: 'defenseBonus', value: 1 },
   },
+  drawIncrease: {
+    id: 'drawIncrease',
+    name: '손재주',
+    description: '턴 시작 시 카드를 1장 더 뽑습니다',
+    maxLevel: 1,
+    effect: { type: 'drawIncrease', value: 1 },
+  },
 };
 
 /**
@@ -32,6 +39,32 @@ export function getRandomPassive(): PassiveTemplate {
   const passiveIds = Object.keys(PASSIVES);
   const randomId = passiveIds[Math.floor(Math.random() * passiveIds.length)];
   return PASSIVES[randomId];
+}
+
+/**
+ * 중복 없이 랜덤 패시브 N개 선택 (이미 최대 레벨인 패시브 제외)
+ * @param count 선택할 패시브 개수
+ * @param currentPassives 플레이어가 현재 보유한 패시브 목록
+ */
+export function getRandomPassivesWithoutDuplicates(
+  count: number, 
+  currentPassives: PlayerPassive[]
+): PassiveTemplate[] {
+  // 최대 레벨에 도달하지 않은 패시브만 필터링
+  const availablePassives = Object.values(PASSIVES).filter(template => {
+    const playerPassive = currentPassives.find(p => p.id === template.id);
+    // 플레이어가 없거나, 최대 레벨에 도달하지 않은 경우만 포함
+    return !playerPassive || playerPassive.level < template.maxLevel;
+  });
+  
+  // 선택 가능한 패시브가 없으면 빈 배열
+  if (availablePassives.length === 0) {
+    return [];
+  }
+  
+  // 셔플 후 count개 선택 (중복 없음)
+  const shuffled = [...availablePassives].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, shuffled.length));
 }
 
 /**

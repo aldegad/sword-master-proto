@@ -168,13 +168,14 @@ export class CardRenderer {
       color: durColor,
     }).setOrigin(0.5);
     
-    // 타입 라벨
+    // 타입 라벨 (신기루 태그 포함)
     const rarityLabel = sword.rarity === 'unique' ? '★' : 
                         sword.rarity === 'rare' ? '◆' : 
                         sword.rarity === 'uncommon' ? '◇' : '';
-    const typeLabel = this.scene.add.text(0, 84, `${rarityLabel}검`, {
+    const mirageLabel = sword.isMirage ? '👻' : '';
+    const typeLabel = this.scene.add.text(0, 84, `${mirageLabel}${rarityLabel}검`, {
       font: 'bold 18px monospace',
-      color: textColor,
+      color: sword.isMirage ? '#9B59B6' : textColor,  // 신기루면 보라색
     }).setOrigin(0.5);
     
     container.add([emoji, nameText, statsText, durText, typeLabel]);
@@ -289,18 +290,22 @@ export class CardRenderer {
     container.add([emoji, name, mana]);
     yPos += 70;
     
+    // 신기루 태그 (사용하지 않으면 턴 종료 시 사라짐)
+    if (sword.isMirage) {
+      const mirageTag = this.scene.add.text(0, yPos, '👻 신기루 - 사용하지 않으면 턴 종료 시 사라짐', {
+        font: 'bold 18px monospace',
+        color: '#9B59B6',
+        wordWrap: { width: width - 40 },
+        align: 'center',
+      }).setOrigin(0.5, 0);
+      container.add(mirageTag);
+      yPos += mirageTag.height + 8;
+    }
+    
     // 구분선
     const line1 = this.scene.add.rectangle(0, yPos, width - 40, 2, borderColor, 0.5);
     container.add(line1);
     yPos += 18;
-    
-    // 기본 스탯
-    const statsTitle = this.scene.add.text(-width/2 + 20, yPos, '◆ 기본 스탯', {
-      font: 'bold 22px monospace',
-      color: COLORS_STR.primary.main,
-    });
-    container.add(statsTitle);
-    yPos += 34;
     
     const reachText = REACH_MAP[sword.reach] || sword.reach;
     
@@ -428,25 +433,32 @@ export class CardRenderer {
       const critPercent = Math.floor(critMultiplier * 100);
       const critDamage = Math.floor(baseDamage * critMultiplier);
       
-      const critMap: Record<string, string> = {
-        'enemyDelay1': `적 대기 1일 때 크리티컬!\n(${critPercent}% = ${critDamage}뎀)`,
-      };
-      const critText = this.scene.add.text(-width/2 + 30, yPos, `⭐ ${critMap[drawAtk.criticalCondition] || drawAtk.criticalCondition}`, {
+      // 크리티컬 기본 효과
+      let critDesc = `적 대기 1일 때 크리티컬!\n(${critPercent}% = ${critDamage}뎀)`;
+      
+      // 크리티컬 추가 효과
+      const critEffects: string[] = [];
+      if (drawAtk.criticalPierce) critEffects.push('방어 무시');
+      if (drawAtk.criticalBleed) critEffects.push(`출혈 ${drawAtk.criticalBleed.damage}/${drawAtk.criticalBleed.duration}턴`);
+      if (drawAtk.criticalPoison) critEffects.push(`독 ${drawAtk.criticalPoison.damage}/${drawAtk.criticalPoison.duration}턴`);
+      if (drawAtk.cancelEnemySkill || drawAtk.criticalCancelEnemySkill) critEffects.push('스킬 취소');
+      
+      if (critEffects.length > 0) {
+        critDesc += `\n+ ${critEffects.join(', ')}`;
+      }
+      
+      const critText = this.scene.add.text(-width/2 + 30, yPos, `⭐ ${critDesc}`, {
         font: 'bold 20px monospace',
         color: '#FF6B6B',
         wordWrap: { width: width - 60 },
       });
       container.add(critText);
       yPos += critText.height + 8;
-    } else if (drawAtk.effect) {
-      // criticalCondition이 없을 때만 effect 표시 (중복 방지)
-      const effectText = this.scene.add.text(-width/2 + 30, yPos, `💫 ${drawAtk.effect}`, {
-        font: '20px monospace',
-        color: '#FFD700',
-        wordWrap: { width: width - 60 },
-      });
-      container.add(effectText);
-      yPos += effectText.height + 8;
+    }
+    
+    // effect 텍스트 표시 (볼드 파싱 포함)
+    if (drawAtk.effect) {
+      yPos = this.addEffectTextWithBold(container, -width/2 + 30, yPos, drawAtk.effect, width - 60);
     }
     
     if (drawAtk.pierce) {
@@ -467,8 +479,8 @@ export class CardRenderer {
       yPos += 32;
     }
     
-    // 장착 특수 효과 (출혈, 방어관통 등)
-    if (sword.bleedOnHit || sword.armorBreakOnHit) {
+    // 장착 특수 효과 (출혈, 독, 방어관통 등)
+    if (sword.bleedOnHit || sword.poisonOnHit || sword.armorBreakOnHit) {
       yPos += 8;
       const line3 = this.scene.add.rectangle(0, yPos, width - 40, 2, borderColor, 0.3);
       container.add(line3);
@@ -491,6 +503,16 @@ export class CardRenderer {
         yPos += 32;
       }
       
+      if (sword.poisonOnHit) {
+        const poison = this.scene.add.text(-width/2 + 30, yPos, 
+          `☠️ 모든 공격에 독: ${sword.poisonOnHit.damage}뎀 x ${sword.poisonOnHit.duration}턴`, {
+          font: '20px monospace',
+          color: '#9B59B6',
+        });
+        container.add(poison);
+        yPos += 32;
+      }
+      
       if (sword.armorBreakOnHit) {
         const armor = this.scene.add.text(-width/2 + 30, yPos, 
           `💥 모든 공격에 방어력 감소: -${sword.armorBreakOnHit}`, {
@@ -502,15 +524,39 @@ export class CardRenderer {
       }
     }
     
-    // 등급
-    const rarityLabel = sword.rarity === 'unique' ? '★ UNIQUE' : 
-                        sword.rarity === 'rare' ? '◆ RARE' : 
-                        sword.rarity === 'uncommon' ? '◇ UNCOMMON' : 'COMMON';
-    const rarityText = this.scene.add.text(0, height/2 - 35, `[ ${rarityLabel} ]`, {
-      font: 'bold 20px monospace',
-      color: textColor,
-    }).setOrigin(0.5);
-    container.add(rarityText);
+    // 설명 섹션 (description + specialEffect)
+    if (sword.description || sword.specialEffect) {
+      yPos += 8;
+      const line4 = this.scene.add.rectangle(0, yPos, width - 40, 2, borderColor, 0.3);
+      container.add(line4);
+      yPos += 18;
+      
+      // 기본 설명
+      if (sword.description) {
+        const descText = this.scene.add.text(0, yPos, sword.description, {
+          font: '18px monospace',
+          color: COLORS_STR.text.primary,
+          wordWrap: { width: width - 50 },
+          align: 'center',
+        }).setOrigin(0.5, 0);
+        container.add(descText);
+        yPos += descText.height + 8;
+      }
+      
+      // 특수 효과 설명 (이탤릭)
+      if (sword.specialEffect) {
+        const effectText = this.scene.add.text(0, yPos, `"${sword.specialEffect}"`, {
+          font: 'italic 16px monospace',
+          color: COLORS_STR.text.secondary,
+          wordWrap: { width: width - 50 },
+          align: 'center',
+        }).setOrigin(0.5, 0);
+        container.add(effectText);
+        yPos += effectText.height + 8;
+      }
+    }
+    
+    // 등급 표시 제거 (공간 확보)
   }
   
   private renderSkillDetail(container: Phaser.GameObjects.Container, skill: SkillCard, sword?: SwordCard | null) {
@@ -671,6 +717,72 @@ export class CardRenderer {
   }
   
   // ========== 유틸리티 ==========
+  
+  /**
+   * **볼드** 및 *이탤릭* 텍스트를 파싱하여 렌더링
+   * @returns 다음 yPos
+   */
+  private addEffectTextWithBold(
+    container: Phaser.GameObjects.Container,
+    x: number,
+    y: number,
+    text: string,
+    wrapWidth: number
+  ): number {
+    // **bold** 와 *italic* 패턴을 찾아서 분리
+    // **text** 먼저 처리 (더 긴 패턴), 그 다음 *text*
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    
+    // 한 줄에 모든 텍스트를 이어서 표시
+    let fullText = '';
+    const segments: { text: string; isBold: boolean; isItalic: boolean }[] = [];
+    
+    parts.forEach(part => {
+      if (!part) return;
+      
+      const isBold = part.startsWith('**') && part.endsWith('**');
+      const isItalic = !isBold && part.startsWith('*') && part.endsWith('*');
+      let displayText = part;
+      
+      if (isBold) {
+        displayText = part.slice(2, -2);
+      } else if (isItalic) {
+        displayText = part.slice(1, -1);
+      }
+      
+      segments.push({ text: displayText, isBold, isItalic });
+      fullText += displayText;
+    });
+    
+    // 이모지 + 전체 텍스트를 한 줄로 표시
+    const textObj = this.scene.add.text(x, y, `💫 ${fullText}`, {
+      font: '20px monospace',
+      color: '#FFD700',
+      wordWrap: { width: wrapWidth },
+    });
+    container.add(textObj);
+    
+    // 볼드/이탤릭 부분만 별도 렌더링 (오버레이)
+    let offsetX = x + 36; // 💫 이모지 너비
+    segments.forEach(seg => {
+      if (seg.isBold || seg.isItalic) {
+        // 해당 텍스트의 앞부분 너비 계산
+        const beforeText = this.scene.add.text(0, 0, segments.slice(0, segments.indexOf(seg)).map(s => s.text).join(''), {
+          font: '20px monospace',
+        });
+        const beforeWidth = beforeText.width;
+        beforeText.destroy();
+        
+        const styledText = this.scene.add.text(offsetX + beforeWidth, y, seg.text, {
+          font: seg.isBold ? 'bold 20px monospace' : 'italic 20px monospace',
+          color: seg.isBold ? '#FF6B6B' : '#9B9B9B',
+        });
+        container.add(styledText);
+      }
+    });
+    
+    return y + textObj.height + 4;
+  }
   
   private getBorderColor(card: Card, canAfford: boolean): number {
     if (!canAfford) return COLORS.border.dark;

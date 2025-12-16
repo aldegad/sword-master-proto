@@ -13,7 +13,8 @@ export type SkillEffectType =
   | 'sharpen' | 'searchSword' | 'graveRecall' | 'graveEquip' 
   | 'chargeAttack' | 'taunt' | 'bladeDance' | 'sheathe' 
   | 'followUp' | 'drawSwords' | 'graveDrawTop' | 'armorBreaker' 
-  | 'countDefense' | 'bladeGrab' | 'sweep' | 'flowRead';
+  | 'countDefense' | 'bladeGrab' | 'sweep' | 'flowRead'
+  | 'destroyWeapon';
 
 // 스킬 특수 효과
 export interface SkillEffect {
@@ -45,6 +46,9 @@ export interface SkillCard {
   effect?: SkillEffect;
   isSwift?: boolean;      // 신속 스킬 - 적 대기턴을 감소시키지 않음
   isConsumable?: boolean; // 1회용 스킬 - 사용 후 덱에서 완전히 제거
+  isPiercing?: boolean;   // 방어 무시
+  criticalCondition?: 'dagger';  // 크리티컬 조건 (단검 등)
+  criticalMultiplier?: number;   // 크리티컬 배율 (기본 2.0 = 200%)
 }
 
 // 카운트 효과 타입 (패리, 철벽, 강타 등 대기 시간 기반 효과)

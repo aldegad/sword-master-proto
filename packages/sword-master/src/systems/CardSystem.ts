@@ -278,6 +278,8 @@ export class CardSystem {
       this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, COLORS.message.error);
       this.scene.playerState.currentSword = null;
       this.scene.updatePlayerWeaponDisplay();
+      // 무기가 부서지면 손패 UI 갱신 (스킬 사용 가능 여부 업데이트)
+      this.scene.events.emit('handUpdated');
     }
     
     // 집중 버프 적용
@@ -364,6 +366,20 @@ export class CardSystem {
         }
       }
       
+      // 무기 장착 효과: 독 (poisonOnHit) - 중첩 가능
+      if (sword.poisonOnHit) {
+        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
+        if (actualEnemy) {
+          actualEnemy.poisons.push({
+            damage: sword.poisonOnHit.damage,
+            duration: sword.poisonOnHit.duration,
+          });
+          this.scene.animationHelper.showMessage(`☠️ 독! ${sword.poisonOnHit.damage}뎀/${sword.poisonOnHit.duration}턴`, COLORS.effect.damage);
+          // 디버프 UI 업데이트
+          this.scene.enemyManager.updateEnemySprite(actualEnemy);
+        }
+      }
+      
       // 무기 장착 효과: 방어구 파괴 (armorBreakOnHit)
       if (sword.armorBreakOnHit && sword.armorBreakOnHit > 0) {
         const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
@@ -379,6 +395,17 @@ export class CardSystem {
       }
       
       // 대기턴 증가 효과는 equipSword에서 즉시 처리됨 (대기턴 감소 전에 적용되어야 함)
+      
+      // 적 스킬 취소 - 항상 발동 (본국검)
+      if (drawAtk.cancelEnemySkill) {
+        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
+        if (actualEnemy && actualEnemy.actionQueue && actualEnemy.actionQueue.length > 0) {
+          // 첫 번째 대기 스킬을 큐에서 제거 (취소)
+          const cancelledAction = actualEnemy.actionQueue.shift()!;
+          this.scene.animationHelper.showMessage(`🚫 ${cancelledAction.name} 취소!`, COLORS.message.warning);
+          this.scene.enemyManager.updateEnemyActionDisplay();
+        }
+      }
     });
     
     // 집중 버프 소모
@@ -420,23 +447,23 @@ export class CardSystem {
       strokeThickness: 6,
     }).setOrigin(0.5).setAlpha(0).setDepth(3001);
     
-    // 애니메이션 시퀀스
+    // 애니메이션 시퀀스 (빠르게!)
     scene.tweens.add({
       targets: emoji,
       alpha: 1,
       scale: { from: 0.3, to: 1.2 },
-      duration: 300,
+      duration: 200,
       ease: 'Back.easeOut',
       onComplete: () => {
         // 스킬명 페이드인
         scene.tweens.add({
           targets: skillName,
           alpha: 1,
-          duration: 150,
+          duration: 100,
         });
         
-        // 잠시 대기 후 타격
-        scene.time.delayedCall(400, () => {
+        // 잠시 대기 후 타격 (200ms로 단축)
+        scene.time.delayedCall(200, () => {
           // 이모지/스킬명 빠르게 사라짐
           scene.tweens.add({
             targets: [emoji, skillName],
@@ -462,8 +489,47 @@ export class CardSystem {
           targets.forEach(enemy => {
             const weaponPierce = sword.pierce || 0;
             const effectiveDefense = Math.max(0, enemy.defense - weaponPierce);
-            const actualDamage = drawAtk.pierce ? damage : Math.max(1, damage - effectiveDefense);
+            // 크리티컬 시 방어 무시: criticalPierce 또는 기존 pierce
+            const isPiercing = drawAtk.criticalPierce || drawAtk.pierce;
+            const actualDamage = isPiercing ? damage : Math.max(1, damage - effectiveDefense);
             scene.combatSystem.damageEnemy(enemy, actualDamage, true);
+            
+            // 크리티컬 출혈 적용
+            if (drawAtk.criticalBleed) {
+              const actualEnemy = scene.gameState.enemies.find(e => e.id === enemy.id);
+              if (actualEnemy) {
+                actualEnemy.bleeds.push({
+                  damage: drawAtk.criticalBleed.damage,
+                  duration: drawAtk.criticalBleed.duration,
+                });
+                scene.animationHelper.showMessage(`🩸 대출혈! ${drawAtk.criticalBleed.damage}뎀/${drawAtk.criticalBleed.duration}턴`, COLORS.effect.damage);
+                scene.enemyManager.updateEnemySprite(actualEnemy);
+              }
+            }
+            
+            // 크리티컬 독 적용
+            if (drawAtk.criticalPoison) {
+              const actualEnemy = scene.gameState.enemies.find(e => e.id === enemy.id);
+              if (actualEnemy) {
+                actualEnemy.poisons.push({
+                  damage: drawAtk.criticalPoison.damage,
+                  duration: drawAtk.criticalPoison.duration,
+                });
+                scene.animationHelper.showMessage(`☠️ 맹독! ${drawAtk.criticalPoison.damage}뎀/${drawAtk.criticalPoison.duration}턴`, COLORS.effect.damage);
+                scene.enemyManager.updateEnemySprite(actualEnemy);
+              }
+            }
+            
+            // 적 스킬 취소 - 크리티컬 시에만 (요이도로시)
+            if (drawAtk.criticalCancelEnemySkill) {
+              const actualEnemy = scene.gameState.enemies.find(e => e.id === enemy.id);
+              if (actualEnemy && actualEnemy.actionQueue && actualEnemy.actionQueue.length > 0) {
+                // 첫 번째 대기 스킬을 큐에서 제거 (취소)
+                const cancelledAction = actualEnemy.actionQueue.shift()!;
+                scene.animationHelper.showMessage(`🚫 ${cancelledAction.name} 취소!`, COLORS.message.warning);
+                scene.enemyManager.updateEnemyActionDisplay();
+              }
+            }
           });
           
           // 붉은 플래시 페이드아웃
@@ -558,6 +624,19 @@ export class CardSystem {
       return true;  // 별도 메시지 처리
     }
     
+    // 파검: 사용 후 무기 파괴
+    if (skill.effect?.type === 'destroyWeapon') {
+      this.scene.time.delayedCall(300, () => {
+        if (this.scene.playerState.currentSword) {
+          const swordName = this.scene.playerState.currentSword.name;
+          this.scene.playerState.currentSword = null;
+          this.scene.animationHelper.showMessage(`💥 ${swordName}이(가) 산산조각났다!`, COLORS.message.error);
+          this.scene.events.emit('statsUpdated');
+          this.scene.events.emit('handUpdated');  // 스킬 사용 가능 여부 갱신
+        }
+      });
+    }
+    
     this.scene.animationHelper.showMessage(`${skill.name}!`, COLORS.message.warning);
     return true;
   }
@@ -647,6 +726,7 @@ export class CardSystem {
             this.scene.animationHelper.showMessage(`${this.scene.playerState.currentSword.name}이(가) 부서졌다!`, COLORS.message.error);
             this.scene.playerState.currentSword = null;
             this.scene.updatePlayerWeaponDisplay();
+            this.scene.events.emit('handUpdated');  // 스킬 사용 가능 여부 갱신
           }
         }
         
@@ -735,6 +815,47 @@ drawCards(count: number) {
     });
   }
   
+  /**
+   * 게임 시작 시 무기 1장을 보장하는 드로우
+   * - 무기 1장을 먼저 뽑고 나머지 카드를 랜덤으로 드로우
+   */
+  drawCardsWithGuaranteedWeapon(count: number) {
+    const drawnCards: Card[] = [];
+    const deck = this.scene.playerState.deck;
+    
+    // 1. 덱에서 무기 카드 찾기
+    const weaponIndex = deck.findIndex(card => card.type === 'sword');
+    
+    if (weaponIndex !== -1) {
+      // 무기 카드를 덱에서 제거하고 드로우 목록에 추가
+      const [weaponCard] = deck.splice(weaponIndex, 1);
+      drawnCards.push(weaponCard);
+    }
+    
+    // 2. 나머지 카드 랜덤 드로우
+    const remainingCount = count - drawnCards.length;
+    for (let i = 0; i < remainingCount; i++) {
+      if (deck.length === 0) break;
+      
+      const card = deck.pop();
+      if (card) {
+        drawnCards.push(card);
+      }
+    }
+    
+    // 드로우할 카드가 없으면 바로 업데이트
+    if (drawnCards.length === 0) {
+      this.scene.events.emit('handUpdated');
+      return;
+    }
+    
+    // UIScene에서 애니메이션 + 카드 추가
+    const uiScene = this.scene.scene.get('UIScene') as import('../scenes/UIScene').UIScene;
+    uiScene.animateDrawCards(drawnCards, () => {
+      this.scene.events.emit('statsUpdated');
+    });
+  }
+  
   // ========== 카드 교환 ==========
   
   toggleExchangeMode() {
@@ -756,12 +877,31 @@ drawCards(count: number) {
     if (!this.scene.isExchangeMode) return;
     if (index < 0 || index >= this.scene.playerState.hand.length) return;
     
+    // 카드 스프라이트 추출 (무덤 애니메이션용)
+    const uiScene = this.scene.scene.get('UIScene') as any;
+    const cardSprite = uiScene?.cardUI?.extractCardForAnimation(index);
+    
     const card = this.scene.playerState.hand.splice(index, 1)[0];
+    
+    // 신기루 카드는 무덤으로 가지 않고 사라짐
+    const isMirage = card.type === 'sword' && (card.data as SwordCard).isMirage;
+    
+    if (isMirage) {
+      // 신기루 사라지는 애니메이션
+      if (cardSprite) {
+        this.animateMirageDisappear(cardSprite);
+      }
+      this.scene.animationHelper.showMessage('✨ 잔광이 사라졌다...', COLORS.text.muted);
+    } else {
+      // 일반 카드는 무덤으로
     this.scene.playerState.discard.push(card);
+      if (cardSprite) {
+        uiScene.animateCardSpriteToGrave(cardSprite);
+      }
+    this.scene.animationHelper.showMessage(`${card.data.name} → 교환!`, COLORS.message.warning);
+    }
     
     this.drawCards(1);
-    
-    this.scene.animationHelper.showMessage(`${card.data.name} → 교환!`, COLORS.message.warning);
     
     this.scene.isExchangeMode = false;
     this.scene.events.emit('exchangeUsed');  // 교환 사용 완료 이벤트
@@ -828,14 +968,22 @@ drawCards(count: number) {
     const enemy = this.scene.gameState.enemies.find(e => e.id === enemyId);
     if (!enemy) return;
     
-    // 도발 중인 적이 있으면 그 적만 타겟 가능
-    const tauntingEnemy = this.scene.gameState.enemies.find(
+    // 도발 중인 적들 찾기 (여러 명 가능)
+    const tauntingEnemies = this.scene.gameState.enemies.filter(
       e => e.isTaunting && (e.tauntDuration ?? 0) > 0
     );
-    if (tauntingEnemy && enemy.id !== tauntingEnemy.id) {
+    
+    // 도발 중인 적이 있으면, 도발 중인 적들만 타겟 가능
+    if (tauntingEnemies.length > 0) {
+      const isTargetTaunting = tauntingEnemies.some(e => e.id === enemyId);
+      if (!isTargetTaunting) {
       this.scene.animationHelper.showMessage('🛡️ 도발된 적만 공격 가능!', COLORS.message.error);
       return;
+      }
     }
+    
+    // 데미지 미리보기 숨기기
+    this.scene.enemyManager.hideDamagePreview();
     
     this.useCardOnTarget(this.scene.pendingCard.index, enemy);
     this.cancelTargeting();
@@ -867,7 +1015,6 @@ drawCards(count: number) {
   /**
    * 턴 시작 시 잔광 출현 확률 체크
    * - 맨손이고 손패가 12장 미만: 33%
-   * - 무기를 쥐고 있고 손패가 12장 미만: 5%
    */
   trySpawnJangwang() {
     const hand = this.scene.playerState.hand;
@@ -876,15 +1023,63 @@ drawCards(count: number) {
     // 손패가 12장이면 등장 불가
     if (hand.length >= 12) return;
     
-    // 맨손이면 33%, 무기 있으면 5%
-    const chance = currentSword === null ? 0.33 : 0.05;
+    // 맨손일 때만 33% 확률로 등장
+    if (currentSword !== null) return;
     
-    if (Math.random() < chance) {
+    if (Math.random() < 0.33) {
       const jangwang = createJangwang();
       this.scene.playerState.hand.push({ type: 'sword', data: jangwang });
       this.scene.animationHelper.showMessage('✨ 잔광이 나타났다!', COLORS.message.levelUp);
       this.scene.events.emit('handUpdated');
     }
+  }
+  
+  /**
+   * 턴 종료 시 신기루 카드 처리 (사용하지 않으면 사라짐)
+   */
+  removeMirageCards() {
+    const hand = this.scene.playerState.hand;
+    const uiScene = this.scene.scene.get('UIScene') as any;
+    
+    // 신기루 카드 찾기 (역순으로 처리하여 인덱스 문제 방지)
+    for (let i = hand.length - 1; i >= 0; i--) {
+      const card = hand[i];
+      if (card.type === 'sword' && (card.data as SwordCard).isMirage) {
+        // 카드 스프라이트 추출
+        const cardSprite = uiScene?.cardUI?.extractCardForAnimation(i);
+        
+        // 손패에서 제거 (무덤으로 가지 않음 - 완전히 사라짐)
+        hand.splice(i, 1);
+        
+        // 사라지는 애니메이션
+        if (cardSprite) {
+          this.animateMirageDisappear(cardSprite);
+        }
+        
+        this.scene.animationHelper.showMessage('✨ 잔광이 사라졌다...', COLORS.text.muted);
+      }
+    }
+    
+    this.scene.events.emit('handUpdated');
+  }
+  
+  /**
+   * 신기루 카드 사라지는 애니메이션 (위로 올라가며 반투명해짐)
+   */
+  private animateMirageDisappear(cardSprite: Phaser.GameObjects.Container) {
+    cardSprite.setDepth(3000);
+    
+    this.scene.tweens.add({
+      targets: cardSprite,
+      y: cardSprite.y - 150,
+      alpha: 0,
+      scale: 0.8,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => {
+        cardSprite.destroy();
+      },
+    });
   }
   
   // ========== 유틸리티 ==========

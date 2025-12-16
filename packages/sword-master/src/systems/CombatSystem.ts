@@ -64,8 +64,17 @@ export class CombatSystem {
       }
     });
     
-    // 기본 데미지 = (무기공격력 + 버프) * 스킬배율 * 집중배율
-    const baseDamage = (sword.attack + attackBonus) * skill.attackMultiplier * focusMultiplier;
+    // 크리티컬 체크
+    let isCritical = false;
+    let criticalMultiplier = 1.0;
+    
+    if (skill.criticalCondition === 'dagger' && sword.category === 'dagger') {
+      isCritical = true;
+      criticalMultiplier = skill.criticalMultiplier || 2.0;  // 기본 200%
+    }
+    
+    // 기본 데미지 = (무기공격력 + 버프) * 스킬배율 * 집중배율 * 크리티컬배율
+    const baseDamage = (sword.attack + attackBonus) * skill.attackMultiplier * focusMultiplier * criticalMultiplier;
     
     // 타겟 선정
     let targets: Enemy[];
@@ -113,9 +122,11 @@ export class CombatSystem {
           
           // armorBreaker 효과: 방어 완전 무시 + 적 방어력 영구 감소
           const isArmorBreaker = skill.effect?.type === 'armorBreaker';
+          // isPiercing: 스킬 자체가 방어 무시
+          const isPiercing = skill.isPiercing === true;
           
           let damage: number;
-          if (isArmorBreaker) {
+          if (isArmorBreaker || isPiercing) {
             // 방어 완전 무시
             damage = baseDamage;
           } else {
@@ -135,7 +146,12 @@ export class CombatSystem {
           }
           
           // 데미지 적용 (적 HP 감소 및 사망 처리)
-          this.damageEnemy(enemy, damage);
+          this.damageEnemy(enemy, damage, isCritical);
+          
+          // 크리티컬 메시지 (첫 타격에만)
+          if (hitIndex === 0 && isCritical) {
+            this.scene.animationHelper.showMessage(`⭐ 크리티컬! x${criticalMultiplier}`, COLORS.rarity.unique);
+          }
           
           // armorBreaker 효과: 적 방어력 영구 감소 (첫 타격에만, 0 이하로 내려가지 않음)
           if (hitIndex === 0 && isArmorBreaker && skill.effect) {
@@ -165,6 +181,17 @@ export class CombatSystem {
               duration: sword.bleedOnHit.duration,
             });
             this.scene.animationHelper.showMessage(`🩸 출혈! ${sword.bleedOnHit.damage}뎀/${sword.bleedOnHit.duration}턴`, COLORS.effect.damage);
+            // 디버프 UI 업데이트
+            this.scene.enemyManager.updateEnemySprite(enemy);
+          }
+          
+          // 무기 장착 효과: 독 (poisonOnHit) - 중첩 가능
+          if (hitIndex === 0 && sword.poisonOnHit) {
+            enemy.poisons.push({
+              damage: sword.poisonOnHit.damage,
+              duration: sword.poisonOnHit.duration,
+            });
+            this.scene.animationHelper.showMessage(`☠️ 독! ${sword.poisonOnHit.damage}뎀/${sword.poisonOnHit.duration}턴`, COLORS.effect.damage);
             // 디버프 UI 업데이트
             this.scene.enemyManager.updateEnemySprite(enemy);
           }
@@ -237,6 +264,7 @@ export class CombatSystem {
       this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, COLORS.message.error);
       this.scene.playerState.currentSword = null;
       this.scene.updatePlayerWeaponDisplay();
+      this.scene.events.emit('handUpdated');  // 스킬 사용 가능 여부 갱신
     }
     
     return actualHits;
@@ -529,8 +557,12 @@ export class CombatSystem {
         break;
         
       case 'defend':
-        enemy.defense += 5;
-        this.scene.animationHelper.showMessage(`${enemy.name} 방어 자세!`, COLORS.message.success);
+        {
+          // defenseIncrease가 있으면 사용, 없으면 기본값 5
+          const defenseGain = action.defenseIncrease ?? 5;
+          enemy.defense += defenseGain;
+          this.scene.animationHelper.showMessage(`${enemy.name} 방어 자세! (+${defenseGain} 방어)`, COLORS.message.success);
+        }
         break;
         
       case 'buff':
@@ -540,6 +572,24 @@ export class CombatSystem {
             this.scene.enemyManager.updateEnemySprite(e);
           });
           this.scene.animationHelper.showMessage(`${enemy.name} 회복!`, COLORS.message.success);
+        }
+        break;
+        
+      case 'taunt':
+        // 도발 스킬 발동 - 이제 도발 상태 적용
+        if (action.effect?.type === 'taunt') {
+          enemy.isTaunting = true;
+          enemy.tauntDuration = action.effect.duration || 3;
+          
+          // 도발에도 방어력 증가 (defenseIncrease가 있으면 적용)
+          if (action.defenseIncrease && action.defenseIncrease > 0) {
+            enemy.defense += action.defenseIncrease;
+            this.scene.animationHelper.showMessage(`🛡️ ${enemy.name} 도발! (+${action.defenseIncrease} 방어)`, COLORS.message.warning);
+          } else {
+            this.scene.animationHelper.showMessage(`🛡️ ${enemy.name} 도발! 나를 노려라!`, COLORS.message.warning);
+          }
+          
+          this.scene.enemyManager.updateEnemySprite(enemy);
         }
         break;
         
@@ -591,6 +641,7 @@ export class CombatSystem {
       
       if (template) {
         const minion = createEnemy(template, this.scene.gameState.currentWave);
+        minion.isSummoned = true;  // 소환된 적 표시 (경험치 없음)
         this.scene.gameState.enemies.push(minion);
         this.scene.enemyManager.createEnemySprite(minion);
         
@@ -605,6 +656,27 @@ export class CombatSystem {
   }
   
   private handleEnemyAttack(enemy: Enemy, action: EnemyAction, _sprite: Phaser.GameObjects.Container | undefined) {
+    const hitCount = action.hitCount || 1;
+    
+    // 다중 타격 처리
+    for (let hitIndex = 0; hitIndex < hitCount; hitIndex++) {
+      // 플레이어가 죽었으면 중단
+      if (this.scene.playerState.hp <= 0) break;
+      
+      // 다중 타격 표시
+      if (hitCount > 1) {
+        this.scene.animationHelper.showMessage(`${action.name} ${hitIndex + 1}/${hitCount}타!`, COLORS.message.warning);
+      }
+      
+      this.handleSingleHit(enemy, action, hitIndex === 0);
+    }
+  }
+  
+  /**
+   * 단일 타격 처리 (다중 타격의 각 타격에서 호출)
+   * 카운트 효과가 여러 개 있으면 먼저 장전한 것부터 순서대로 사용
+   */
+  private handleSingleHit(enemy: Enemy, action: EnemyAction, _isFirstHit: boolean) {
     const sword = this.scene.playerState.currentSword;
     let baseParryRate = sword ? sword.defense : 0;  // 기본 방어율 (10이면 10%)
     
@@ -621,19 +693,22 @@ export class CombatSystem {
       baseParryRate += defenseBonusLevel;
     }
     
-    // 카운트 효과 체크 (통합: countDefense, flowRead)
+    // 카운트 효과 체크 (장전된 순서대로 사용 - 배열 앞이 먼저 장전된 것)
     let activeCountEffect: typeof this.scene.playerState.countEffects[0] | null = null;
     let countEffectParryRate = baseParryRate;
     let currentCounterMultiplier = 1.0;  // 반격 배수 (flowRead용)
     
-    // flowRead 효과 체크 (대기별 스케일링)
-    const flowReadEffects = this.scene.playerState.countEffects.filter(
-      e => e.type === 'flowRead'
+    // 가장 먼저 장전된 카운트 효과 찾기 (flowRead 또는 countDefense)
+    const availableEffects = this.scene.playerState.countEffects.filter(
+      e => e.type === 'flowRead' || e.type === 'countDefense'
     );
     
-    if (flowReadEffects.length > 0) {
-      activeCountEffect = flowReadEffects[0];
-      // 경과 시간 계산 (0 = 방금 설치, maxDelays-1 = 거의 끝)
+    if (availableEffects.length > 0) {
+      // 배열의 첫 번째 = 가장 먼저 장전된 효과
+      activeCountEffect = availableEffects[0];
+      
+      if (activeCountEffect.type === 'flowRead') {
+        // flowRead 효과 - 대기별 스케일링
       const maxDelays = activeCountEffect.maxDelays || 5;
       const elapsed = maxDelays - activeCountEffect.remainingDelays;  // 0~4
       
@@ -649,21 +724,8 @@ export class CombatSystem {
       currentCounterMultiplier = counterScaling[counterIndex];
       
       console.log(`[flowRead] 경과: ${elapsed}대기, 방어x${defenseMultiplier}, 반격x${currentCounterMultiplier}`);
-    }
-    
-    // countDefense 효과 찾기 (방어 배수가 높은 것 우선)
-    if (!activeCountEffect) {
-      const countDefenseEffects = this.scene.playerState.countEffects.filter(
-        e => e.type === 'countDefense'
-      );
-      
-      if (countDefenseEffects.length > 0) {
-        // 방어 배수가 가장 높은 효과 선택
-        activeCountEffect = countDefenseEffects.reduce((best, current) => {
-          const bestMult = best.data.defenseMultiplier || 1;
-          const currentMult = current.data.defenseMultiplier || 1;
-          return currentMult > bestMult ? current : best;
-        });
+      } else {
+        // countDefense 효과
         countEffectParryRate = sword ? sword.defense * (activeCountEffect.data.defenseMultiplier || 5) : 0;
         currentCounterMultiplier = activeCountEffect.data.attackMultiplier || 1.0;
       }
@@ -684,6 +746,7 @@ export class CombatSystem {
         this.scene.animationHelper.showMessage(`${sword!.name}이(가) 부서졌다!`, COLORS.message.error);
         this.scene.playerState.currentSword = null;
         this.scene.updatePlayerWeaponDisplay();
+        this.scene.events.emit('handUpdated');  // 스킬 사용 가능 여부 갱신
       }
       
       // 효과별 메시지
@@ -723,6 +786,12 @@ export class CombatSystem {
       
       if (action.effect?.type === 'bleed') {
         this.scene.playerState.hp -= action.effect.value;
+        this.scene.animationHelper.showMessage(`🩸 출혈! -${action.effect.value}`, COLORS.effect.damage);
+      }
+      
+      if (action.effect?.type === 'poison') {
+        this.scene.playerState.hp -= action.effect.value;
+        this.scene.animationHelper.showMessage(`☠️ 독! -${action.effect.value}`, COLORS.effect.damage);
       }
     }
     
@@ -797,9 +866,11 @@ export class CombatSystem {
     this.scene.gameState.score += enemy.maxHp * 10;
     this.scene.gameState.enemiesDefeated++;
     
-    // 경험치 획득
+    // 경험치 획득 (소환된 적은 경험치 없음)
+    if (!enemy.isSummoned) {
     const expGain = Math.floor(enemy.maxHp / 2);
     this.gainExp(expGain);
+    }
     
     // 은전 드롭
     const silverDrop = this.calculateSilverDrop(enemy);
@@ -843,12 +914,17 @@ export class CombatSystem {
   
   gainExp(amount: number) {
     this.scene.playerState.exp += amount;
-    const expNeeded = this.scene.playerState.level * 25;  // 필요 경험치 절반
+    const expNeeded = this.scene.getExpNeeded();
     
     if (this.scene.playerState.exp >= expNeeded) {
       this.scene.playerState.exp -= expNeeded;
       this.scene.playerState.level++;
       this.onLevelUp();
+      
+      // 전투 중이면 레벨업 UI를 전투 종료 시 표시하도록 플래그 설정
+      if (this.scene.gameState.phase === 'combat') {
+        this.scene.pendingLevelUp = true;
+      }
     }
   }
   
@@ -1125,6 +1201,25 @@ export class CombatSystem {
         
         // 만료된 출혈 제거
         enemy.bleeds = enemy.bleeds.filter(bleed => bleed.duration > 0);
+        
+        // 디버프 UI 업데이트
+        this.scene.enemyManager.updateEnemySprite(enemy);
+      }
+    });
+  }
+  
+  applyPoisonDamage() {
+    this.scene.gameState.enemies.forEach(enemy => {
+      if (enemy.poisons.length > 0) {
+        // 모든 독 데미지 적용
+        enemy.poisons.forEach((poison, index) => {
+          this.scene.animationHelper.showMessage(`☠️ ${enemy.name} 독${enemy.poisons.length > 1 ? `(${index + 1})` : ''}! -${poison.damage}`, COLORS.effect.damage);
+          this.damageEnemy(enemy, poison.damage);
+          poison.duration--;
+        });
+        
+        // 만료된 독 제거
+        enemy.poisons = enemy.poisons.filter(poison => poison.duration > 0);
         
         // 디버프 UI 업데이트
         this.scene.enemyManager.updateEnemySprite(enemy);

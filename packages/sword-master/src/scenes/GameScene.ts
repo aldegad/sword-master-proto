@@ -5,7 +5,7 @@ import { createSwordCard, getRandomSword, getRandomUniqueSword } from '../data/s
 import { isBossWave, getCurrentTier, ENEMIES_TIER1, ENEMIES_TIER2, createEnemy } from '../data/enemies';
 import { getRandomEvent, getRandomOutcome, type GameEvent, type EventChoice, type EventOutcome } from '../data/events';
 import { createSkillCard, getStarterDeck, getRandomSkill } from '../data/skills';
-import { getRandomPassive, addOrUpgradePassive } from '../data/passives';
+import { addOrUpgradePassive, getRandomPassivesWithoutDuplicates } from '../data/passives';
 import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../systems';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
@@ -62,6 +62,12 @@ export class GameScene extends Phaser.Scene {
   
   // 이벤트 전투 후 보상
   pendingEventReward: EventOutcome | null = null;
+  
+  // 이동 중 이벤트 발생 플래그
+  pendingEvent: boolean = false;
+  
+  // 전투 중 레벨업 발생 플래그
+  pendingLevelUp: boolean = false;
   
   // 이벤트 스킬 선택 여부 (레벨업 vs 이벤트 구분용)
   isEventSkillSelection: boolean = false;
@@ -161,22 +167,9 @@ export class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // 배경 그라데이션
-    const sky = this.add.graphics();
-    sky.fillGradientStyle(COLORS.background.dark, COLORS.background.dark, COLORS.background.medium, COLORS.background.medium, 1);
-    sky.fillRect(0, 0, width, this.GROUND_Y);
-    
-    
-    // 지면
-    const ground = this.add.graphics();
-    ground.fillStyle(COLORS.background.overlay);
-    ground.fillRect(0, this.GROUND_Y, width, height - this.GROUND_Y);
-    
-    // 지면 경계 (금색 라인)
-    ground.lineStyle(2, COLORS.border.medium, 0.8);
-    ground.lineBetween(0, this.GROUND_Y, width, this.GROUND_Y);
-    ground.lineStyle(1, COLORS.primary.dark, 0.3);
-    ground.lineBetween(0, this.GROUND_Y + 3, width, this.GROUND_Y + 3);
+    // 배경 이미지
+    const bg = this.add.image(width / 2, height / 2, 'background');
+    bg.setDisplaySize(width, height);
     
     // 배경 파티클 (꽃잎/먼지)
     for (let i = 0; i < 15; i++) {
@@ -644,7 +637,9 @@ export class GameScene extends Phaser.Scene {
     
     this.input.keyboard!.on('keydown-SPACE', () => {
       if (this.gameState.phase === 'combat') {
-        this.endTurn();
+        // UIScene의 ActionButtonsUI를 통해 턴 종료 (연속 입력 방지)
+        const uiScene = this.scene.get('UIScene') as import('./UIScene').UIScene;
+        uiScene?.actionButtonsUI?.tryEndTurn();
       }
     });
   }
@@ -951,6 +946,7 @@ export class GameScene extends Phaser.Scene {
   startCombat() {
     this.playerState.mana = this.playerState.maxMana;
     this.playerState.defense = 0;
+    this.playerState.usedAttackThisTurn = false;  // 이어베기 조건 초기화
     
     // 첫 턴에 잔광 출현 확률 체크
     this.cardSystem.trySpawnJangwang();
@@ -958,9 +954,9 @@ export class GameScene extends Phaser.Scene {
     // 레벨별 드로우 수: 레벨 1-2는 2장, 레벨 3+는 3장
     const drawCount = this.getDrawCount();
     
-    // 첫 전투: 5장 드로우, 이후 전투: 레벨별 드로우
+    // 첫 전투: 5장 드로우 (무기 1장 보장), 이후 전투: 레벨별 드로우
     if (this.gameState.currentWave === 1) {
-      this.cardSystem.drawCards(GAME_CONSTANTS.INITIAL_DRAW);
+      this.cardSystem.drawCardsWithGuaranteedWeapon(GAME_CONSTANTS.INITIAL_DRAW);
     } else {
       this.cardSystem.drawCards(drawCount);
     }
@@ -980,17 +976,16 @@ export class GameScene extends Phaser.Scene {
   async endTurn() {
     if (this.gameState.phase !== 'combat') return;
     
+    // 0. 신기루 카드 처리 (사용하지 않으면 사라짐)
+    this.cardSystem.removeMirageCards();
+    
     // 1. 플레이어 카운트 효과 감소 및 발동 (강타 등) - 적 행동보다 먼저!
     await this.combatSystem.reduceCountEffects();
     
     // 강타로 적이 모두 죽었을 수 있으므로 체크
     if (this.checkCombatEnd()) return;
     
-    // 2. 출혈 데미지 적용 (적 턴 시작 시 바로!)
-    this.combatSystem.applyBleedDamage();
-    
-    // 출혈로 적이 죽었을 수 있으므로 체크
-    if (this.checkCombatEnd()) return;
+    // 2. 출혈/독 데미지는 이제 각 적 스킬 발동 직전에 적용됨 (EnemyManager.executeActionsSequentially)
     
     // 3. 적 행동이 순차적으로 끝날 때까지 대기
     await this.enemyManager.executeRemainingEnemyActions();
@@ -1051,31 +1046,29 @@ this.playerState.mana = this.playerState.maxMana;
       // 보스 처치 여부 확인
       const wasBossFight = isBossWave(this.gameState.currentWave);
       
-      // 경험치 획득 (보스는 2배)
-      const expGained = (10 + this.gameState.currentWave * 5) * (wasBossFight ? 2 : 1);
-      this.playerState.exp += expGained;
-      const expNeeded = this.getExpNeeded();
+      // 일반 전투 후 이벤트 체크 → 이동 중에 발생하도록 플래그 설정
+      if (!wasBossFight && this.shouldTriggerEvent()) {
+        this.pendingEvent = true;  // 다음 이동 중 이벤트 발생
+      }
       
       if (wasBossFight) {
         // 보스 처치: 특별 보상 (스킬 2개 + 유니크 무기 1개 중 선택) - 이게 스테이지 보상
         this.animationHelper.showMessage(`💀 보스 처치! 특별 보상!`, COLORS.primary.dark);
         this.time.delayedCall(1500, () => {
+          // 레벨업이 대기 중이면 레벨업 먼저 처리
+          if (this.pendingLevelUp) {
+            this.pendingLevelUp = false;
+            this.showLevelUpSkillSelection();
+          } else {
           this.showBossRewardSelection();
+          }
         });
-      } else {
-        // 일반 전투 후 이벤트 체크
-        if (this.shouldTriggerEvent()) {
-          // 이벤트 발생 시 보상 없이 바로 이벤트로
-          this.time.delayedCall(1000, () => {
-            this.triggerRandomEvent();
-        });
-      } else if (this.playerState.exp >= expNeeded) {
-        // 레벨업!
-        this.playerState.exp -= expNeeded;
-        this.playerState.level++;
+      } else if (this.pendingLevelUp) {
+        // 레벨업이 대기 중이면 레벨업 먼저 처리 (전투 중 적 처치로 레벨업)
+        this.pendingLevelUp = false;
         this.animationHelper.showMessage(`🎉 레벨 업! LV.${this.playerState.level}`, COLORS.primary.dark);
         
-        // 레벨업 스킬 선택 → 무기 보상 순서로
+        // 레벨업 스킬 선택 → 패시브 선택 → 무기 보상 순서로
         this.time.delayedCall(1000, () => {
           this.showLevelUpSkillSelection();
         });
@@ -1087,7 +1080,6 @@ this.playerState.mana = this.playerState.maxMana;
         this.time.delayedCall(1000, () => {
           this.events.emit('showRewardSelection');
         });
-        }
       }
       
       return true;
@@ -1123,11 +1115,8 @@ this.playerState.mana = this.playerState.maxMana;
    * 레벨업 패시브 선택 UI (스킬 선택 후)
    */
   showLevelUpPassiveSelection() {
-    // 랜덤 패시브 3개 생성
-    this.levelUpPassives = [];
-    for (let i = 0; i < 3; i++) {
-      this.levelUpPassives.push(getRandomPassive());
-    }
+    // 중복 없이 랜덤 패시브 3개 생성 (이미 최대 레벨인 것 제외)
+    this.levelUpPassives = getRandomPassivesWithoutDuplicates(3, this.playerState.passives);
     
     this.events.emit('showLevelUpPassiveSelection');
   }
@@ -1321,11 +1310,19 @@ selectRewardCard(index: number) {
   }
   
   /**
-   * 레벨별 드로우 수 반환
-   * 항상 2장 (레벨별 드로우 증가 삭제)
+   * 드로우 수 반환
+   * 기본 2장 + 패시브 드로우 증가
    */
   getDrawCount(): number {
-    return 2;
+    let drawCount = 2;
+    
+    // 패시브 스킬에서 드로우 증가 체크
+    const drawPassive = this.playerState.passives.find(p => p.id === 'drawIncrease');
+    if (drawPassive) {
+      drawCount += drawPassive.level;
+    }
+    
+    return drawCount;
   }
   
   /**
@@ -1554,6 +1551,14 @@ selectRewardCard(index: number) {
       } else if (!USE_SPRITES) {
         // 기존 방식: y 좌표 흔들림 (플레이어는 GROUND_Y + 50 기준)
         this.playerSprite.y = this.GROUND_Y + 50 + Math.sin(this.time.now / 100) * 5;
+      }
+      
+      // 이동 중 이벤트 발생 체크 (일정 거리 이동 후)
+      if (this.pendingEvent && this.moveDistance >= 100) {
+        this.pendingEvent = false;
+        this.isMoving = false;
+        this.triggerRandomEvent();
+        return;
       }
       
       // 일정 거리마다 적 조우

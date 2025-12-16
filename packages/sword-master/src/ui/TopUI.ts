@@ -15,7 +15,7 @@ export class TopUI {
   
   // 마나 UI
   private manaContainer!: Phaser.GameObjects.Container;
-  private manaOrbs: Phaser.GameObjects.Arc[] = [];
+  private manaOrbs: Phaser.GameObjects.Graphics[] = [];  // 마름모꼴
   
   // 상태 텍스트
   private statsText!: Phaser.GameObjects.Text;
@@ -76,12 +76,34 @@ export class TopUI {
     
     this.manaContainer = this.scene.add.container(200, 112);
     
+    // 마름모꼴 마나 게이지
+    const diamondSize = 14;  // 마름모 반지름
     for (let i = 0; i < GAME_CONSTANTS.MAX_MANA; i++) {
-      const orb = this.scene.add.circle(i * 45, 0, 17, COLORS.primary.main);
-      orb.setStrokeStyle(3, COLORS.primary.dark);
-      this.manaOrbs.push(orb);
-      this.manaContainer.add(orb);
+      const diamond = this.scene.add.graphics();
+      diamond.setPosition(i * 38, 0);
+      this.drawDiamond(diamond, 0, 0, diamondSize, COLORS.primary.main, COLORS.primary.dark);
+      this.manaOrbs.push(diamond);
+      this.manaContainer.add(diamond);
     }
+  }
+  
+  /**
+   * 마름모 그리기 헬퍼
+   */
+  private drawDiamond(graphics: Phaser.GameObjects.Graphics, x: number, y: number, size: number, fillColor: number, strokeColor: number) {
+    graphics.clear();
+    graphics.fillStyle(fillColor, 1);
+    graphics.lineStyle(2, strokeColor, 1);
+    
+    // 마름모 좌표: 위, 오른쪽, 아래, 왼쪽
+    graphics.beginPath();
+    graphics.moveTo(x, y - size);           // 위
+    graphics.lineTo(x + size, y);           // 오른쪽
+    graphics.lineTo(x, y + size);           // 아래
+    graphics.lineTo(x - size, y);           // 왼쪽
+    graphics.closePath();
+    graphics.fillPath();
+    graphics.strokePath();
   }
   
   private createStatusTexts() {
@@ -243,14 +265,16 @@ export class TopUI {
   updateManaDisplay() {
     const mana = this.scene.gameScene.playerState.mana;
     const maxMana = this.scene.gameScene.playerState.maxMana;
+    const diamondSize = 14;
     
-    this.manaOrbs.forEach((orb, idx) => {
+    this.manaOrbs.forEach((diamond, idx) => {
       if (idx < maxMana) {
-        orb.setVisible(true);
-        orb.setFillStyle(idx < mana ? COLORS.status.mana.active : COLORS.status.mana.empty);
-        orb.setStrokeStyle(2, idx < mana ? COLORS.primary.dark : COLORS.border.dark);
+        diamond.setVisible(true);
+        const fillColor = idx < mana ? COLORS.status.mana.active : COLORS.status.mana.empty;
+        const strokeColor = idx < mana ? COLORS.primary.dark : COLORS.border.dark;
+        this.drawDiamond(diamond, 0, 0, diamondSize, fillColor, strokeColor);
       } else {
-        orb.setVisible(false);
+        diamond.setVisible(false);
       }
     });
   }

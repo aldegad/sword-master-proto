@@ -128,6 +128,9 @@ export class SwordInfoUI {
     if (sword.bleedOnHit) {
       specialEffects.push(`🩸 출혈 부여`);
     }
+    if (sword.poisonOnHit) {
+      specialEffects.push(`☠️ 독 부여`);
+    }
     if (sword.armorBreakOnHit) {
       specialEffects.push(`💥 방어구 파괴`);
     }

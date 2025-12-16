@@ -9,10 +9,15 @@ import { CardRenderer } from './CardRenderer';
  * 좌측: 카드 목록 (5개씩, 스크롤 가능)
  * 우측: 선택된 카드 상세 정보
  */
+export type ViewMode = 'deck' | 'grave';
+
 export class DeckViewerUI {
   private scene: UIScene;
   private container!: Phaser.GameObjects.Container;
   private cardRenderer!: CardRenderer;
+  
+  // 현재 보기 모드
+  private viewMode: ViewMode = 'deck';
   
   // 스크롤 관련
   private scrollY: number = 0;
@@ -29,6 +34,9 @@ export class DeckViewerUI {
   
   // 카드 수 표시 (고정)
   private cardCountText!: Phaser.GameObjects.Text;
+  
+  // 제목 텍스트
+  private titleText!: Phaser.GameObjects.Text;
   
   // 레이아웃 상수
   private readonly CARDS_PER_ROW = 5;
@@ -57,12 +65,12 @@ export class DeckViewerUI {
     const overlay = this.scene.add.rectangle(width/2, height/2, width, height, COLORS.background.black, 0.92);
     this.container.add(overlay);
     
-    // 제목
-    const title = this.scene.add.text(width/2, 50, '📚 덱 목록', {
+    // 제목 (동적으로 변경됨)
+    this.titleText = this.scene.add.text(width/2, 50, '📚 덱 목록', {
       font: 'bold 42px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
-    this.container.add(title);
+    this.container.add(this.titleText);
     
     // 카드 영역의 실제 너비 계산 (5장 + 간격)
     const cardsContentWidth = this.CARDS_PER_ROW * this.CARD_WIDTH + (this.CARDS_PER_ROW - 1) * this.CARD_SPACING;
@@ -261,8 +269,17 @@ export class DeckViewerUI {
     this.updateScrollPosition();
   }
   
-  show() {
+  show(mode: ViewMode = 'deck') {
+    this.viewMode = mode;
     this.scrollY = 0;
+    
+    // 제목 업데이트
+    if (mode === 'deck') {
+      this.titleText.setText('📚 덱 목록');
+    } else {
+      this.titleText.setText('🪦 무덤 목록');
+    }
+    
     this.updateDeckDisplay();
     this.updateDetailCard(null);
     this.container.setVisible(true);
@@ -279,36 +296,43 @@ export class DeckViewerUI {
   private updateDeckDisplay() {
     this.cardContainer.removeAll(true);
     
-    // 덱 + 손패 + 무덤 + 장착 무기 모두 포함
     const allCards: { card: Card; location: string }[] = [];
     
-    // 장착 중인 무기
-    if (this.scene.gameScene.playerState.currentSword) {
-      allCards.push({ 
-        card: { type: 'sword', data: this.scene.gameScene.playerState.currentSword },
-        location: '장착중'
+    if (this.viewMode === 'deck') {
+      // 덱 모드: 장착중 + 손패 + 덱
+      
+      // 장착 중인 무기
+      if (this.scene.gameScene.playerState.currentSword) {
+        allCards.push({ 
+          card: { type: 'sword', data: this.scene.gameScene.playerState.currentSword },
+          location: '장착중'
+        });
+      }
+      
+      // 손패
+      this.scene.gameScene.playerState.hand.forEach(card => {
+        allCards.push({ card, location: '손패' });
       });
+      
+      // 덱
+      this.scene.gameScene.playerState.deck.forEach(card => {
+        allCards.push({ card, location: '덱' });
+      });
+      
+      // 카드 수 표시
+      const equipped = this.scene.gameScene.playerState.currentSword ? 1 : 0;
+      this.cardCountText.setText(
+        `총 ${allCards.length}장 (장착: ${equipped} / 손패: ${this.scene.gameScene.playerState.hand.length} / 덱: ${this.scene.gameScene.playerState.deck.length})`
+      );
+    } else {
+      // 무덤 모드: 무덤만
+      this.scene.gameScene.playerState.discard.forEach(card => {
+        allCards.push({ card, location: '무덤' });
+      });
+      
+      // 카드 수 표시
+      this.cardCountText.setText(`총 ${allCards.length}장`);
     }
-    
-    // 손패
-    this.scene.gameScene.playerState.hand.forEach(card => {
-      allCards.push({ card, location: '손패' });
-    });
-    
-    // 덱
-    this.scene.gameScene.playerState.deck.forEach(card => {
-      allCards.push({ card, location: '덱' });
-    });
-    
-    // 무덤
-    this.scene.gameScene.playerState.discard.forEach(card => {
-      allCards.push({ card, location: '무덤' });
-    });
-    
-    // 카드 수 표시 업데이트 (고정 위치)
-    this.cardCountText.setText(
-      `총 ${allCards.length}장 (손패: ${this.scene.gameScene.playerState.hand.length} / 덱: ${this.scene.gameScene.playerState.deck.length} / 무덤: ${this.scene.gameScene.playerState.discard.length})`
-    );
     
     // 카드 배치
     allCards.forEach((item, index) => {

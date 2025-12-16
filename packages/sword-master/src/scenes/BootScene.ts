@@ -59,6 +59,9 @@ export class BootScene extends Phaser.Scene {
       loadingText.destroy();
     });
     
+    // 배경 이미지 로드
+    this.load.image('background', 'assets/background.jpg');
+    
     // 스프라이트 로드 (atlas 형식으로 변경)
     if (USE_SPRITES) {
       PLAYER_SPRITES.forEach(sprite => {

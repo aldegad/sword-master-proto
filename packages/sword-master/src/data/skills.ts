@@ -17,7 +17,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,  // 타수만큼 자동 소모
     manaCost: 1,
-    description: '기본 베기 공격. 무기 타수/범위 사용.',
+    description: '기본 베기 공격.',
   },
   thrust: {
     id: 'thrust',
@@ -48,22 +48,9 @@ export const SKILLS: Record<string, SkillCard> = {
     manaCost: 1,
     description: '연속으로 베기. 무기 타수x2!',
   },
-  tripleThrust: {
-    id: 'tripleThrust',
-    name: '삼연자',
-    emoji: '💨',
-    type: 'attack',
-    attackMultiplier: 0.5,
-    attackCount: 3,  // 무기 타수 x3
-    reach: 'single', // 무기 범위 사용
-    defenseBonus: 0,
-    durabilityCost: 0,
-    manaCost: 1,
-    description: '세 번 연속 찌르기. 무기 타수x3!',
-  },
   flurry: {
     id: 'flurry',
-    name: '마구 베기',
+    name: '유수격',
     emoji: '🌪️',
     type: 'attack',
     attackMultiplier: 0.5,
@@ -72,7 +59,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '정신없이 휘두르기. 무기 타수x5!',
+    description: '흐름을 끊지 않고 연속으로 베어낸다.',
   },
 
   // ===== 범위 공격기 (자체 범위 사용) =====
@@ -100,7 +87,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '회전하며 모든 적을 공격!',
+    description: '회전하며 모든 적을 공격',
   },
   crescent: {
     id: 'crescent',
@@ -113,7 +100,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '초승달 궤적으로 무기 범위x2 베기.',
+    description: '초승달 궤적으로 크게 벤다',
   },
 
   // ===== 강타기 (카운트 기반) =====
@@ -128,7 +115,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '1대기 후 강력한 일격! x3.0 데미지.',
+    description: '1타 공격. 1대기 후 강력한 일격! x3.0 데미지.',
     effect: { type: 'chargeAttack', value: 3.0, duration: 1 },
   },
   heavenSplitter: {
@@ -142,7 +129,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '궁극의 일격! x3.5 + 스턴.',
+    description: '궁극의 일격! 스턴.',
     effect: { type: 'stun', value: 1, duration: 1 },
   },
 
@@ -158,8 +145,8 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '깊은 상처로 출혈 유발. 3턴간 3피해.',
-    effect: { type: 'bleed', value: 3, duration: 3 },
+    description: '깊은 상처로 출혈 유발',
+    effect: { type: 'bleed', value: 15, duration: 3 },
   },
   vampireSlash: {
     id: 'vampireSlash',
@@ -218,8 +205,10 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '신속 공격! 적 대기턴을 줄이지 않음.',
+    description: '적의 빈틈을 찌른다. 단검일 경우 치명타 발동',
     isSwift: true,
+    isPiercing: true,           // 방어 무시
+    criticalCondition: 'dagger', // 단검 크리티컬
   },
   flashStrike: {
     id: 'flashStrike',
@@ -246,7 +235,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 0,
-    description: '신속! 이번 턴에 공격/무기 사용 후에만 낼 수 있음.',
+    description: '공격의 흐름을 끊지 않고 이어벤다. 이번 턴에 공격/무기 사용 후에만 낼 수 있음.',
     isSwift: true,
     effect: { type: 'followUp', value: 1.2 },  // followUp: 공격 후에만 사용 가능
   },
@@ -280,10 +269,11 @@ export const SKILLS: Record<string, SkillCard> = {
     durabilityCost: 1,
     manaCost: 1,
     description: '1대기 동안 방어율 x5. 방어 성공 시 반격!',
+    isSwift: true,
     effect: { 
       type: 'countDefense', 
       value: 5,              // 방어율 배수
-      duration: 1,           // 대기 시간 (2 → 1)
+      duration: 2,           // 대기 시간
       counterAttack: true,   // 반격 O
       counterMultiplier: 1.0,// 반격 배수
       consumeOnSuccess: true,// 방어 성공 시 소멸
@@ -342,7 +332,7 @@ export const SKILLS: Record<string, SkillCard> = {
     reach: 'single',
     defenseBonus: 0,
     durabilityCost: 0,
-    manaCost: 0,
+    manaCost: 1,
     description: '다음 공격의 배율 +50%!',
     isSwift: true,
     effect: { type: 'focus', value: 0.5, duration: 1 },
@@ -410,7 +400,6 @@ export const SKILLS: Record<string, SkillCard> = {
     manaCost: 1,
     description: '덱에서 카드 2장을 드로우한다.',
     effect: { type: 'draw', value: 2 },
-    isSwift: true,
   },
   bladeSeeker: {
     id: 'bladeSeeker',
@@ -475,7 +464,7 @@ export const SKILLS: Record<string, SkillCard> = {
   },
   bladeStorm: {
     id: 'bladeStorm',
-    name: '검기폭풍',
+    name: '난무',
     emoji: '🌪️',
     type: 'special',
     attackMultiplier: 0.8,
@@ -484,11 +473,11 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '검기 방출! 전체 x무기타수x3!',
+    description: '검을 거칠게 휘둘러 전체를 베어낸다.',
   },
   finalJudgment: {
     id: 'finalJudgment',
-    name: '최후심판',
+    name: '파단',
     emoji: '💀',
     type: 'special',
     attackMultiplier: 5.0,
@@ -496,9 +485,9 @@ export const SKILLS: Record<string, SkillCard> = {
     reach: 'single', // 무기 범위 사용
     defenseBonus: 0,
     durabilityCost: 0,
-    manaCost: 3,
-    description: '궁극기! x5.0! 적 방어력 -5.',
-    effect: { type: 'pierce', value: 5 },
+    manaCost: 4,
+    description: '검이 버티지 못할 만큼 세게 내려친다. *사용 후 무기는 파괴된다.*',
+    effect: { type: 'destroyWeapon', value: 0 },
   },
 };
 

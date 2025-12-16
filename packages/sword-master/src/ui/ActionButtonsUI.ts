@@ -10,13 +10,23 @@ export class ActionButtonsUI {
   
   private waitBtn!: Phaser.GameObjects.Container;
   private exchangeBtn!: Phaser.GameObjects.Container;
+  private endTurnBtn!: Phaser.GameObjects.Container;
   
   waitUsedCount: number = 0;  // 이번 턴에 사용한 대기 횟수
   exchangeUsedThisTurn: boolean = false;
+  private endTurnLocked: boolean = false;  // 턴 종료 버튼 잠금 상태
   
   constructor(scene: UIScene) {
     this.scene = scene;
     this.create();
+    this.setupEventListeners();
+  }
+  
+  private setupEventListeners() {
+    // 턴 시작 시 버튼 잠금 해제
+    this.scene.gameScene.events.on('turnEnded', () => {
+      this.unlockEndTurnButton();
+    });
   }
   
   private create() {
@@ -49,15 +59,13 @@ export class ActionButtonsUI {
     );
     
     // 턴 종료 버튼 (세번째)
-    this.createButton(
+    this.endTurnBtn = this.createButton(
       startX + btnSpacing * 2, btnY,
       '▶ 턴종료',
       'SPACE',
       COLORS.secondary.main,
       () => {
-        if (this.scene.gameScene.gameState.phase === 'combat') {
-          this.scene.gameScene.endTurn();
-        }
+        this.tryEndTurn();
       }
     );
     
@@ -170,6 +178,40 @@ export class ActionButtonsUI {
     
     // 교환 모드 시작
     this.scene.gameScene.toggleExchangeMode();
+  }
+  
+  /**
+   * 턴 종료 시도 (연속 입력 방지)
+   */
+  tryEndTurn() {
+    if (this.scene.gameScene.gameState.phase !== 'combat') return;
+    
+    // 이미 잠금된 경우
+    if (this.endTurnLocked) {
+      return;
+    }
+    
+    // 버튼 잠금
+    this.lockEndTurnButton();
+    
+    // 턴 종료 실행
+    this.scene.gameScene.endTurn();
+  }
+  
+  /**
+   * 턴 종료 버튼 잠금
+   */
+  private lockEndTurnButton() {
+    this.endTurnLocked = true;
+    this.endTurnBtn.setAlpha(0.5);
+  }
+  
+  /**
+   * 턴 종료 버튼 잠금 해제
+   */
+  private unlockEndTurnButton() {
+    this.endTurnLocked = false;
+    this.endTurnBtn.setAlpha(1);
   }
   
   // 교환 완료 시 호출 (CardSystem에서 호출됨)

@@ -166,12 +166,20 @@ spawnWaveEnemies() {
     hpBar.setOrigin(0, 0.5);
     (container as any).hpBar = hpBar;
     
+    // 데미지 미리보기 바 (진한 빨간색, HP바 뒤에 배치)
+    const damagePreviewBar = this.scene.add.rectangle(-56, 84, 112, 15, 0x8b0000);
+    damagePreviewBar.setOrigin(0, 0.5);
+    damagePreviewBar.setVisible(false);
+    damagePreviewBar.setAlpha(0.8);
+    (container as any).damagePreviewBar = damagePreviewBar;
+    
     // HP 텍스트 (스케일)
     const hpText = this.scene.add.text(0, 109, `${enemy.hp}/${enemy.maxHp}`, {
       font: '22px monospace',
       color: '#ffffff',
     }).setOrigin(0.5);
     (container as any).hpText = hpText;
+    (container as any).originalHpText = `${enemy.hp}/${enemy.maxHp}`;  // 원래 텍스트 저장
     
     // 방어력 표시 (버프 형태, 스케일)
     const defenseContainer = this.scene.add.container(-66, 38);
@@ -193,7 +201,7 @@ spawnWaveEnemies() {
     const debuffContainer = this.scene.add.container(10, 38);
     (container as any).debuffContainer = debuffContainer;
     
-    container.add([emoji, nameText, hpBarBg, hpBar, hpText, defenseContainer, debuffContainer]);
+    container.add([emoji, nameText, hpBarBg, damagePreviewBar, hpBar, hpText, defenseContainer, debuffContainer]);
     
     // 타겟 강조 효과 (숨김 상태, 스케일)
     const targetHighlight = this.scene.add.rectangle(0, -19, 169, 206, COLORS.secondary.dark, 0);
@@ -206,26 +214,19 @@ spawnWaveEnemies() {
     const hitArea = this.scene.add.rectangle(0, 0, 169, 225, COLORS.background.black, 0);
     hitArea.setInteractive({ useHandCursor: false, cursor: 'pointer' });
     
-    // 호버 효과 - 타겟팅 모드일 때만 강조
+    // 호버 효과 - 타겟팅 모드는 TargetIndicatorUI에서 처리
+    // EnemyManager의 hitArea는 비타겟팅 상황에서의 기본 인터랙션용
     hitArea.on('pointerover', () => {
-      if (this.scene.isTargetingMode) {
+      // 타겟팅 모드가 아닐 때만 기본 호버 효과
+      if (!this.scene.isTargetingMode) {
         targetHighlight.setVisible(true);
-        targetHighlight.setFillStyle(COLORS.secondary.dark, 0.3);
-        container.setScale(1.1);
-        // 커서를 포인터로 변경
-        this.scene.input.setDefaultCursor('pointer');
+        targetHighlight.setFillStyle(COLORS.secondary.dark, 0.2);
       }
     });
     
     hitArea.on('pointerout', () => {
-      targetHighlight.setVisible(false);
-      container.setScale(1);
-      this.scene.input.setDefaultCursor('default');
-    });
-    
-    hitArea.on('pointerdown', () => {
-      if (this.scene.isTargetingMode) {
-        this.scene.cardSystem.selectTarget(enemy.id);
+      if (!this.scene.isTargetingMode) {
+        targetHighlight.setVisible(false);
       }
     });
     container.add(hitArea);
@@ -316,6 +317,21 @@ spawnWaveEnemies() {
           `출혈${enemy.bleeds.length > 1 ? ` #${index + 1}` : ''}: 턴마다 ${bleed.damage} 피해\n${bleed.duration}턴 남음`
         );
         debuffContainer.add(bleedIcon);
+        xOffset += spacing;
+      }
+    });
+    
+    // 독 디버프 (중첩 표시)
+    enemy.poisons.forEach((poison, index) => {
+      if (poison.duration > 0) {
+        const poisonIcon = this.createDebuffIcon(
+          xOffset, 0,
+          '☠️',
+          `${poison.duration}`,
+          0x4B0082,  // 보라색 (독 색상)
+          `독${enemy.poisons.length > 1 ? ` #${index + 1}` : ''}: 턴마다 ${poison.damage} 피해\n${poison.duration}턴 남음`
+        );
+        debuffContainer.add(poisonIcon);
         xOffset += spacing;
       }
     });
@@ -462,9 +478,10 @@ spawnWaveEnemies() {
       actionCount = shuffledActions.length;
     }
     
-    // 도발 중인 적은 첫 턴에 도발 스킬을 무조건 첫 번째로 사용
+    // 도발 스킬이 있는 적은 첫 턴에 도발 스킬을 무조건 첫 번째로 사용
+    // (유저에게 선제공격/대응 기회 제공 - 1대기 후 도발 발동)
     let selectedActions: typeof enemy.actions;
-    if (isFirstTurn && enemy.isTaunting && tauntAction) {
+    if (isFirstTurn && tauntAction) {
       // 도발 스킬을 맨 앞에 배치
       selectedActions = [tauntAction, ...shuffledActions.slice(0, actionCount - 1)];
     } else {
@@ -540,31 +557,69 @@ spawnWaveEnemies() {
     const enemyX = sprite ? sprite.x : this.scene.cameras.main.width - 180;
     const enemyY = sprite ? sprite.y : this.scene.GROUND_Y - 30;
     
-    // 스킬 사용 애니메이션 (머리 위에서 슉~ 사라짐)
-    this.scene.animationHelper.showEnemySkillUsed(enemyX, enemyY, action.name, enemy.emoji);
+    // 즉시 액션 큐 디스플레이 업데이트 (어떤 스킬이 발동되는지 시각적으로 표시)
+    this.updateEnemyActionDisplay();
     
-    // 공격/특수 행동일 때만 스킬 이름 표시
-    if (action.type === 'attack' || action.type === 'special') {
-      this.scene.animationHelper.showEnemySkillName(
-        enemy.name,
-        action.name,
-        enemy.emoji
-      ).then(() => {
-        // 스킬 이름 표시 후 실제 공격 실행
-        this.scene.combatSystem.executeEnemyAction(enemy, action);
-        
-        // 다음 행동으로 (약간의 딜레이 후)
-        this.scene.time.delayedCall(400, () => {
+    // 약간 딜레이 후 실행 (플레이어 공격 애니메이션이 먼저 완료되도록)
+    this.scene.time.delayedCall(100, () => {
+      // HP 체크 (플레이어 공격 애니메이션 중 죽었을 수 있음)
+      if (enemy.hp <= 0) {
+        this.executeActionsSequentially(actions, index + 1);
+        return;
+      }
+      
+      // ★ 적 스킬 발동 직전: 출혈/독 데미지 적용
+      const bleedDied = this.applyBleedDamageToEnemy(enemy);
+      const poisonDied = !bleedDied && this.applyPoisonDamageToEnemy(enemy);
+      
+      // 출혈/독으로 죽었으면 다음 행동으로
+      if (bleedDied || poisonDied) {
+        this.scene.time.delayedCall(300, () => {
           this.executeActionsSequentially(actions, index + 1);
         });
-      });
-    } else {
-      // 버프/방어 등은 바로 실행
-      this.scene.combatSystem.executeEnemyAction(enemy, action);
-      this.scene.time.delayedCall(300, () => {
-        this.executeActionsSequentially(actions, index + 1);
-      });
-    }
+        return;
+      }
+      
+      // 스킬 사용 메시지 (화면 중앙에 표시)
+      const actionTypeEmoji = action.type === 'attack' ? '⚔️' : 
+                              action.type === 'defend' ? '🛡️' : 
+                              action.type === 'taunt' ? '😤' : 
+                              action.type === 'special' ? '✨' : '💫';
+      this.scene.animationHelper.showMessage(
+        `${enemy.emoji} ${enemy.name}의 ${actionTypeEmoji}${action.name}!`,
+        COLORS.message.warning
+      );
+      
+      // 스킬 사용 애니메이션 (머리 위에서 슉~ 사라짐)
+      this.scene.animationHelper.showEnemySkillUsed(enemyX, enemyY, action.name, enemy.emoji);
+      
+      // 공격/특수 행동일 때만 스킬 이름 표시
+      if (action.type === 'attack' || action.type === 'special') {
+        this.scene.animationHelper.showEnemySkillName(
+          enemy.name,
+          action.name,
+          enemy.emoji
+        ).then(() => {
+          // 스킬 이름 표시 후 실제 공격 실행 (다시 HP 체크)
+          if (enemy.hp > 0) {
+            this.scene.combatSystem.executeEnemyAction(enemy, action);
+          }
+          
+          // 다음 행동으로 (약간의 딜레이 후)
+          this.scene.time.delayedCall(400, () => {
+            this.executeActionsSequentially(actions, index + 1);
+          });
+        });
+      } else {
+        // 버프/방어 등은 바로 실행
+        if (enemy.hp > 0) {
+          this.scene.combatSystem.executeEnemyAction(enemy, action);
+        }
+        this.scene.time.delayedCall(300, () => {
+          this.executeActionsSequentially(actions, index + 1);
+        });
+      }
+    });
   }
   
   /**
@@ -625,31 +680,44 @@ spawnWaveEnemies() {
     const enemyX = sprite ? sprite.x : this.scene.cameras.main.width - 180;
     const enemyY = sprite ? sprite.y : this.scene.GROUND_Y - 30;
     
-    // 스킬 사용 애니메이션 (머리 위에서 슉~ 사라짐)
-    this.scene.animationHelper.showEnemySkillUsed(enemyX, enemyY, action.name, enemy.emoji);
-    
-    // 공격/특수 행동일 때만 스킬 이름 표시
-    if (action.type === 'attack' || action.type === 'special') {
-      this.scene.animationHelper.showEnemySkillName(
-        enemy.name,
-        action.name,
-        enemy.emoji
-      ).then(() => {
-        // 스킬 이름 표시 후 실제 공격 실행
-        this.scene.combatSystem.executeEnemyAction(enemy, action);
-        
-        // 다음 행동으로 (약간의 딜레이 후)
-        this.scene.time.delayedCall(400, () => {
+    // 약간 딜레이 후 실행 (플레이어 공격 애니메이션이 먼저 완료되도록)
+    this.scene.time.delayedCall(100, () => {
+      // HP 체크 (플레이어 공격 애니메이션 중 죽었을 수 있음)
+      if (enemy.hp <= 0) {
+        this.executeActionsSequentiallyWithCallback(actions, index + 1, onComplete);
+        return;
+      }
+      
+      // 스킬 사용 애니메이션 (머리 위에서 슉~ 사라짐)
+      this.scene.animationHelper.showEnemySkillUsed(enemyX, enemyY, action.name, enemy.emoji);
+      
+      // 공격/특수 행동일 때만 스킬 이름 표시
+      if (action.type === 'attack' || action.type === 'special') {
+        this.scene.animationHelper.showEnemySkillName(
+          enemy.name,
+          action.name,
+          enemy.emoji
+        ).then(() => {
+          // 스킬 이름 표시 후 실제 공격 실행 (다시 HP 체크)
+          if (enemy.hp > 0) {
+            this.scene.combatSystem.executeEnemyAction(enemy, action);
+          }
+          
+          // 다음 행동으로 (약간의 딜레이 후)
+          this.scene.time.delayedCall(400, () => {
+            this.executeActionsSequentiallyWithCallback(actions, index + 1, onComplete);
+          });
+        });
+      } else {
+        // 버프/방어 등은 바로 실행
+        if (enemy.hp > 0) {
+          this.scene.combatSystem.executeEnemyAction(enemy, action);
+        }
+        this.scene.time.delayedCall(300, () => {
           this.executeActionsSequentiallyWithCallback(actions, index + 1, onComplete);
         });
-      });
-    } else {
-      // 버프/방어 등은 바로 실행
-      this.scene.combatSystem.executeEnemyAction(enemy, action);
-      this.scene.time.delayedCall(300, () => {
-        this.executeActionsSequentiallyWithCallback(actions, index + 1, onComplete);
-      });
-    }
+      }
+    });
   }
   
   updateEnemyActionDisplay() {
@@ -723,7 +791,11 @@ spawnWaveEnemies() {
     if (action.type === 'attack' || action.type === 'special') {
       damageText = `⚔️ 데미지: ${action.damage}`;
     } else if (action.type === 'defend') {
-      damageText = '🛡️ 방어 자세';
+      const defGain = action.defenseIncrease ?? 5;
+      damageText = `🛡️ 방어 자세 (+${defGain} 방어)`;
+    } else if (action.type === 'taunt') {
+      const defGain = action.defenseIncrease;
+      damageText = defGain ? `🛡️ 도발 (+${defGain} 방어)` : '🛡️ 도발';
     } else if (action.type === 'buff') {
       damageText = '✨ 버프/회복';
     } else if (action.type === 'charge') {
@@ -836,6 +908,335 @@ spawnWaveEnemies() {
       this.debuffTooltip.destroy();
       this.debuffTooltip = null;
     }
+  }
+  
+  // ========== 출혈/독 데미지 (적 스킬 발동 직전) ==========
+  
+  /**
+   * 개별 적에게 출혈 데미지 적용 (스킬 발동 직전)
+   * @returns 적이 죽었는지 여부
+   */
+  private applyBleedDamageToEnemy(enemy: Enemy): boolean {
+    if (!enemy.bleeds || enemy.bleeds.length === 0) return false;
+    
+    let totalBleedDamage = 0;
+    
+    // 모든 출혈 데미지 적용
+    enemy.bleeds.forEach((bleed, index) => {
+      this.scene.animationHelper.showMessage(
+        `🩸 ${enemy.name} 출혈${enemy.bleeds.length > 1 ? `(${index + 1})` : ''}! -${bleed.damage}`, 
+        COLORS.effect.damage
+      );
+      totalBleedDamage += bleed.damage;
+      bleed.duration--;
+    });
+    
+    // 만료된 출혈 제거
+    enemy.bleeds = enemy.bleeds.filter(b => b.duration > 0);
+    
+    // 데미지 적용
+    if (totalBleedDamage > 0) {
+      this.scene.combatSystem.damageEnemy(enemy, totalBleedDamage);
+    }
+    
+    // UI 업데이트
+    this.updateEnemySprite(enemy);
+    
+    return enemy.hp <= 0;
+  }
+  
+  /**
+   * 개별 적에게 독 데미지 적용 (스킬 발동 직전)
+   * @returns 적이 죽었는지 여부
+   */
+  private applyPoisonDamageToEnemy(enemy: Enemy): boolean {
+    if (!enemy.poisons || enemy.poisons.length === 0) return false;
+    
+    let totalPoisonDamage = 0;
+    
+    // 모든 독 데미지 적용
+    enemy.poisons.forEach((poison, index) => {
+      this.scene.animationHelper.showMessage(
+        `☠️ ${enemy.name} 독${enemy.poisons.length > 1 ? `(${index + 1})` : ''}! -${poison.damage}`, 
+        COLORS.effect.damage
+      );
+      totalPoisonDamage += poison.damage;
+      poison.duration--;
+    });
+    
+    // 만료된 독 제거
+    enemy.poisons = enemy.poisons.filter(p => p.duration > 0);
+    
+    // 데미지 적용
+    if (totalPoisonDamage > 0) {
+      this.scene.combatSystem.damageEnemy(enemy, totalPoisonDamage);
+    }
+    
+    // UI 업데이트
+    this.updateEnemySprite(enemy);
+    
+    return enemy.hp <= 0;
+  }
+  
+  // ========== 데미지 미리보기 ==========
+  
+  private damagePreviewTween: Phaser.Tweens.Tween | null = null;
+  private previewedEnemyIds: string[] = [];
+  
+  /**
+   * 스킬 범위 결정 (swordDouble 처리 포함)
+   */
+  private resolveReachForPreview(skillReach: string, swordReach: string): string {
+    if (skillReach === 'weapon') {
+      return swordReach;
+    }
+    if (skillReach === 'swordDouble') {
+      // 무기 범위의 2배 타겟 수
+      const reachToCount: Record<string, number> = { single: 1, double: 2, triple: 3, all: 999 };
+      const countToReach: [number, string][] = [[999, 'all'], [6, 'all'], [4, 'all'], [3, 'triple'], [2, 'double'], [1, 'single']];
+      const doubled = (reachToCount[swordReach] || 1) * 2;
+      for (const [count, reach] of countToReach) {
+        if (doubled >= count) return reach;
+      }
+      return 'single';
+    }
+    return skillReach;
+  }
+  
+  /**
+   * 호버한 적과 범위 공격 대상에 데미지 미리보기 표시
+   */
+  showDamagePreview(hoveredEnemy: Enemy) {
+    const pending = this.scene.pendingCard;
+    if (!pending) return;
+    
+    const card = pending.card;
+    const sword = this.scene.playerState.currentSword;
+    
+    // 범위 결정
+    let reach = 'single';
+    let baseDamage = 0;
+    let attackCount = 1;
+    let isPiercing = false;
+    let pierce = 0;
+    let isCritical = false;
+    let criticalMultiplier = 1.0;
+    
+    if (card.type === 'sword') {
+      // 발도 공격
+      const swordCard = card.data as any;
+      reach = swordCard.drawAttack?.reach || 'single';
+      baseDamage = swordCard.attack * (swordCard.drawAttack?.multiplier || 1);
+      attackCount = 1;  // 발도는 1타
+      isPiercing = swordCard.drawAttack?.pierce || false;
+      pierce = swordCard.pierce || 0;
+      
+      // 발도 크리티컬 조건 체크
+      if (swordCard.drawAttack?.criticalCondition === 'enemyDelay1') {
+        // 적 대기가 1인지 확인
+        if (hoveredEnemy.actionQueue.length > 0 && hoveredEnemy.actionQueue[0].currentDelay === 1) {
+          isCritical = true;
+          criticalMultiplier = swordCard.drawAttack?.criticalMultiplier || 1.5;
+          isPiercing = swordCard.drawAttack?.criticalPierce || isPiercing;
+        }
+      }
+    } else {
+      // 스킬 카드
+      const skillCard = card.data as any;
+      if (skillCard.type !== 'attack' && skillCard.type !== 'special') return;  // 공격 스킬만
+      
+      // 범위 결정 (swordDouble 처리 포함)
+      reach = this.resolveReachForPreview(skillCard.reach, sword?.reach || 'single');
+      baseDamage = sword ? sword.attack * (skillCard.attackMultiplier || 1) : 0;
+      attackCount = skillCard.attackCount || 1;
+      isPiercing = skillCard.isPiercing || false;
+      pierce = sword?.pierce || 0;
+      
+      // 스킬 크리티컬 조건 체크 (단검일 때)
+      if (skillCard.criticalCondition === 'dagger' && sword?.category === 'dagger') {
+        isCritical = true;
+        criticalMultiplier = skillCard.criticalMultiplier || 2.0;
+        isPiercing = true;
+      }
+    }
+    
+    // 타겟 계산 (호버한 적 기준 범위)
+    const enemies = this.scene.gameState.enemies;
+    const baseIndex = enemies.indexOf(hoveredEnemy);
+    let targetCount = 1;
+    
+    switch (reach) {
+      case 'single': targetCount = 1; break;
+      case 'double': targetCount = 2; break;
+      case 'triple': targetCount = 3; break;
+      case 'all': targetCount = enemies.length; break;
+      default: targetCount = parseInt(reach) || 1;
+    }
+    
+    const targets = reach === 'all' 
+      ? enemies 
+      : enemies.slice(baseIndex, Math.min(enemies.length, baseIndex + targetCount));
+    
+    // 각 타겟에 미리보기 표시
+    this.previewedEnemyIds = targets.map(e => e.id);
+    
+    targets.forEach(enemy => {
+      // 데미지 계산
+      let damage: number;
+      if (isPiercing) {
+        damage = baseDamage;
+      } else {
+        const effectiveDefense = Math.max(0, enemy.defense - pierce);
+        damage = Math.max(1, baseDamage - effectiveDefense);
+      }
+      
+      // 크리티컬 배율 적용
+      if (isCritical) {
+        damage *= criticalMultiplier;
+      }
+      
+      // 타수 적용
+      const totalDamage = Math.floor(damage * attackCount);
+      const predictedHp = Math.max(0, enemy.hp - totalDamage);
+      
+      this.showEnemyDamagePreview(enemy, totalDamage, predictedHp, isCritical);
+    });
+    
+    // 깜빡임 애니메이션 시작
+    this.startPreviewBlink();
+  }
+  
+  /**
+   * 개별 적의 데미지 미리보기 표시
+   */
+  private showEnemyDamagePreview(enemy: Enemy, _damage: number, predictedHp: number, isCritical: boolean) {
+    const container = this.scene.enemySprites.get(enemy.id);
+    if (!container) return;
+    
+    const damagePreviewBar = (container as any).damagePreviewBar as Phaser.GameObjects.Rectangle;
+    const hpBar = (container as any).hpBar as Phaser.GameObjects.Rectangle;
+    const hpText = (container as any).hpText as Phaser.GameObjects.Text;
+    
+    if (!damagePreviewBar || !hpBar || !hpText) return;
+    
+    // 미리보기 바 표시 (현재 HP 비율로)
+    const currentHpRatio = enemy.hp / enemy.maxHp;
+    const predictedHpRatio = predictedHp / enemy.maxHp;
+    
+    // 현재 HP까지 보여주고, 예상 데미지 부분은 진한 빨간색
+    damagePreviewBar.setVisible(true);
+    damagePreviewBar.setScale(currentHpRatio, 1);
+    
+    // HP 바는 예상 HP로 줄여서 표시
+    hpBar.setScale(predictedHpRatio, 1);
+    
+    // 기존 HP 텍스트 숨기기
+    hpText.setVisible(false);
+    
+    // 미리보기 텍스트 생성 (예상 체력: 빨간색, /전체체력: 흰색)
+    const criticalText = isCritical ? '⭐' : '';
+    
+    // 기존 미리보기 텍스트가 있으면 제거
+    const existingPreview = (container as any).previewHpText;
+    if (existingPreview) existingPreview.destroy();
+    const existingMaxHp = (container as any).previewMaxHpText;
+    if (existingMaxHp) existingMaxHp.destroy();
+    
+    // 예상 체력 텍스트 (빨간색)
+    const predictedText = this.scene.add.text(0, 109, `${criticalText}${predictedHp}`, {
+      font: '22px monospace',
+      color: '#ff4444',
+    }).setOrigin(1, 0.5);  // 오른쪽 정렬
+    
+    // /전체체력 텍스트 (흰색)
+    const maxHpText = this.scene.add.text(0, 109, `/${enemy.maxHp}`, {
+      font: '22px monospace',
+      color: '#ffffff',
+    }).setOrigin(0, 0.5);  // 왼쪽 정렬
+    
+    container.add([predictedText, maxHpText]);
+    (container as any).previewHpText = predictedText;
+    (container as any).previewMaxHpText = maxHpText;
+  }
+  
+  /**
+   * 깜빡임 애니메이션 시작
+   */
+  private startPreviewBlink() {
+    // 기존 트윈 정지
+    if (this.damagePreviewTween) {
+      this.damagePreviewTween.stop();
+    }
+    
+    // 모든 미리보기 바에 깜빡임 적용
+    this.previewedEnemyIds.forEach(enemyId => {
+      const container = this.scene.enemySprites.get(enemyId);
+      if (!container) return;
+      
+      const damagePreviewBar = (container as any).damagePreviewBar as Phaser.GameObjects.Rectangle;
+      if (damagePreviewBar) {
+        this.damagePreviewTween = this.scene.tweens.add({
+          targets: damagePreviewBar,
+          alpha: { from: 0.9, to: 0.4 },
+          duration: 400,
+          yoyo: true,
+          repeat: -1,
+        });
+      }
+    });
+  }
+  
+  /**
+   * 데미지 미리보기 숨기기
+   */
+  hideDamagePreview() {
+    // 트윈 정지
+    if (this.damagePreviewTween) {
+      this.damagePreviewTween.stop();
+      this.damagePreviewTween = null;
+    }
+    
+    // 모든 미리보기된 적의 UI 복원
+    this.previewedEnemyIds.forEach(enemyId => {
+      const enemy = this.scene.gameState.enemies.find(e => e.id === enemyId);
+      const container = this.scene.enemySprites.get(enemyId);
+      if (!container || !enemy) return;
+      
+      const damagePreviewBar = (container as any).damagePreviewBar as Phaser.GameObjects.Rectangle;
+      const hpBar = (container as any).hpBar as Phaser.GameObjects.Rectangle;
+      const hpText = (container as any).hpText as Phaser.GameObjects.Text;
+      
+      if (damagePreviewBar) {
+        damagePreviewBar.setVisible(false);
+        damagePreviewBar.setAlpha(0.8);
+      }
+      
+      if (hpBar) {
+        const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
+        hpBar.setScale(hpRatio, 1);
+      }
+      
+      // 원래 HP 텍스트 복원
+      if (hpText) {
+        hpText.setVisible(true);
+        hpText.setText(`${Math.max(0, enemy.hp)}/${enemy.maxHp}`);
+        hpText.setColor('#ffffff');
+      }
+      
+      // 미리보기 텍스트 제거
+      const previewHpText = (container as any).previewHpText;
+      if (previewHpText) {
+        previewHpText.destroy();
+        (container as any).previewHpText = null;
+      }
+      const previewMaxHpText = (container as any).previewMaxHpText;
+      if (previewMaxHpText) {
+        previewMaxHpText.destroy();
+        (container as any).previewMaxHpText = null;
+      }
+    });
+    
+    this.previewedEnemyIds = [];
   }
 }
 

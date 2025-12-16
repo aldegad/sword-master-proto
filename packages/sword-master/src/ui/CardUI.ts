@@ -59,7 +59,8 @@ export class CardUI {
   
   private cardContainer!: Phaser.GameObjects.Container;
   private cardSprites: Phaser.GameObjects.Container[] = [];
-  private graveText!: Phaser.GameObjects.Text;
+  private graveButton!: Phaser.GameObjects.Container;
+  private graveCountText!: Phaser.GameObjects.Text;
   private deckButton!: Phaser.GameObjects.Container;
   private deckCountText!: Phaser.GameObjects.Text;
   
@@ -116,7 +117,7 @@ export class CardUI {
     this.scene.add.text(
       width / 2,
       height - 298,
-      '─ 손패 (1~0 키) ─',
+      '─ 손패 - 최대 12장 ─',
       {
         font: 'bold 24px monospace',
         color: COLORS_STR.primary.main,
@@ -129,12 +130,37 @@ export class CardUI {
       height - 145
     );
     
-    // 무덤 표시 (손패 좌측 하단)
-    this.graveText = this.scene.add.text(56, height - 34, '', {
-      font: 'bold 26px monospace',
+    // 무덤 버튼 (손패 좌측 하단)
+    this.graveButton = this.scene.add.container(100, height - 50);
+    
+    const graveBg = this.scene.add.rectangle(0, 0, 140, 50, COLORS.background.dark, 0.9);
+    graveBg.setStrokeStyle(2, COLORS.secondary.dark);
+    
+    const graveIcon = this.scene.add.text(-50, 0, '🪦', {
+      font: '24px Arial',
+    }).setOrigin(0.5);
+    
+    this.graveCountText = this.scene.add.text(10, 0, 'GRAVE: 0', {
+      font: 'bold 18px monospace',
       color: COLORS_STR.text.muted,
+    }).setOrigin(0.5);
+    
+    this.graveButton.add([graveBg, graveIcon, this.graveCountText]);
+    this.graveButton.setDepth(2500);  // 보상 선택 UI(2000)보다 위
+    
+    // 무덤 버튼 클릭 이벤트
+    graveBg.setInteractive({ useHandCursor: true });
+    graveBg.on('pointerover', () => {
+      graveBg.setStrokeStyle(3, COLORS.secondary.light);
+      this.graveButton.setScale(1.05);
     });
-    this.graveText.setDepth(100);  // 손패 배경보다 앞으로
+    graveBg.on('pointerout', () => {
+      graveBg.setStrokeStyle(2, COLORS.secondary.dark);
+      this.graveButton.setScale(1);
+    });
+    graveBg.on('pointerdown', () => {
+      this.scene.deckViewerUI.show('grave');  // 무덤만 표시
+    });
     
     // 덱 버튼 (손패 우측 하단)
     this.deckButton = this.scene.add.container(width - 100, height - 50);
@@ -152,7 +178,7 @@ export class CardUI {
     }).setOrigin(0.5);
     
     this.deckButton.add([deckBg, deckIcon, this.deckCountText]);
-    this.deckButton.setDepth(100);
+    this.deckButton.setDepth(2500);  // 보상 선택 UI(2000)보다 위
     
     // 덱 버튼 클릭 이벤트
     deckBg.setInteractive({ useHandCursor: true });
@@ -236,7 +262,7 @@ export class CardUI {
       this.cardSprites.forEach(sprite => sprite.destroy());
       this.cardSprites = [];
       const player = this.scene.gameScene.playerState;
-      this.graveText.setText(`🪦 GRAVE: ${player.discard.length}`);
+      this.graveCountText.setText(`GRAVE: ${player.discard.length}`);
       // 카드가 없으면 툴팁도 숨김
       this.scene.tooltipUI.hide();
       return;
@@ -282,7 +308,7 @@ export class CardUI {
     
     // 무덤 표시 업데이트
     const player = this.scene.gameScene.playerState;
-    this.graveText.setText(`🪦 GRAVE: ${player.discard.length}`);
+    this.graveCountText.setText(`GRAVE: ${player.discard.length}`);
     
     // 덱 카운트 업데이트
     this.deckCountText.setText(`DECK: ${player.deck.length}`);

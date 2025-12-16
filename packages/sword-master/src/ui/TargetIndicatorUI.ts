@@ -30,15 +30,15 @@ export class TargetIndicatorUI {
     const enemies = this.scene.gameScene.gameState.enemies;
     const enemySprites = this.scene.gameScene.enemySprites;
     
-    // 도발 중인 적 찾기
-    const tauntingEnemy = enemies.find(e => e.isTaunting && (e.tauntDuration ?? 0) > 0);
+    // 도발 중인 적들 찾기 (여러 명 가능)
+    const tauntingEnemies = enemies.filter(e => e.isTaunting && (e.tauntDuration ?? 0) > 0);
     
     enemies.forEach(enemy => {
       const sprite = enemySprites.get(enemy.id);
       if (!sprite) return;
       
-      // 도발 중인 적이 있고, 이 적이 아니면 타겟팅 불가 (범위 공격 예외 처리는 highlightTargets에서)
-      const canTarget = !tauntingEnemy || enemy.id === tauntingEnemy.id;
+      // 도발 중인 적이 있으면, 도발 중인 적들만 타겟팅 가능 (범위 공격 예외 처리는 highlightTargets에서)
+      const canTarget = tauntingEnemies.length === 0 || tauntingEnemies.some(e => e.id === enemy.id);
       
       // 적 위에 약간 어둡게 오버레이
       const dimOverlay = this.scene.add.rectangle(
@@ -107,12 +107,18 @@ export class TargetIndicatorUI {
           this.highlightTargets(enemy.id);
           arrow.setAlpha(1);
           arrow.setScale(1.2);
+          
+          // 데미지 미리보기 표시
+          this.scene.gameScene.enemyManager.showDamagePreview(enemy);
         });
         
         hitArea.on('pointerout', () => {
           this.clearHighlights();
           arrow.setAlpha(0.6);
           arrow.setScale(1);
+          
+          // 데미지 미리보기 숨기기
+          this.scene.gameScene.enemyManager.hideDamagePreview();
         });
         
         hitArea.on('pointerdown', () => {

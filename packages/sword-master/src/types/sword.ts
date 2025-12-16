@@ -39,6 +39,11 @@ export interface DrawAttack {
   isSwift?: boolean;      // 신속 발도 (단검류)
   criticalCondition?: 'enemyDelay1';  // 크리티컬 조건
   criticalMultiplier?: number;  // 크리티컬 배율 (기본 1.5 = 150%)
+  criticalPierce?: boolean;     // 크리티컬 시 방어 무시
+  criticalBleed?: { damage: number; duration: number };  // 크리티컬 시 출혈
+  criticalPoison?: { damage: number; duration: number }; // 크리티컬 시 독
+  cancelEnemySkill?: boolean;   // 항상 적 스킬 취소 (본국검)
+  criticalCancelEnemySkill?: boolean;   // 크리티컬 시에만 적 스킬 취소 (요이도로시)
   pierce?: boolean;       // 방어 무시
   armorReduce?: number;   // 적 방어력 영구 감소
   delayIncrease?: number; // 적 대기턴 증가
@@ -62,17 +67,21 @@ export interface SwordTemplate {
   description: string;
   specialEffect?: string;
   bleedOnHit?: { damage: number; duration: number };
+  poisonOnHit?: { damage: number; duration: number };  // 독 피해
   armorBreakOnHit?: number;
   delayIncreaseOnHit?: number;  // 장착 중 공격 시 적 대기턴 증가
+  isMirage?: boolean;  // 신기루: 사용하지 않으면 턴 종료 시 사라짐
   drawAttack: DrawAttack;
 }
 
 // 검 카드 (게임 내 인스턴스)
-export interface SwordCard extends Omit<SwordTemplate, 'category'> {
+export interface SwordCard extends SwordTemplate {
   displayName: string;      // 인첸트 포함된 표시 이름
   currentDurability: number; // 현재 내구도
   prefix?: SwordPrefix;
   suffix?: SwordSuffix;
   delayIncreaseOnHit?: number;  // 장착 중 공격 시 적 대기턴 증가
+  poisonOnHit?: { damage: number; duration: number };  // 독 피해
+  isMirage?: boolean;  // 신기루: 사용하지 않으면 턴 종료 시 사라짐
 }
 
