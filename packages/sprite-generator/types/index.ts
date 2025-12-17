@@ -94,6 +94,20 @@ export interface BackgroundRemovalOptions {
   trimTransparent?: boolean;
   useBackgroundColor?: boolean;
   backgroundColor?: string;
+  // 픽셀 아트 전용 옵션
+  isManualPixelArt?: boolean;       // 사용자가 수동으로 픽셀 아트라고 지정
+  autoDetectPixelArt?: boolean;     // 픽셀 아트 자동 감지 (기본: false)
+  pixelArtCleanup?: boolean;        // 픽셀 아트 격자 정리 적용 (기본: true)
+  pixelBlockSize?: number;          // 픽셀 블록 크기 (1x1, 2x2 등)
+  pixelTransparencyThreshold?: number; // 투명도 임계값 (기본: 0.1 = 10%)
+}
+
+// 픽셀 아트 분석 결과
+export interface PixelArtAnalysis {
+  isPixelArt: boolean;
+  confidence: number;
+  blockSize: number;
+  uniformityScore: number;
 }
 
 // 단일 이미지 배경 제거 결과

@@ -1,15 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Play, Square, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Square, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
+import { PixelArtSettings } from '@/components/shared/PixelArtSettings';
 import { useAppStore } from '@/store/useAppStore';
 import { BackgroundRemover } from '@/lib/background-remover';
 import { SpriteGenerator } from '@/lib/sprite-generator';
-import type { FrameWithOffset } from '@/types';
+import type { FrameWithOffset, BackgroundRemovalOptions } from '@/types';
 
 const backgroundRemoverRef = { current: null as BackgroundRemover | null };
 const spriteGeneratorRef = { current: null as SpriteGenerator | null };
@@ -20,6 +21,15 @@ export function FramePreview() {
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const animationRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef(0);
+  
+  // 배경 제거 설정 패널 상태
+  const [isBgRemovePanelOpen, setIsBgRemovePanelOpen] = useState(false);
+  const [bgRemoveOptions, setBgRemoveOptions] = useState<BackgroundRemovalOptions>({
+    isManualPixelArt: true,
+    pixelBlockSize: 1,
+    pixelArtCleanup: true,
+    pixelTransparencyThreshold: 0.4,
+  });
 
   const {
     extractedFrames,
@@ -164,11 +174,13 @@ export function FramePreview() {
         extractedFrames,
         (progress, current, total) => {
           updateProgress(`배경 제거 중... (${current}/${total})`, progress);
-        }
+        },
+        bgRemoveOptions // 픽셀 아트 옵션 전달
       );
 
       setExtractedFrames(newFrames);
       drawPreviewFrame(currentFrameIndex);
+      setIsBgRemovePanelOpen(false); // 패널 닫기
       hideProgress();
     } catch (error) {
       hideProgress();
@@ -182,6 +194,7 @@ export function FramePreview() {
     hideProgress,
     setExtractedFrames,
     drawPreviewFrame,
+    bgRemoveOptions,
   ]);
 
   // 스프라이트 시트 생성
@@ -324,11 +337,51 @@ export function FramePreview() {
         <Button variant="outline" size="sm" onClick={deselectAllFrames}>
           전체 해제
         </Button>
-        <Button variant="secondary" onClick={handleRemoveBackground}>
-          배경 제거 (AI)
+        <Button 
+          variant={isBgRemovePanelOpen ? "primary" : "secondary"} 
+          onClick={() => setIsBgRemovePanelOpen(!isBgRemovePanelOpen)}
+        >
+          {isBgRemovePanelOpen ? '배경 제거 설정 닫기' : '배경 제거 (AI)'}
         </Button>
         <Button onClick={handleGenerateSprite}>스프라이트 시트 생성</Button>
       </div>
+
+      {/* 배경 제거 설정 패널 */}
+      {isBgRemovePanelOpen && (
+        <div className="mt-4 bg-bg rounded-xl p-4 border-2 border-primary/50">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h3 className="text-sm font-semibold">AI 배경 제거 설정</h3>
+            </div>
+            <button 
+              onClick={() => setIsBgRemovePanelOpen(false)}
+              className="p-1 hover:bg-surface rounded"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* 🎮 픽셀 아트 설정 (공통 컴포넌트) */}
+          <PixelArtSettings
+            options={bgRemoveOptions}
+            onChange={setBgRemoveOptions}
+            compact
+          />
+
+          {/* 실행 버튼 */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <Button 
+              size="lg" 
+              onClick={handleRemoveBackground} 
+              icon={<Sparkles className="w-5 h-5" />}
+              className="w-full"
+            >
+              배경 제거 실행 ({extractedFrames.length}개 프레임)
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

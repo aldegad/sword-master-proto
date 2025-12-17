@@ -139,6 +139,12 @@ const initialState = {
     trimTransparent: false,
     useBackgroundColor: false,
     backgroundColor: '#ffffff',
+    // 픽셀 아트 옵션
+    isManualPixelArt: true, // 기본 체크
+    autoDetectPixelArt: false,
+    pixelArtCleanup: true,
+    pixelBlockSize: 1,
+    pixelTransparencyThreshold: 0.4, // 40% 미만 불투명하면 투명 처리
   },
   bgRemoveResult: null,
 

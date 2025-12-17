@@ -7,6 +7,7 @@ import { Card } from '@/components/common/Card';
 import { UploadArea } from '@/components/common/UploadArea';
 import { Button } from '@/components/common/Button';
 import { Select, RangeInput } from '@/components/common/Input';
+import { PixelArtSettings } from '@/components/shared/PixelArtSettings';
 import { useAppStore } from '@/store/useAppStore';
 import { BackgroundRemover } from '@/lib/background-remover';
 import type { ModelSize } from '@/types';
@@ -113,16 +114,25 @@ export function BgRemoveMode() {
   // 결과 캔버스 그리기
   useEffect(() => {
     if (!bgRemoveResult || !resultCanvasRef.current) return;
+    if (resultView !== 'result') return; // 결과 뷰일 때만 그리기
 
     const canvas = resultCanvasRef.current;
     const ctx = canvas.getContext('2d')!;
     canvas.width = bgRemoveResult.canvas.width;
     canvas.height = bgRemoveResult.canvas.height;
 
-    // 체크보드 패턴
-    drawCheckerboard(ctx, canvas.width, canvas.height);
+    // 체크보드 패턴 (픽셀 아트 모드면 블록 크기 사용)
+    const gridSize = bgRemoveOptions.isManualPixelArt 
+      ? (bgRemoveOptions.pixelBlockSize || 1) 
+      : 10;
+    drawCheckerboard(ctx, canvas.width, canvas.height, gridSize);
     ctx.drawImage(bgRemoveResult.canvas, 0, 0);
-  }, [bgRemoveResult]);
+    
+    // 픽셀 아트 모드면 격자선 그리기
+    if (bgRemoveOptions.isManualPixelArt && gridSize > 1) {
+      drawGrid(ctx, canvas.width, canvas.height, gridSize);
+    }
+  }, [bgRemoveResult, bgRemoveOptions.isManualPixelArt, bgRemoveOptions.pixelBlockSize, resultView]);
 
   // 비교 뷰 그리기
   useEffect(() => {
@@ -277,6 +287,19 @@ export function BgRemoveMode() {
             </div>
           </div>
 
+          {/* 🎮 픽셀 아트 설정 - 메인 섹션 (공통 컴포넌트) */}
+          <div className="bg-bg rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-lg">🎮</span>
+              <h3 className="text-sm font-semibold">픽셀 아트 설정</h3>
+            </div>
+            
+            <PixelArtSettings
+              options={bgRemoveOptions}
+              onChange={(newOptions) => setBgRemoveOptions(newOptions)}
+            />
+          </div>
+
           {/* 고급 설정 */}
           <div className="bg-bg rounded-xl p-4 mb-6">
             <button
@@ -325,7 +348,7 @@ export function BgRemoveMode() {
                       step={0.5}
                       value={bgRemoveOptions.edgeBlur}
                       displayValue={`${bgRemoveOptions.edgeBlur || 0}px`}
-                      hint="경계선을 부드럽게 처리합니다"
+                      hint="경계선을 부드럽게 처리 (픽셀 아트 시 비활성)"
                       onChange={(e) =>
                         setBgRemoveOptions({ edgeBlur: parseFloat(e.target.value) })
                       }
@@ -500,6 +523,32 @@ function drawCheckerboard(
       ctx.fillStyle = colors[((x / size + y / size) % 2 === 0 ? 0 : 1)];
       ctx.fillRect(x, y, size, size);
     }
+  }
+}
+
+function drawGrid(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  size: number
+) {
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1;
+  
+  // 수직선
+  for (let x = 0; x <= width; x += size) {
+    ctx.beginPath();
+    ctx.moveTo(x + 0.5, 0);
+    ctx.lineTo(x + 0.5, height);
+    ctx.stroke();
+  }
+  
+  // 수평선
+  for (let y = 0; y <= height; y += size) {
+    ctx.beginPath();
+    ctx.moveTo(0, y + 0.5);
+    ctx.lineTo(width, y + 0.5);
+    ctx.stroke();
   }
 }
 
