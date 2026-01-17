@@ -43,7 +43,7 @@
       align-items: center;
     }
     
-    /* 전체화면 버튼 (모바일용) */
+    /* 전체화면 버튼 */
     #fullscreen-btn {
       position: fixed;
       bottom: 10px;
@@ -57,13 +57,16 @@
       font-size: 14px;
       font-weight: bold;
       cursor: pointer;
-      display: none;
     }
-    
-    @media (max-width: 1024px) {
-      #fullscreen-btn {
-        display: block;
-      }
+
+    #fullscreen-btn:hover {
+      background: rgba(212, 175, 55, 1);
+    }
+
+    /* 전체화면일 때 버튼 숨김 */
+    :fullscreen #fullscreen-btn,
+    :-webkit-full-screen #fullscreen-btn {
+      display: none;
     }
 
     /* 푸터 스타일 */
