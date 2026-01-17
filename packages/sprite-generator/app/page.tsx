@@ -10,6 +10,7 @@ import { ExpoAssetsMode } from '@/components/modes/ExpoAssetsMode';
 import { FramePreview } from '@/components/shared/FramePreview';
 import { SpriteResult } from '@/components/shared/SpriteResult';
 import { TopBannerAd, InContentAd, SidebarAd, BottomBannerAd } from '@/components/common/AdBanner';
+import { FeaturesSection, GuideSection, FaqSection } from '@/components/content';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function Home() {
@@ -58,6 +59,11 @@ export default function Home() {
 
       {/* 하단 배너 광고 */}
       <BottomBannerAd />
+
+      {/* 콘텐츠 섹션 */}
+      <FeaturesSection />
+      <GuideSection />
+      <FaqSection />
 
       <ProgressOverlay />
 
