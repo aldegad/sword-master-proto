@@ -32,29 +32,34 @@ export class BackgroundRemover {
     if (this.isInitialized && this.currentModel === model) return;
 
     try {
-      const { pipeline, env } = await import('@huggingface/transformers');
+      // @ts-ignore - dynamic import
+      const transformers = await import('@huggingface/transformers');
+      const { pipeline, env } = transformers;
 
-      // WASM 백엔드 설정 (WebGPU는 호환성 문제로 비활성화)
+      // 기본 설정
       env.allowLocalModels = false;
       env.useBrowserCache = true;
-      // ONNX backend 설정 - WASM만 사용
-      if (env.backends?.onnx?.wasm) {
-        env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/';
-      }
+
+      console.log('배경 제거 모델 로딩 중... (처음 실행 시 모델 다운로드로 시간이 걸릴 수 있습니다)');
 
       // 배경 제거용 이미지 세분화 파이프라인 생성
-      // 'wasm' 또는 'cpu' 백엔드 사용 (webgpu 대신)
-      this.pipeline = await pipeline('image-segmentation', 'briaai/RMBG-1.4', {
-        device: 'wasm',
-        dtype: 'fp32',
-      });
+      // WebGPU를 우선 시도하고, 실패하면 CPU로 fallback
+      try {
+        this.pipeline = await pipeline('image-segmentation', 'briaai/RMBG-1.4', {
+          device: 'webgpu',
+        });
+        console.log('배경 제거 라이브러리 초기화 완료 (WebGPU 백엔드)');
+      } catch (webgpuError) {
+        console.warn('WebGPU 사용 불가, CPU 백엔드로 전환:', webgpuError);
+        this.pipeline = await pipeline('image-segmentation', 'briaai/RMBG-1.4');
+        console.log('배경 제거 라이브러리 초기화 완료 (CPU 백엔드)');
+      }
 
       this.isInitialized = true;
       this.currentModel = model;
-      console.log('배경 제거 라이브러리 초기화 완료 (WASM 백엔드)');
     } catch (error) {
       console.error('배경 제거 라이브러리 로드 실패:', error);
-      throw new Error('배경 제거 기능을 초기화할 수 없습니다.');
+      throw new Error('배경 제거 기능을 초기화할 수 없습니다. 브라우저를 새로고침하거나 다른 브라우저를 사용해주세요.');
     }
   }
 

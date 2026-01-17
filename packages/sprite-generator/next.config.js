@@ -11,7 +11,7 @@ const nextConfig = {
   // SWC minifier 사용 (Terser 대신)
   swcMinify: true,
   // ESM 패키지 트랜스파일
-  transpilePackages: ['@huggingface/transformers'],
+  transpilePackages: ['@huggingface/transformers', 'onnxruntime-web'],
   // ESM 외부 패키지 처리를 더 유연하게
   experimental: {
     esmExternals: 'loose',

@@ -161,16 +161,32 @@ v2 will be developed as a private project, building on the lessons learned from 
 
 ## Contributing
 
-This is v1, released as open source. Feel free to:
+This is v1. Feel free to:
 - Report issues
-- Submit pull requests
-- Fork and create your own version
+- Submit pull requests for bug fixes
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+**PolyForm Noncommercial License 1.0.0**
+
+이 프로젝트는 **비상업적 용도로만** 사용할 수 있습니다.
+
+**허용되는 사용:**
+- 포트폴리오 열람 및 코드 학습
+- 개인 연구 및 실험
+- 교육 목적
+- 비영리 단체에서의 사용
+
+**금지되는 사용:**
+- 상업적 목적의 포크 또는 배포
+- 유료 서비스에 통합
+- 상업용 게임 개발에 코드 재사용
+
+상업적 라이센스가 필요하시면 연락주세요: https://github.com/soohongkim
+
+자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
 ---
 
