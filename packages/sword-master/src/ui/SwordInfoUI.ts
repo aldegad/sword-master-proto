@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
+import { i18n } from '../i18n';
 
 /**
  * 무기 정보 UI - 장착된 무기 정보 표시
@@ -27,7 +28,7 @@ export class SwordInfoUI {
     this.infoPanel = this.scene.add.rectangle(38, 160, 488, 188, COLORS.background.dark, 0.95).setOrigin(0);
     this.infoPanel.setStrokeStyle(3, COLORS.border.medium);
     
-    this.scene.add.text(56, 172, '◈ 뽑아든 검', {
+    this.scene.add.text(56, 172, i18n.t('ui.swordInfo.title'), {
       font: 'bold 26px monospace',
       color: COLORS_STR.secondary.main,
     });
@@ -93,7 +94,7 @@ export class SwordInfoUI {
     const sword = this.scene.gameScene.playerState.currentSword;
     
     if (!sword) {
-      this.swordInfoText.setText('맨손 (NO WEAPON)\n⚡ 발도가 신속으로 발동!\n무기 카드를 사용하세요');
+      this.swordInfoText.setText(i18n.t('ui.swordInfo.noWeapon'));
       this.swordInfoText.setColor(COLORS_STR.primary.main);
       this.swordEmoji.setText('✊');
       this.specialEffectText.setText('');
@@ -102,18 +103,18 @@ export class SwordInfoUI {
     }
     
     const reachMap: Record<string, string> = {
-      single: '1적',
-      double: '2적',
-      triple: '3적',
-      all: '전체',
+      single: i18n.t('ui.range.single'),
+      double: i18n.t('ui.range.double'),
+      triple: i18n.t('ui.range.triple'),
+      all: i18n.t('ui.range.all'),
     };
     
     this.swordEmoji.setText(sword.emoji);
     const displayName = sword.displayName || sword.name;
     this.swordInfoText.setText([
       `${displayName}`,
-      `공${sword.attack} 방${sword.defense}% 관${sword.pierce || 0} ${sword.attackCount}타`,
-      `범위:${reachMap[sword.reach]} 내구:${sword.currentDurability}/${sword.durability}`,
+      i18n.t('ui.swordInfo.stats', { attack: sword.attack, defense: sword.defense, pierce: sword.pierce || 0, count: sword.attackCount }),
+      i18n.t('ui.swordInfo.rangeAndDur', { range: reachMap[sword.reach], current: sword.currentDurability, max: sword.durability }),
     ].join('\n'));
     
     // 등급에 따른 색상 변경
@@ -126,13 +127,13 @@ export class SwordInfoUI {
       specialEffects.push(`✨ ${sword.specialEffect}`);
     }
     if (sword.bleedOnHit) {
-      specialEffects.push(`🩸 출혈 부여`);
+      specialEffects.push(i18n.t('ui.swordInfo.bleedEffect'));
     }
     if (sword.poisonOnHit) {
-      specialEffects.push(`☠️ 독 부여`);
+      specialEffects.push(i18n.t('ui.swordInfo.poisonEffect'));
     }
     if (sword.armorBreakOnHit) {
-      specialEffects.push(`💥 방어구 파괴`);
+      specialEffects.push(i18n.t('ui.swordInfo.armorBreakEffect'));
     }
     this.specialEffectText.setText(specialEffects.join(' '));
     

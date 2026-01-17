@@ -3,6 +3,7 @@ import type { UIScene } from '../scenes/UIScene';
 import type { Card, SkillCard, PassiveTemplate } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
+import { i18n } from '../i18n';
 
 /**
  * 레벨업 선택 UI (스킬 / 패시브 분리)
@@ -41,7 +42,7 @@ export class LevelUpSkillUI {
     this.container.add(overlay);
     
     // 제목
-    const title = this.scene.add.text(width/2, 80, '🎉 레벨 업! 스킬을 선택하세요!', {
+    const title = this.scene.add.text(width/2, 80, i18n.t('ui.levelUp.title'), {
       font: 'bold 48px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
@@ -79,7 +80,7 @@ export class LevelUpSkillUI {
     const skipBtn = this.scene.add.container(width/2, height - 100);
     const skipBg = this.scene.add.rectangle(0, 0, 250, 60, COLORS.background.dark, 0.9);
     skipBg.setStrokeStyle(3, COLORS.text.muted);
-    const skipText = this.scene.add.text(0, 0, '건너뛰기', {
+    const skipText = this.scene.add.text(0, 0, i18n.t('ui.buttons.skip'), {
       font: 'bold 28px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
@@ -157,7 +158,7 @@ export class LevelUpSkillUI {
     const skipBtn = this.scene.add.container(width/2, height - 100);
     const skipBg = this.scene.add.rectangle(0, 0, 250, 60, COLORS.background.dark, 0.9);
     skipBg.setStrokeStyle(3, COLORS.text.muted);
-    const skipText = this.scene.add.text(0, 0, '건너뛰기', {
+    const skipText = this.scene.add.text(0, 0, i18n.t('ui.buttons.skip'), {
       font: 'bold 28px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
@@ -192,7 +193,7 @@ export class LevelUpSkillUI {
     const cardHeight = CARD_SIZE.DETAIL.height;
     const selectBtn = this.scene.add.rectangle(0, cardHeight / 2 + 50, 180, 60, COLORS.success.main, 0.9);
     selectBtn.setStrokeStyle(4, COLORS.primary.light);
-    const selectText = this.scene.add.text(0, cardHeight / 2 + 50, '선택', {
+    const selectText = this.scene.add.text(0, cardHeight / 2 + 50, i18n.t('ui.buttons.select'), {
       font: 'bold 28px monospace',
       color: COLORS_STR.primary.light,
     }).setOrigin(0.5);
@@ -310,8 +311,8 @@ export class LevelUpSkillUI {
     const selectBtn = this.scene.add.rectangle(0, cardHeight / 2 + 50, 180, 60, 
       isMaxLevel ? COLORS.background.medium : COLORS.rarity.unique, 0.9);
     selectBtn.setStrokeStyle(4, isMaxLevel ? COLORS.text.muted : COLORS.primary.light);
-    const selectText = this.scene.add.text(0, cardHeight / 2 + 50, 
-      isMaxLevel ? 'MAX' : '선택', {
+    const selectText = this.scene.add.text(0, cardHeight / 2 + 50,
+      isMaxLevel ? i18n.t('ui.misc.max') : i18n.t('ui.buttons.select'), {
       font: 'bold 28px monospace',
       color: isMaxLevel ? COLORS_STR.text.muted : COLORS_STR.primary.light,
     }).setOrigin(0.5);

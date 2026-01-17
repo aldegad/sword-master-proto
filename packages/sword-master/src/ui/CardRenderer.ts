@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Card, SwordCard, SkillCard, Buff } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { i18n } from '../i18n';
 
 // 파란색 하이라이트 색상 (무기에 따라 변하는 수치)
 const HIGHLIGHT_COLOR = '#4A90D9';
@@ -12,22 +13,22 @@ export const CARD_SIZE = {
   DETAIL: { width: 420, height: 620 },
 };
 
-// 공통 맵
-const REACH_MAP: Record<string, string> = {
-  single: '1적',
-  double: '2적',
-  triple: '3적',
-  all: '전체',
-  swordDouble: '무기x2',
-};
+// 공통 맵 (동적으로 i18n 적용)
+const getReachMap = (): Record<string, string> => ({
+  single: i18n.t('ui.range.single'),
+  double: i18n.t('ui.range.double'),
+  triple: i18n.t('ui.range.triple'),
+  all: i18n.t('ui.range.all'),
+  swordDouble: i18n.t('ui.range.swordDouble'),
+});
 
-const TYPE_MAP: Record<string, string> = {
-  attack: '⚔ 공격',
-  defense: '🛡 방어',
-  buff: '✨ 버프',
-  special: '💥 특수',
-  draw: '🎴 드로우',
-};
+const getTypeMap = (): Record<string, string> => ({
+  attack: '⚔ ' + i18n.t('ui.cards.attack'),
+  defense: '🛡 ' + i18n.t('ui.cards.defense'),
+  buff: '✨ ' + i18n.t('ui.tooltip.effect'),
+  special: '💥 ' + i18n.t('ui.tooltip.effect'),
+  draw: '🎴 ' + i18n.t('ui.cards.deck'),
+});
 
 /**
  * 카드 렌더러 - 요약/상세 카드 통합 렌더링
@@ -152,7 +153,7 @@ export class CardRenderer {
     }).setOrigin(0.5);
     
     // 스탯
-    const statsText = this.scene.add.text(0, 9, `공${sword.attack} ${sword.attackCount}타 ${REACH_MAP[sword.reach] || sword.reach}`, {
+    const statsText = this.scene.add.text(0, 9, `${i18n.t('ui.cards.attack')}${sword.attack} ${sword.attackCount}${i18n.t('ui.misc.hits')} ${getReachMap()[sword.reach] || sword.reach}`, {
       font: '18px monospace',
       color: subColor,
       align: 'center',
@@ -163,7 +164,7 @@ export class CardRenderer {
     const durColor = isChipped ? '#E74C3C' : 
                      (sword.durability === 1 ? COLORS_STR.secondary.main : 
                      (canAfford ? COLORS_STR.primary.main : COLORS_STR.text.disabled));
-    const durText = this.scene.add.text(0, 43, `내구${sword.durability} 방${sword.defense}`, {
+    const durText = this.scene.add.text(0, 43, `${i18n.t('ui.misc.durability')}${sword.durability} ${i18n.t('ui.misc.defense')}${sword.defense}`, {
       font: isChipped ? 'bold 18px monospace' : '18px monospace',
       color: durColor,
     }).setOrigin(0.5);
@@ -173,7 +174,7 @@ export class CardRenderer {
                         sword.rarity === 'rare' ? '◆' : 
                         sword.rarity === 'uncommon' ? '◇' : '';
     const mirageLabel = sword.isMirage ? '👻' : '';
-    const typeLabel = this.scene.add.text(0, 84, `${mirageLabel}${rarityLabel}검`, {
+    const typeLabel = this.scene.add.text(0, 84, `${mirageLabel}${rarityLabel}${i18n.t('ui.misc.sword')}`, {
       font: 'bold 18px monospace',
       color: sword.isMirage ? '#9B59B6' : textColor,  // 신기루면 보라색
     }).setOrigin(0.5);
@@ -202,7 +203,7 @@ export class CardRenderer {
     }).setOrigin(0.5);
     
     // 스탯 라인
-    let statLine = TYPE_MAP[skill.type]?.split(' ')[0] || '';
+    let statLine = getTypeMap()[skill.type]?.split(' ')[0] || '';
     if (skill.attackMultiplier > 0) {
       statLine += ` x${skill.attackMultiplier}`;
     }
@@ -219,15 +220,15 @@ export class CardRenderer {
     // 범위/타수
     let subLine = '';
     if (skill.type === 'attack' || skill.type === 'special') {
-      const rangeText = skill.reach === 'single' ? '무기' : 
-                        skill.reach === 'swordDouble' ? '무기x2' : 
-                        (REACH_MAP[skill.reach] || skill.reach);
-      const hitsText = skill.attackCount === 1 ? '무기' : `x${skill.attackCount}`;
-      subLine = `${rangeText} ${hitsText}타`;
+      const rangeText = skill.reach === 'single' ? i18n.t('ui.range.weapon') :
+                        skill.reach === 'swordDouble' ? i18n.t('ui.range.swordDouble') :
+                        (getReachMap()[skill.reach] || skill.reach);
+      const hitsText = skill.attackCount === 1 ? i18n.t('ui.range.weapon') : `x${skill.attackCount}`;
+      subLine = `${rangeText} ${hitsText}${i18n.t('ui.misc.hits')}`;
     } else if (skill.type === 'defense') {
-      subLine = '방어 스킬';
+      subLine = i18n.t('ui.misc.defenseSkill');
     } else if (skill.type === 'buff') {
-      subLine = '버프 스킬';
+      subLine = i18n.t('ui.misc.buffSkill');
     }
     
     const costText = this.scene.add.text(0, 43, subLine, {
@@ -236,7 +237,7 @@ export class CardRenderer {
     }).setOrigin(0.5);
     
     // 타입 라벨
-    const typeText = isSwift ? '⚡신속' : '스킬';
+    const typeText = isSwift ? i18n.t('ui.skillType.swift') : i18n.t('ui.skillType.skill');
     const typeLabel = this.scene.add.text(0, 84, typeText, {
       font: 'bold 18px monospace',
       color: textColor,
@@ -307,7 +308,7 @@ export class CardRenderer {
     container.add(line1);
     yPos += 18;
     
-    const reachText = REACH_MAP[sword.reach] || sword.reach;
+    const reachText = getReachMap()[sword.reach] || sword.reach;
     
     // 이가 빠진 인첸트 확인
     const isChipped = sword.prefix?.id === 'chipped';
@@ -328,19 +329,19 @@ export class CardRenderer {
     });
     
     // 내구도/방어 (이가 빠진이면 내구도만 빨간색)
-    const durLabel = this.scene.add.text(-width/2 + 30, yPos, '내구도: ', {
+    const durLabel = this.scene.add.text(-width/2 + 30, yPos, i18n.t('ui.tooltip.durability') + ': ', {
       font: '20px monospace',
       color: COLORS_STR.text.secondary,
     });
     container.add(durLabel);
-    
+
     const durValue = this.scene.add.text(-width/2 + 30 + durLabel.width, yPos, `${sword.durability}`, {
       font: isChipped ? 'bold 20px monospace' : '20px monospace',
       color: isChipped ? '#E74C3C' : COLORS_STR.text.secondary,
     });
     container.add(durValue);
-    
-    const defText = this.scene.add.text(-width/2 + 30 + durLabel.width + durValue.width, yPos, `  |  방어: ${sword.defense}%`, {
+
+    const defText = this.scene.add.text(-width/2 + 30 + durLabel.width + durValue.width, yPos, `  |  ${i18n.t('ui.tooltip.defense')}: ${sword.defense}%`, {
       font: '20px monospace',
       color: COLORS_STR.text.secondary,
     });
@@ -374,7 +375,7 @@ export class CardRenderer {
     yPos += 34;
     
     // 발도 기본 정보
-    const drawReach = REACH_MAP[drawAtk.reach] || drawAtk.reach;
+    const drawReach = getReachMap()[drawAtk.reach] || drawAtk.reach;
     
     // 발도는 항상 1타 (무기 타수와 무관)
     const baseDamage = Math.floor(sword.attack * drawAtk.multiplier);
@@ -434,14 +435,14 @@ export class CardRenderer {
       const critDamage = Math.floor(baseDamage * critMultiplier);
       
       // 크리티컬 기본 효과
-      let critDesc = `적 대기 1일 때 크리티컬!\n(${critPercent}% = ${critDamage}뎀)`;
-      
+      let critDesc = i18n.t('ui.tooltip.criticalDesc', { percent: critPercent, damage: critDamage });
+
       // 크리티컬 추가 효과
       const critEffects: string[] = [];
-      if (drawAtk.criticalPierce) critEffects.push('방어 무시');
-      if (drawAtk.criticalBleed) critEffects.push(`출혈 ${drawAtk.criticalBleed.damage}/${drawAtk.criticalBleed.duration}턴`);
-      if (drawAtk.criticalPoison) critEffects.push(`독 ${drawAtk.criticalPoison.damage}/${drawAtk.criticalPoison.duration}턴`);
-      if (drawAtk.cancelEnemySkill || drawAtk.criticalCancelEnemySkill) critEffects.push('스킬 취소');
+      if (drawAtk.criticalPierce) critEffects.push(i18n.t('ui.tooltip.ignoreDefense'));
+      if (drawAtk.criticalBleed) critEffects.push(i18n.t('ui.tooltip.bleed', { damage: drawAtk.criticalBleed.damage, duration: drawAtk.criticalBleed.duration }));
+      if (drawAtk.criticalPoison) critEffects.push(i18n.t('ui.tooltip.poison', { damage: drawAtk.criticalPoison.damage, duration: drawAtk.criticalPoison.duration }));
+      if (drawAtk.cancelEnemySkill || drawAtk.criticalCancelEnemySkill) critEffects.push(i18n.t('ui.tooltip.cancelSkill'));
       
       if (critEffects.length > 0) {
         critDesc += `\n+ ${critEffects.join(', ')}`;
@@ -604,7 +605,7 @@ export class CardRenderer {
     yPos += 18;
     
     // 스킬 정보
-    const infoTitle = this.scene.add.text(-width/2 + 20, yPos, `◆ ${TYPE_MAP[skill.type] || skill.type}`, {
+    const infoTitle = this.scene.add.text(-width/2 + 20, yPos, `◆ ${getTypeMap()[skill.type] || skill.type}`, {
       font: 'bold 22px monospace',
       color: COLORS_STR.primary.main,
     });
@@ -623,8 +624,8 @@ export class CardRenderer {
       skillStats.push(`타수 배율: x${skill.attackCount}`);
     }
     if (skill.reach && isAttackSkill) {
-      const reachText = skill.reach === 'single' ? '무기 범위' : (REACH_MAP[skill.reach] || skill.reach);
-      skillStats.push(`범위: ${reachText}`);
+      const reachText = skill.reach === 'single' ? i18n.t('ui.tooltip.weaponRange') : (getReachMap()[skill.reach] || skill.reach);
+      skillStats.push(`${i18n.t('ui.tooltip.range')}: ${reachText}`);
     }
     // 카운트 방어 스킬은 방어율 배수 표시
     if (isCountDefense && skill.effect?.value) {

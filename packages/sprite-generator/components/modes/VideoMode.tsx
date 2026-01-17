@@ -7,11 +7,13 @@ import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { VideoProcessor } from '@/lib/video-processor';
+import { useTranslation } from '@/lib/i18n';
 
 const videoProcessorRef = { current: null as VideoProcessor | null };
 
 export function VideoMode() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { t } = useTranslation();
 
   const {
     videoFile,
@@ -29,12 +31,12 @@ export function VideoMode() {
   const handleFileSelect = useCallback(
     async (file: File) => {
       if (!file.type.startsWith('video/')) {
-        alert('동영상 파일만 업로드할 수 있습니다.');
+        alert(t('videoMode.error.invalidFile'));
         return;
       }
 
       try {
-        showProgress('동영상 로딩 중...');
+        showProgress(t('videoMode.loading'));
 
         if (!videoProcessorRef.current) {
           videoProcessorRef.current = new VideoProcessor();
@@ -46,22 +48,22 @@ export function VideoMode() {
         hideProgress();
       } catch (error) {
         hideProgress();
-        alert('동영상 로드 실패: ' + (error as Error).message);
+        alert(t('videoMode.error.loadFailed') + ': ' + (error as Error).message);
       }
     },
-    [showProgress, hideProgress, setVideoFile]
+    [showProgress, hideProgress, setVideoFile, t]
   );
 
   const handleExtractFrames = useCallback(async () => {
     if (!videoProcessorRef.current) return;
 
     try {
-      showProgress('프레임 추출 중...', 0);
+      showProgress(t('common.processing'), 0);
 
       const frames = await videoProcessorRef.current.extractFrames(
         extractSettings,
         (progress, current, total) => {
-          updateProgress(`프레임 추출 중... (${current}/${total})`, progress);
+          updateProgress(`${t('common.processing')} (${current}/${total})`, progress);
         }
       );
 
@@ -69,20 +71,20 @@ export function VideoMode() {
       hideProgress();
     } catch (error) {
       hideProgress();
-      alert('프레임 추출 실패: ' + (error as Error).message);
+      alert(t('videoMode.error.extractFailed') + ': ' + (error as Error).message);
     }
-  }, [extractSettings, showProgress, updateProgress, hideProgress, setExtractedFrames]);
+  }, [extractSettings, showProgress, updateProgress, hideProgress, setExtractedFrames, t]);
 
   return (
     <>
       {/* 업로드 영역 */}
-      <Card title="1. 동영상 업로드">
+      <Card title={t('videoMode.uploadTitle')}>
         <UploadArea
           id="video-input"
           accept="video/*"
           icon="📁"
-          title="동영상 파일을 드래그하거나 클릭하여 선택"
-          subtitle="지원 형식: MP4, WebM, MOV"
+          title={t('videoMode.uploadPlaceholder')}
+          subtitle={t('videoMode.uploadFormats')}
           hasFile={!!videoFile}
           onFileSelect={handleFileSelect}
         />
@@ -99,10 +101,10 @@ export function VideoMode() {
 
       {/* 추출 설정 */}
       {videoMetadata && (
-        <Card title="2. 프레임 추출 설정">
+        <Card title={t('videoMode.settingsTitle')}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <Input
-              label="FPS (초당 프레임 수)"
+              label={t('videoMode.fps')}
               type="number"
               value={extractSettings.fps}
               onChange={(e) => setExtractSettings({ fps: parseInt(e.target.value) || 12 })}
@@ -110,7 +112,7 @@ export function VideoMode() {
               max={60}
             />
             <Input
-              label="시작 시간 (초)"
+              label={t('videoMode.startTime')}
               type="number"
               value={extractSettings.startTime}
               onChange={(e) => setExtractSettings({ startTime: parseFloat(e.target.value) || 0 })}
@@ -119,7 +121,7 @@ export function VideoMode() {
               step={0.1}
             />
             <Input
-              label="종료 시간 (초)"
+              label={t('videoMode.endTime')}
               type="number"
               value={extractSettings.endTime}
               onChange={(e) => setExtractSettings({ endTime: parseFloat(e.target.value) || 0 })}
@@ -128,7 +130,7 @@ export function VideoMode() {
               step={0.1}
             />
             <Input
-              label="스케일 (%)"
+              label={t('videoMode.scale')}
               type="number"
               value={extractSettings.scale}
               onChange={(e) => setExtractSettings({ scale: parseInt(e.target.value) || 100 })}
@@ -137,7 +139,7 @@ export function VideoMode() {
             />
           </div>
 
-          <Button onClick={handleExtractFrames}>프레임 추출</Button>
+          <Button onClick={handleExtractFrames}>{t('videoMode.extractButton')}</Button>
         </Card>
       )}
     </>

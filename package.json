@@ -9,9 +9,12 @@
     "deploy:game": "pnpm --filter sword-master build && pnpm --filter sword-master run deploy",
     "dev:sprite": "pnpm --filter sprite-generator dev",
     "build:sprite": "pnpm --filter sprite-generator build",
-    "deploy:sprite": "pnpm --filter sprite-generator build && pnpm --filter sprite-generator run deploy"
+    "deploy:sprite": "pnpm --filter sprite-generator build && pnpm --filter sprite-generator run deploy",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "typescript": "^5.3.3"
   }
 }

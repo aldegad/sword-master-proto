@@ -7,10 +7,12 @@ import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { SpriteImporter } from '@/lib/sprite-importer';
+import { useTranslation } from '@/lib/i18n';
 
 const spriteImporterRef = { current: null as SpriteImporter | null };
 
 export function SpriteMode() {
+  const { t } = useTranslation();
   const {
     spriteFile,
     spriteUrl,
@@ -32,12 +34,12 @@ export function SpriteMode() {
   const handleSpriteFileSelect = useCallback(
     async (file: File) => {
       if (!file.type.startsWith('image/')) {
-        alert('이미지 파일만 업로드할 수 있습니다.');
+        alert(t('spriteMode.error.invalidFile'));
         return;
       }
 
       try {
-        showProgress('스프라이트 시트 로딩 중...');
+        showProgress(t('common.processing'));
 
         if (!spriteImporterRef.current) {
           spriteImporterRef.current = new SpriteImporter();
@@ -63,16 +65,16 @@ export function SpriteMode() {
         hideProgress();
       } catch (error) {
         hideProgress();
-        alert('이미지 로드 실패: ' + (error as Error).message);
+        alert(t('spriteMode.error.loadFailed') + ': ' + (error as Error).message);
       }
     },
-    [showProgress, hideProgress, setSpriteFile, setFrameSuggestions, setSpriteSettings]
+    [showProgress, hideProgress, setSpriteFile, setFrameSuggestions, setSpriteSettings, t]
   );
 
   const handleJsonFileSelect = useCallback(
     async (file: File) => {
       try {
-        showProgress('JSON 메타데이터 로딩 중...');
+        showProgress(t('common.processing'));
 
         if (!spriteImporterRef.current) {
           spriteImporterRef.current = new SpriteImporter();
@@ -92,20 +94,20 @@ export function SpriteMode() {
         }
 
         hideProgress();
-        alert('JSON 메타데이터가 로드되었습니다.');
+        alert(t('spriteResult.metadataLoaded'));
       } catch (error) {
         hideProgress();
-        alert('JSON 로드 실패: ' + (error as Error).message);
+        alert(t('spriteMode.error.jsonLoadFailed') + ': ' + (error as Error).message);
       }
     },
-    [showProgress, hideProgress, setSpriteMetadata, setSpriteSettings]
+    [showProgress, hideProgress, setSpriteMetadata, setSpriteSettings, t]
   );
 
   const handleSplitSprite = useCallback(async () => {
     if (!spriteImporterRef.current) return;
 
     try {
-      showProgress('프레임 분할 중...', 0);
+      showProgress(t('common.processing'), 0);
 
       let frames;
 
@@ -113,7 +115,7 @@ export function SpriteMode() {
         frames = spriteImporterRef.current.extractFramesFromMetadata(
           loadedSpriteMetadata,
           (progress, current, total) => {
-            updateProgress(`프레임 분할 중... (${current}/${total})`, progress);
+            updateProgress(`${t('common.processing')} (${current}/${total})`, progress);
           }
         );
       } else {
@@ -127,14 +129,14 @@ export function SpriteMode() {
             startIndex: spriteSettings.startIndex,
           },
           (progress, current, total) => {
-            updateProgress(`프레임 분할 중... (${current}/${total})`, progress);
+            updateProgress(`${t('common.processing')} (${current}/${total})`, progress);
           }
         );
       }
 
       if (frames.length === 0) {
         hideProgress();
-        alert('프레임을 분할할 수 없습니다. 설정을 확인해주세요.');
+        alert(t('spriteMode.error.noFrames'));
         return;
       }
 
@@ -142,7 +144,7 @@ export function SpriteMode() {
       hideProgress();
     } catch (error) {
       hideProgress();
-      alert('프레임 분할 실패: ' + (error as Error).message);
+      alert(t('spriteMode.error.splitFailed') + ': ' + (error as Error).message);
     }
   }, [
     loadedSpriteMetadata,
@@ -151,19 +153,20 @@ export function SpriteMode() {
     updateProgress,
     hideProgress,
     setExtractedFrames,
+    t,
   ]);
 
   return (
     <>
       {/* 업로드 영역 */}
-      <Card title="1. 스프라이트 시트 업로드">
+      <Card title={t('spriteMode.uploadTitle')}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <UploadArea
             id="sprite-input"
             accept="image/*"
             icon="🖼️"
-            title="스프라이트 시트 이미지 업로드"
-            subtitle="지원 형식: PNG, JPG, WebP"
+            title={t('spriteMode.uploadPlaceholder')}
+            subtitle={t('spriteMode.uploadFormats')}
             hasFile={!!spriteFile}
             onFileSelect={handleSpriteFileSelect}
           />
@@ -171,8 +174,8 @@ export function SpriteMode() {
             id="json-input"
             accept=".json"
             icon="📄"
-            title="JSON 메타데이터 (선택사항)"
-            subtitle="프레임 정보 자동 로드"
+            title={t('spriteMode.jsonTitle')}
+            subtitle={t('spriteMode.jsonSubtitle')}
             hasFile={!!spriteMetadataFile}
             optional
             onFileSelect={handleJsonFileSelect}
@@ -188,7 +191,7 @@ export function SpriteMode() {
             />
             {spriteImageInfo && (
               <p className="mt-2 text-sm text-slate-400">
-                크기: {spriteImageInfo.width} x {spriteImageInfo.height} px
+                {t('spriteMode.size')}: {spriteImageInfo.width} x {spriteImageInfo.height} px
               </p>
             )}
           </div>
@@ -197,10 +200,10 @@ export function SpriteMode() {
 
       {/* 프레임 설정 */}
       {spriteImageInfo && (
-        <Card title="2. 프레임 분할 설정">
+        <Card title={t('spriteMode.settingsTitle')}>
           {frameSuggestions.length > 0 && (
             <div className="mb-4 p-4 bg-bg rounded-lg">
-              <p className="text-sm text-slate-400 mb-2">💡 추천 프레임 크기:</p>
+              <p className="text-sm text-slate-400 mb-2">💡 {t('spriteMode.suggestedFrames')}:</p>
               <div className="flex flex-wrap gap-2">
                 {frameSuggestions.map((s, i) => (
                   <button
@@ -219,7 +222,7 @@ export function SpriteMode() {
                       {s.width}x{s.height}
                     </span>
                     <span className="text-slate-400 ml-1">
-                      ({s.columns}열 x {s.rows}행)
+                      ({s.columns} x {s.rows})
                     </span>
                   </button>
                 ))}
@@ -229,42 +232,42 @@ export function SpriteMode() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <Input
-              label="프레임 너비 (px)"
+              label={t('spriteMode.frameWidth')}
               type="number"
               value={spriteSettings.frameWidth}
               onChange={(e) => setSpriteSettings({ frameWidth: parseInt(e.target.value) || 64 })}
               min={1}
             />
             <Input
-              label="프레임 높이 (px)"
+              label={t('spriteMode.frameHeight')}
               type="number"
               value={spriteSettings.frameHeight}
               onChange={(e) => setSpriteSettings({ frameHeight: parseInt(e.target.value) || 64 })}
               min={1}
             />
             <Input
-              label="열 수 (자동: 0)"
+              label={t('spriteMode.columns')}
               type="number"
               value={spriteSettings.columns}
               onChange={(e) => setSpriteSettings({ columns: parseInt(e.target.value) || 0 })}
               min={0}
             />
             <Input
-              label="행 수 (자동: 0)"
+              label={t('spriteMode.rows')}
               type="number"
               value={spriteSettings.rows}
               onChange={(e) => setSpriteSettings({ rows: parseInt(e.target.value) || 0 })}
               min={0}
             />
             <Input
-              label="총 프레임 수 (자동: 0)"
+              label={t('spriteMode.totalFrames')}
               type="number"
               value={spriteSettings.totalFrames}
               onChange={(e) => setSpriteSettings({ totalFrames: parseInt(e.target.value) || 0 })}
               min={0}
             />
             <Input
-              label="시작 인덱스"
+              label={t('spriteMode.startIndex')}
               type="number"
               value={spriteSettings.startIndex}
               onChange={(e) => setSpriteSettings({ startIndex: parseInt(e.target.value) || 0 })}
@@ -272,7 +275,7 @@ export function SpriteMode() {
             />
           </div>
 
-          <Button onClick={handleSplitSprite}>프레임 분할</Button>
+          <Button onClick={handleSplitSprite}>{t('spriteMode.parseButton')}</Button>
         </Card>
       )}
     </>

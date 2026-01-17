@@ -3,6 +3,7 @@ import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer } from './CardRenderer';
+import { i18n } from '../i18n';
 
 /**
  * 덱 뷰어 UI - 덱 클릭 시 전체 카드 목록 표시
@@ -66,7 +67,7 @@ export class DeckViewerUI {
     this.container.add(overlay);
     
     // 제목 (동적으로 변경됨)
-    this.titleText = this.scene.add.text(width/2, 50, '📚 덱 목록', {
+    this.titleText = this.scene.add.text(width/2, 50, i18n.t('ui.deckViewer.title'), {
       font: 'bold 42px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
@@ -102,7 +103,7 @@ export class DeckViewerUI {
     this.container.add(rightPanelBg);
     
     // 오른쪽 패널 라벨
-    const rightLabel = this.scene.add.text(rightPanelX, 100, '🔍 카드 상세', {
+    const rightLabel = this.scene.add.text(rightPanelX, 100, i18n.t('ui.deckViewer.cardDetail'), {
       font: 'bold 28px monospace',
       color: COLORS_STR.primary.main,
     }).setOrigin(0.5);
@@ -113,7 +114,7 @@ export class DeckViewerUI {
     this.container.add(this.detailContainer);
     
     // 기본 안내 텍스트
-    const hintText = this.scene.add.text(0, 0, '카드에 마우스를\n올려보세요', {
+    const hintText = this.scene.add.text(0, 0, i18n.t('ui.deckViewer.hintText'), {
       font: '24px monospace',
       color: COLORS_STR.text.muted,
       align: 'center',
@@ -149,7 +150,7 @@ export class DeckViewerUI {
     const closeBtn = this.scene.add.container(width - 60, 50);
     const closeBg = this.scene.add.rectangle(0, 0, 80, 50, COLORS.secondary.dark, 0.9);
     closeBg.setStrokeStyle(2, COLORS.secondary.main);
-    const closeText = this.scene.add.text(0, 0, '✕ 닫기', {
+    const closeText = this.scene.add.text(0, 0, i18n.t('ui.deckViewer.closeBtn'), {
       font: 'bold 18px monospace',
       color: COLORS_STR.text.primary,
     }).setOrigin(0.5);
@@ -173,7 +174,7 @@ export class DeckViewerUI {
     this.createScrollButtons();
     
     // 스크롤 안내
-    const scrollHint = this.scene.add.text(this.LEFT_PANEL_X + this.LEFT_PANEL_WIDTH / 2, height - 45, '🖱️ 휠 또는 버튼으로 스크롤', {
+    const scrollHint = this.scene.add.text(this.LEFT_PANEL_X + this.LEFT_PANEL_WIDTH / 2, height - 45, i18n.t('ui.deckViewer.scrollHint'), {
       font: '16px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
@@ -275,9 +276,9 @@ export class DeckViewerUI {
     
     // 제목 업데이트
     if (mode === 'deck') {
-      this.titleText.setText('📚 덱 목록');
+      this.titleText.setText(i18n.t('ui.deckViewer.title'));
     } else {
-      this.titleText.setText('🪦 무덤 목록');
+      this.titleText.setText(i18n.t('ui.deckViewer.graveTitle'));
     }
     
     this.updateDeckDisplay();
@@ -303,35 +304,40 @@ export class DeckViewerUI {
       
       // 장착 중인 무기
       if (this.scene.gameScene.playerState.currentSword) {
-        allCards.push({ 
+        allCards.push({
           card: { type: 'sword', data: this.scene.gameScene.playerState.currentSword },
-          location: '장착중'
+          location: i18n.t('ui.location.equipped')
         });
       }
-      
+
       // 손패
       this.scene.gameScene.playerState.hand.forEach(card => {
-        allCards.push({ card, location: '손패' });
+        allCards.push({ card, location: i18n.t('ui.location.hand') });
       });
-      
+
       // 덱
       this.scene.gameScene.playerState.deck.forEach(card => {
-        allCards.push({ card, location: '덱' });
+        allCards.push({ card, location: i18n.t('ui.location.deck') });
       });
-      
+
       // 카드 수 표시
       const equipped = this.scene.gameScene.playerState.currentSword ? 1 : 0;
       this.cardCountText.setText(
-        `총 ${allCards.length}장 (장착: ${equipped} / 손패: ${this.scene.gameScene.playerState.hand.length} / 덱: ${this.scene.gameScene.playerState.deck.length})`
+        i18n.t('ui.deckViewer.cardCount', {
+          total: allCards.length,
+          equipped,
+          hand: this.scene.gameScene.playerState.hand.length,
+          deck: this.scene.gameScene.playerState.deck.length
+        })
       );
     } else {
       // 무덤 모드: 무덤만
       this.scene.gameScene.playerState.discard.forEach(card => {
-        allCards.push({ card, location: '무덤' });
+        allCards.push({ card, location: i18n.t('ui.location.grave') });
       });
-      
+
       // 카드 수 표시
-      this.cardCountText.setText(`총 ${allCards.length}장`);
+      this.cardCountText.setText(i18n.t('ui.deckViewer.totalCards', { count: allCards.length }));
     }
     
     // 카드 배치
@@ -392,9 +398,9 @@ export class DeckViewerUI {
     container.add(manaText);
     
     // 위치 표시
-    const locationColor = location === '장착중' ? COLORS_STR.secondary.main : 
-                          location === '손패' ? COLORS_STR.primary.light :
-                          location === '무덤' ? COLORS_STR.text.muted : COLORS_STR.text.secondary;
+    const locationColor = location === i18n.t('ui.location.equipped') ? COLORS_STR.secondary.main :
+                          location === i18n.t('ui.location.hand') ? COLORS_STR.primary.light :
+                          location === i18n.t('ui.location.grave') ? COLORS_STR.text.muted : COLORS_STR.text.secondary;
     const locationText = this.scene.add.text(0, 65, location, {
       font: 'bold 14px monospace',
       color: locationColor,
@@ -425,7 +431,7 @@ export class DeckViewerUI {
   }
   
   private getBorderColor(card: Card, location: string): number {
-    if (location === '장착중') return COLORS.secondary.main;
+    if (location === i18n.t('ui.location.equipped')) return COLORS.secondary.main;
     
     if (card.type === 'sword') {
       const sword = card.data as SwordCard;
@@ -440,7 +446,7 @@ export class DeckViewerUI {
     this.detailContainer.removeAll(true);
     
     if (!card) {
-      const hintText = this.scene.add.text(0, 0, '카드에 마우스를\n올려보세요', {
+      const hintText = this.scene.add.text(0, 0, i18n.t('ui.deckViewer.hintText'), {
         font: '24px monospace',
         color: COLORS_STR.text.muted,
         align: 'center',

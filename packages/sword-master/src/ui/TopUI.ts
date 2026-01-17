@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { GAME_CONSTANTS } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { i18n, t } from '../i18n';
 
 /**
  * 상단 UI - HP바, 마나, 턴/웨이브/점수 표시
@@ -39,6 +40,28 @@ export class TopUI {
     this.createHpBar();
     this.createManaUI();
     this.createStatusTexts();
+    this.createLanguageToggle();
+  }
+
+  private createLanguageToggle() {
+    const width = this.scene.cameras.main.width;
+
+    const langBtn = this.scene.add.text(width - 38, 120, t('ui.buttons.langToggle'), {
+      font: 'bold 18px monospace',
+      color: '#ffffff',
+      backgroundColor: '#1a1a2e',
+      padding: { x: 8, y: 4 },
+    }).setOrigin(1, 0);
+
+    langBtn.setInteractive({ useHandCursor: true });
+    langBtn.on('pointerover', () => langBtn.setColor('#00ffff'));
+    langBtn.on('pointerout', () => langBtn.setColor('#ffffff'));
+    langBtn.on('pointerdown', () => {
+      i18n.toggleLocale();
+      // 현재 씬 재시작하여 모든 텍스트 갱신
+      this.scene.scene.restart();
+      this.scene.gameScene.scene.restart();
+    });
   }
   
   private createHpBar() {
@@ -56,7 +79,7 @@ export class TopUI {
     }).setOrigin(0.5);
     
     // HP 라벨 + LV (체력 옆으로 이동)
-    this.scene.add.text(38, 10, '❤ 체력', {
+    this.scene.add.text(38, 10, t('ui.topBar.health'), {
       font: 'bold 22px monospace',
       color: COLORS_STR.secondary.main,
     });
@@ -69,7 +92,7 @@ export class TopUI {
   }
   
   private createManaUI() {
-    this.scene.add.text(38, 90, '◈ 기력', {
+    this.scene.add.text(38, 90, t('ui.topBar.mana'), {
       font: 'bold 20px monospace',
       color: COLORS_STR.primary.main,
     });
@@ -168,7 +191,7 @@ export class TopUI {
     if (displayPassives.length === 0) return;
     
     // 패시브 라벨
-    const label = this.scene.add.text(0, 0, '🔮 패시브', {
+    const label = this.scene.add.text(0, 0, t('ui.topBar.passive'), {
       font: 'bold 18px monospace',
       color: COLORS_STR.rarity.unique,
     });
@@ -289,21 +312,14 @@ export class TopUI {
     
     // 레벨 표시 업데이트
     const expNeeded = this.scene.gameScene.getExpNeeded();
-    this.levelText.setText(`LV.${player.level} [${player.exp}/${expNeeded}]`);
-    
-    this.waveText.setText(`제 ${game.currentWave} 파`);
-    this.turnText.setText(`${game.turn} 순`);
-    this.scoreText.setText(`공 ${game.score}`);
-    this.silverText.setText(`💰 ${player.silver} 은전`);
-    
-    const phaseText: Record<string, string> = {
-      running: '▶ 이동중...',
-      combat: '⚔ 전투!',
-      victory: '★ 승리!',
-      paused: '‖ 일시정지',
-      gameOver: '✕ 패배',
-      event: '❗ 이벤트',
-    };
-    this.phaseText.setText(phaseText[game.phase] || '');
+    this.levelText.setText(t('ui.topBar.level', { level: player.level, exp: player.exp, expNeeded }));
+
+    this.waveText.setText(t('ui.topBar.wave', { wave: game.currentWave }));
+    this.turnText.setText(t('ui.topBar.turn', { turn: game.turn }));
+    this.scoreText.setText(t('ui.topBar.score', { score: game.score }));
+    this.silverText.setText(t('ui.topBar.silver', { amount: player.silver }));
+
+    const phaseKey = game.phase as 'running' | 'combat' | 'victory' | 'paused' | 'gameOver' | 'event';
+    this.phaseText.setText(t(`ui.phases.${phaseKey}`));
   }
 }

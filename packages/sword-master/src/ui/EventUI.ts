@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { GameEvent, EventChoice, EventOutcome } from '../data/events';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { i18n } from '../i18n';
 
 /**
  * 이벤트 UI - 랜덤 이벤트 표시 및 선택지 처리
@@ -260,23 +261,23 @@ export class EventUI {
     this.container.add(panel);
     
     // 제목
-    const title = this.scene.add.text(panelX, panelY - 120, '⚔️ 승리! 보상을 선택하세요', {
+    const title = this.scene.add.text(panelX, panelY - 120, i18n.t('ui.event.victoryTitle'), {
       font: 'bold 32px monospace',
       color: COLORS_STR.primary.main,
     }).setOrigin(0.5);
     this.container.add(title);
-    
+
     // 부제
-    const subtitle = this.scene.add.text(panelX, panelY - 70, '무사가 감사의 뜻을 전합니다.', {
+    const subtitle = this.scene.add.text(panelX, panelY - 70, i18n.t('ui.event.warriorThanks'), {
       font: '20px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     this.container.add(subtitle);
-    
+
     // 회복 버튼
     const healBtn = this.createRewardButton(
       panelX - 130, panelY + 20,
-      '💚 치료',
+      i18n.t('ui.event.heal'),
       `+${healAmount} HP`,
       COLORS.success.main,
       () => {
@@ -289,8 +290,8 @@ export class EventUI {
     // 은전 버튼
     const silverBtn = this.createRewardButton(
       panelX + 130, panelY + 20,
-      '💰 보답',
-      `+${silverAmount} 은전`,
+      i18n.t('ui.event.silverReward'),
+      i18n.t('ui.event.silverAmount', { amount: silverAmount }),
       COLORS.primary.main,
       () => {
         this.hide();

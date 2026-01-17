@@ -4,6 +4,7 @@ import type { SwordCard } from '../types';
 import { getCleanSword } from '../data/swords';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
+import { i18n } from '../i18n';
 
 interface ShopItem {
   sword: SwordCard;
@@ -75,7 +76,7 @@ export class ShopUI {
     this.container.add(panel);
     
     // 제목
-    const title = this.scene.add.text(panelX, panelY - panelHeight / 2 + 40, '🧳 떠돌이 상인의 검', {
+    const title = this.scene.add.text(panelX, panelY - panelHeight / 2 + 40, i18n.t('ui.shop.title'), {
       font: 'bold 36px monospace',
       color: COLORS_STR.primary.main,
     }).setOrigin(0.5);
@@ -103,7 +104,7 @@ export class ShopUI {
     }
     
     // 닫기 버튼
-    const closeBtn = this.createButton(panelX, panelY + panelHeight / 2 - 50, '나가기', COLORS.secondary.main, () => {
+    const closeBtn = this.createButton(panelX, panelY + panelHeight / 2 - 50, i18n.t('ui.buttons.exit'), COLORS.secondary.main, () => {
       this.hide();
     });
     this.container.add(closeBtn);
@@ -201,11 +202,11 @@ export class ShopUI {
     // 구매 버튼 또는 품절 표시
     let buyBtn: Phaser.GameObjects.Container;
     if (canAfford) {
-      buyBtn = this.createButton(0, 100, '구매', COLORS.success.main, () => {
+      buyBtn = this.createButton(0, 100, i18n.t('ui.buttons.purchase'), COLORS.success.main, () => {
         this.purchaseItem(item);
       });
     } else {
-      const soldOut = this.scene.add.text(0, 100, '은전 부족', {
+      const soldOut = this.scene.add.text(0, 100, i18n.t('ui.shop.notEnough'), {
         font: '14px monospace',
         color: COLORS_STR.text.disabled,
       }).setOrigin(0.5);
@@ -254,7 +255,7 @@ export class ShopUI {
     const player = this.scene.gameScene.playerState;
     
     if (player.silver < item.price) {
-      this.scene.gameScene.animationHelper.showMessage('은전이 부족합니다!', COLORS.message.error);
+      this.scene.gameScene.animationHelper.showMessage(i18n.t('ui.shop.notEnough'), COLORS.message.error);
       return;
     }
     
@@ -288,7 +289,7 @@ export class ShopUI {
     
     // 아이템이 없으면 상점 닫기
     if (this.shopItems.length === 0) {
-      this.scene.gameScene.animationHelper.showMessage('상인이 떠났습니다!', COLORS.message.warning);
+      this.scene.gameScene.animationHelper.showMessage(i18n.t('ui.messages.merchantLeft'), COLORS.message.warning);
       this.hide();
     }
   }

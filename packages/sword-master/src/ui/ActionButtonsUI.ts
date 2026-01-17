@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { t } from '../i18n';
 
 /**
  * 액션 버튼 UI - 턴 종료, 대기, 교환 버튼
@@ -39,29 +40,29 @@ export class ActionButtonsUI {
     const startX = 112;  // 왼쪽 여백 (플레이어 쪽)
     
     // 순서: 교환 → 대기 → 턴종료 (역순)
-    
+
     // 교환 버튼 (첫번째)
     this.exchangeBtn = this.createButton(
       startX, btnY,
-      '↻ 교환',
+      t('ui.buttons.exchange'),
       'X',
       COLORS.primary.main,
       () => this.tryExchange()
     );
-    
+
     // 대기 버튼 (두번째)
     this.waitBtn = this.createButton(
       startX + btnSpacing, btnY,
-      '‖ 대기',
+      t('ui.buttons.wait'),
       'W',
       COLORS.success.main,
       () => this.useWait()
     );
-    
+
     // 턴 종료 버튼 (세번째)
     this.endTurnBtn = this.createButton(
       startX + btnSpacing * 2, btnY,
-      '▶ 턴종료',
+      t('ui.buttons.endTurn'),
       'SPACE',
       COLORS.secondary.main,
       () => {
@@ -172,7 +173,7 @@ export class ActionButtonsUI {
     
     // 이미 사용한 경우
     if (this.exchangeUsedThisTurn) {
-      this.scene.gameScene.showMessage('교환은 턴당 1번만!', 0xe94560);
+      this.scene.gameScene.showMessage(t('ui.messages.exchangeOncePerTurn'), 0xe94560);
       return;
     }
     

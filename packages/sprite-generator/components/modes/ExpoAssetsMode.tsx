@@ -7,18 +7,20 @@ import { Card } from '@/components/common/Card';
 import { UploadArea } from '@/components/common/UploadArea';
 import { Button } from '@/components/common/Button';
 import { useAppStore } from '@/store/useAppStore';
+import { useTranslation } from '@/lib/i18n';
 import type { ExpoAssetConfig, ExpoAssetResult } from '@/types';
 
-// Expo 앱 에셋 설정
-const EXPO_ASSETS: ExpoAssetConfig[] = [
-  { name: 'icon.png', width: 1024, height: 1024, description: '앱 아이콘 (1024x1024)' },
-  { name: 'splash.png', width: 1242, height: 2436, description: '스플래시 화면 (1242x2436)' },
-  { name: 'adaptive-icon.png', width: 1024, height: 1024, description: '안드로이드 적응형 아이콘 (1024x1024)' },
-  { name: 'favicon.png', width: 48, height: 48, description: '웹 파비콘 (48x48)' },
-  { name: 'notification-icon.png', width: 96, height: 96, description: '알림 아이콘 (96x96)' },
-];
-
 export function ExpoAssetsMode() {
+  const { t } = useTranslation();
+
+  // Expo 앱 에셋 설정
+  const EXPO_ASSETS: ExpoAssetConfig[] = [
+    { name: 'icon.png', width: 1024, height: 1024, description: t('expoAssetsMode.assets.icon') },
+    { name: 'splash.png', width: 1242, height: 2436, description: t('expoAssetsMode.assets.splash') },
+    { name: 'adaptive-icon.png', width: 1024, height: 1024, description: t('expoAssetsMode.assets.adaptiveIcon') },
+    { name: 'favicon.png', width: 48, height: 48, description: t('expoAssetsMode.assets.favicon') },
+    { name: 'notification-icon.png', width: 96, height: 96, description: t('expoAssetsMode.assets.notification') },
+  ];
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedAssets, setSelectedAssets] = useState<Set<string>>(
     new Set(EXPO_ASSETS.map((a) => a.name))
@@ -43,7 +45,7 @@ export function ExpoAssetsMode() {
       // SVG 또는 이미지 파일 허용
       const isValidType = file.type === 'image/svg+xml' || file.type.startsWith('image/');
       if (!isValidType) {
-        alert('SVG 또는 이미지 파일만 업로드할 수 있습니다.');
+        alert(t('expoAssetsMode.error.invalidFile'));
         return;
       }
 
@@ -106,17 +108,17 @@ export function ExpoAssetsMode() {
 
   const generateAssets = useCallback(async () => {
     if (!expoSvgFile || !expoSvgUrl) {
-      alert('SVG 또는 이미지 파일을 먼저 업로드해주세요.');
+      alert(t('expoAssetsMode.error.noFile'));
       return;
     }
 
     if (selectedAssets.size === 0) {
-      alert('최소 하나의 에셋을 선택해주세요.');
+      alert(t('expoAssetsMode.error.noAssets'));
       return;
     }
 
     setIsGenerating(true);
-    showProgress('에셋 생성 중...');
+    showProgress(t('expoAssetsMode.generating'));
 
     try {
       const results: ExpoAssetResult[] = [];
@@ -128,13 +130,13 @@ export function ExpoAssetsMode() {
 
       await new Promise<void>((resolve, reject) => {
         sourceImg.onload = () => resolve();
-        sourceImg.onerror = () => reject(new Error('이미지 로드 실패'));
+        sourceImg.onerror = () => reject(new Error(t('expoAssetsMode.error.loadFailed')));
         sourceImg.src = expoSvgUrl;
       });
 
       for (let i = 0; i < assetsToGenerate.length; i++) {
         const asset = assetsToGenerate[i];
-        updateProgress(`${asset.name} 생성 중... (${i + 1}/${assetsToGenerate.length})`, ((i + 1) / assetsToGenerate.length) * 100);
+        updateProgress(`${t('expoAssetsMode.generatingAsset', { name: asset.name, current: i + 1, total: assetsToGenerate.length })}`, ((i + 1) / assetsToGenerate.length) * 100);
 
         const canvas = document.createElement('canvas');
         canvas.width = asset.width;
@@ -193,17 +195,17 @@ export function ExpoAssetsMode() {
       hideProgress();
     } catch (error) {
       hideProgress();
-      alert('에셋 생성 실패: ' + (error as Error).message);
+      alert(t('expoAssetsMode.error.generateFailed') + ': ' + (error as Error).message);
       console.error(error);
     } finally {
       setIsGenerating(false);
     }
-  }, [expoSvgFile, expoSvgUrl, selectedAssets, showProgress, updateProgress, hideProgress, setExpoAssetResults]);
+  }, [expoSvgFile, expoSvgUrl, selectedAssets, showProgress, updateProgress, hideProgress, setExpoAssetResults, t, EXPO_ASSETS]);
 
   const downloadAsZip = useCallback(async () => {
     if (expoAssetResults.length === 0) return;
 
-    showProgress('ZIP 파일 생성 중...');
+    showProgress(t('expoAssetsMode.creatingZip'));
 
     try {
       // JSZip 동적 로드
@@ -269,10 +271,10 @@ Usage:
       hideProgress();
     } catch (error) {
       hideProgress();
-      alert('ZIP 생성 실패: ' + (error as Error).message);
+      alert(t('expoAssetsMode.error.zipFailed') + ': ' + (error as Error).message);
       console.error(error);
     }
-  }, [expoAssetResults, showProgress, hideProgress]);
+  }, [expoAssetResults, showProgress, hideProgress, t]);
 
   const downloadSingle = (result: ExpoAssetResult) => {
     const link = document.createElement('a');
@@ -288,20 +290,20 @@ Usage:
   return (
     <>
       {/* 업로드 */}
-      <Card title="1. SVG 또는 이미지 업로드">
+      <Card title={t('expoAssetsMode.uploadTitle')}>
         <UploadArea
           id="expo-svg-input"
           accept="image/svg+xml,image/*"
           icon="📱"
-          title="Expo 앱에 사용할 SVG 또는 이미지 파일을 선택하세요"
-          subtitle="지원 형식: SVG, PNG, JPG, WebP"
+          title={t('expoAssetsMode.uploadPlaceholder')}
+          subtitle={t('expoAssetsMode.uploadFormats')}
           hasFile={!!expoSvgFile}
           onFileSelect={handleFileSelect}
         />
 
         {expoSvgUrl && (
           <div className="mt-6 flex flex-col items-center">
-            <h4 className="text-sm text-slate-400 mb-2">원본 이미지</h4>
+            <h4 className="text-sm text-slate-400 mb-2">{t('expoAssetsMode.originalImage')}</h4>
             <div className="checkerboard rounded-lg p-4 inline-block">
               <img
                 src={expoSvgUrl}
@@ -311,7 +313,7 @@ Usage:
             </div>
             {expoSvgInfo && (
               <p className="text-sm text-slate-400 mt-2">
-                크기: {expoSvgInfo.width} x {expoSvgInfo.height}
+                {t('expoAssetsMode.size')}: {expoSvgInfo.width} x {expoSvgInfo.height}
               </p>
             )}
           </div>
@@ -320,13 +322,13 @@ Usage:
 
       {/* 에셋 선택 */}
       {expoSvgFile && expoAssetResults.length === 0 && (
-        <Card title="2. 생성할 에셋 선택">
+        <Card title={t('expoAssetsMode.settingsTitle')}>
           <div className="mb-4 flex gap-2">
             <Button size="sm" variant="secondary" onClick={selectAll}>
-              전체 선택
+              {t('expoAssetsMode.selectAll')}
             </Button>
             <Button size="sm" variant="secondary" onClick={deselectAll}>
-              전체 해제
+              {t('expoAssetsMode.deselectAll')}
             </Button>
           </div>
 
@@ -362,7 +364,7 @@ Usage:
               disabled={isGenerating || selectedAssets.size === 0}
               icon={<Package className="w-5 h-5" />}
             >
-              {isGenerating ? '생성 중...' : `에셋 생성 (${selectedAssets.size}개)`}
+              {isGenerating ? t('expoAssetsMode.generatingBtn') : t('expoAssetsMode.generateButton', { count: selectedAssets.size })}
             </Button>
           </div>
         </Card>
@@ -370,7 +372,7 @@ Usage:
 
       {/* 결과 */}
       {expoAssetResults.length > 0 && (
-        <Card title="3. 생성된 에셋">
+        <Card title={t('expoAssetsMode.resultTitle')}>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
             {expoAssetResults.map((result) => (
               <div
@@ -393,7 +395,7 @@ Usage:
                 <button
                   onClick={() => downloadSingle(result)}
                   className="absolute top-2 right-2 p-1.5 bg-primary rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="개별 다운로드"
+                  title={t('expoAssetsMode.downloadSingle')}
                 >
                   <Download className="w-3 h-3" />
                 </button>
@@ -403,17 +405,17 @@ Usage:
 
           <div className="flex flex-wrap gap-3">
             <Button onClick={downloadAsZip} icon={<Download className="w-4 h-4" />}>
-              ZIP 다운로드
+              {t('expoAssetsMode.downloadAll')}
             </Button>
             <Button
               variant="secondary"
               onClick={() => setExpoAssetResults([])}
               icon={<RefreshCw className="w-4 h-4" />}
             >
-              다시 생성 (설정 변경)
+              {t('expoAssetsMode.retry')}
             </Button>
             <Button variant="secondary" onClick={handleReset} icon={<ImagePlus className="w-4 h-4" />}>
-              새 이미지 선택
+              {t('expoAssetsMode.newImage')}
             </Button>
           </div>
 
@@ -421,7 +423,7 @@ Usage:
           <div className="mt-6 bg-bg rounded-xl p-4">
             <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
               <Check className="w-4 h-4 text-green-400" />
-              app.json 설정 예시
+              {t('expoAssetsMode.configExample')}
             </h4>
             <pre className="text-xs text-slate-400 overflow-x-auto">
 {`{

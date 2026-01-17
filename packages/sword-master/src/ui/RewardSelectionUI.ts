@@ -3,6 +3,7 @@ import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
+import { i18n } from '../i18n';
 
 /**
  * 보상 선택 UI - 전투 승리 후 보상 카드 선택 (CardRenderer 사용)
@@ -62,11 +63,11 @@ export class RewardSelectionUI {
     const skipBtn = this.scene.add.container(width/2, height - 100);
     const skipBg = this.scene.add.rectangle(0, 0, 375, 94, COLORS.background.dark, 0.9);
     skipBg.setStrokeStyle(3, COLORS.primary.dark);
-    const skipText = this.scene.add.text(0, -12, '건너뛰기', {
+    const skipText = this.scene.add.text(0, -12, i18n.t('ui.buttons.skip'), {
       font: 'bold 32px monospace',
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
-    const silverText = this.scene.add.text(0, 24, '💰 +20 은전', {
+    const silverText = this.scene.add.text(0, 24, i18n.t('ui.reward.skipSilver', { amount: 20 }), {
       font: 'bold 22px monospace',
       color: '#ffd700',
     }).setOrigin(0.5);
@@ -102,7 +103,7 @@ export class RewardSelectionUI {
     const cardHeight = CARD_SIZE.DETAIL.height;
     const selectBtn = this.scene.add.rectangle(0, cardHeight / 2 + 50, 180, 60, COLORS.success.main, 0.9);
     selectBtn.setStrokeStyle(4, COLORS.primary.light);
-    const selectText = this.scene.add.text(0, cardHeight / 2 + 50, '선택', {
+    const selectText = this.scene.add.text(0, cardHeight / 2 + 50, i18n.t('ui.buttons.select'), {
       font: 'bold 28px monospace',
       color: COLORS_STR.primary.light,
     }).setOrigin(0.5);

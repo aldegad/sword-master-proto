@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { i18n, t } from '../i18n';
 
 // 카드 레이아웃 상수
 export const CARD_LAYOUT = {
@@ -117,7 +118,7 @@ export class CardUI {
     this.scene.add.text(
       width / 2,
       height - 298,
-      '─ 손패 - 최대 12장 ─',
+      t('ui.cards.handMax', { max: 12 }),
       {
         font: 'bold 24px monospace',
         color: COLORS_STR.primary.main,
@@ -460,14 +461,9 @@ export class CardUI {
     }).setOrigin(0.5);
     
     // 스탯 - 간략화 (스케일)
-    const reachMap: Record<string, string> = {
-      single: '1적',
-      double: '2적',
-      triple: '3적',
-      all: '전체',
-    };
-    
-    const statsText = this.scene.add.text(0, 9, `공${sword.attack} ${sword.attackCount}타 ${reachMap[sword.reach]}`, {
+    const reachText = i18n.getRangeText(sword.reach);
+
+    const statsText = this.scene.add.text(0, 9, `${t('ui.cards.attack')}${sword.attack} ${sword.attackCount}${t('ui.cards.attackCount')} ${reachText}`, {
       font: '18px monospace',
       color: subColor,
       align: 'center',
@@ -475,7 +471,7 @@ export class CardUI {
     
     // 내구도 (1이면 경고 색상, 스케일)
     const durColor = sword.durability === 1 ? COLORS_STR.secondary.main : (canAfford ? COLORS_STR.primary.main : COLORS_STR.text.disabled);
-    const durText = this.scene.add.text(0, 43, `내구${sword.durability} 방${sword.defense}`, {
+    const durText = this.scene.add.text(0, 43, `${t('ui.cards.durability')}${sword.durability} ${t('ui.cards.defense')}${sword.defense}`, {
       font: '18px monospace',
       color: durColor,
     }).setOrigin(0.5);
@@ -524,10 +520,10 @@ export class CardUI {
     
     // 스탯
     const reachMap: Record<string, string> = {
-      single: '1적',
-      double: '2적',
-      triple: '3적',
-      all: '전체',
+      single: i18n.t('ui.range.single'),
+      double: i18n.t('ui.range.double'),
+      triple: i18n.t('ui.range.triple'),
+      all: i18n.t('ui.range.all'),
     };
     
     // 간결한 스탯 표시 (스케일)
@@ -551,19 +547,19 @@ export class CardUI {
       // 범위: single이면 '무기', swordDouble이면 '무기x2', 아니면 자체 범위
       let rangeText = '';
       if (skill.reach === 'single') {
-        rangeText = '무기';
+        rangeText = i18n.t('ui.range.weapon');
       } else if (skill.reach === 'swordDouble') {
-        rangeText = '무기x2';
+        rangeText = i18n.t('ui.range.swordDouble');
       } else {
         rangeText = reachMap[skill.reach] || skill.reach;
       }
       // 타수배율: 1이면 '무기', 아니면 x배율
-      const hitsText = skill.attackCount === 1 ? '무기' : `x${skill.attackCount}`;
-      subLine = `${rangeText} ${hitsText}타`;
+      const hitsText = skill.attackCount === 1 ? i18n.t('ui.range.weapon') : `x${skill.attackCount}`;
+      subLine = `${rangeText} ${hitsText}${i18n.t('ui.misc.hits')}`;
     } else if (skill.type === 'defense') {
-      subLine = '방어 스킬';
+      subLine = i18n.t('ui.misc.defenseSkill');
     } else if (skill.type === 'buff') {
-      subLine = '버프 스킬';
+      subLine = i18n.t('ui.misc.buffSkill');
     }
     
     const costText = this.scene.add.text(0, 43, subLine, {
@@ -572,7 +568,7 @@ export class CardUI {
     }).setOrigin(0.5);
     
     // 타입 라벨 (신속 스킬은 ⚡ 표시, 스케일)
-    const typeText = isSwift ? '⚡신속' : '스킬';
+    const typeText = isSwift ? i18n.t('ui.skillType.swift') : i18n.t('ui.skillType.skill');
     const typeLabel = this.scene.add.text(0, 84, typeText, {
       font: 'bold 18px monospace',
       color: textColor,

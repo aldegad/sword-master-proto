@@ -12,11 +12,13 @@ import { SpriteResult } from '@/components/shared/SpriteResult';
 import { TopBannerAd, InContentAd, SidebarAd, BottomBannerAd } from '@/components/common/AdBanner';
 import { FeaturesSection, GuideSection, FaqSection } from '@/components/content';
 import { useAppStore } from '@/store/useAppStore';
+import { useTranslation } from '@/lib/i18n';
 
 export default function Home() {
   const mode = useAppStore((state) => state.mode);
   const extractedFrames = useAppStore((state) => state.extractedFrames);
   const resultCanvas = useAppStore((state) => state.resultCanvas);
+  const { t } = useTranslation();
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -70,7 +72,7 @@ export default function Home() {
       {/* 푸터 */}
       <footer className="mt-12 pt-6 border-t border-gray-700 text-center text-sm text-gray-400">
         <p>
-          © {new Date().getFullYear()} Soo Hong Kim. All rights reserved.
+          {t('footer.copyright', { year: new Date().getFullYear() })} | {t('footer.madeIn')}
         </p>
         <p className="mt-2 space-x-4">
           <a
@@ -79,13 +81,13 @@ export default function Home() {
             rel="noopener noreferrer"
             className="hover:text-white transition-colors"
           >
-            GitHub
+            {t('footer.github')}
           </a>
           <a
             href="mailto:aldegad@gmail.com"
             className="hover:text-white transition-colors"
           >
-            Contact
+            {t('footer.contact')}
           </a>
         </p>
       </footer>

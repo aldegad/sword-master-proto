@@ -11,17 +11,19 @@ import { PixelArtSettings } from '@/components/shared/PixelArtSettings';
 import { ResultAd } from '@/components/common/AdBanner';
 import { useAppStore } from '@/store/useAppStore';
 import { BackgroundRemover } from '@/lib/background-remover';
+import { useTranslation } from '@/lib/i18n';
 import type { ModelSize } from '@/types';
 
 const backgroundRemoverRef = { current: null as BackgroundRemover | null };
 
-const MODEL_OPTIONS: { value: ModelSize; name: string; desc: string; speed: string }[] = [
-  { value: 'small', name: 'Small', desc: '빠름 • 기본 품질', speed: '⚡ ~3초' },
-  { value: 'medium', name: 'Medium', desc: '균형 • 권장', speed: '⚡⚡ ~5초' },
-  { value: 'large', name: 'Large', desc: '정밀 • 최고 품질', speed: '⚡⚡⚡ ~10초' },
-];
-
 export function BgRemoveMode() {
+  const { t } = useTranslation();
+
+  const MODEL_OPTIONS: { value: ModelSize; name: string; desc: string; speed: string }[] = [
+    { value: 'small', name: t('bgRemoveMode.models.small.name'), desc: t('bgRemoveMode.models.small.desc'), speed: t('bgRemoveMode.models.small.speed') },
+    { value: 'medium', name: t('bgRemoveMode.models.medium.name'), desc: t('bgRemoveMode.models.medium.desc'), speed: t('bgRemoveMode.models.medium.speed') },
+    { value: 'large', name: t('bgRemoveMode.models.large.name'), desc: t('bgRemoveMode.models.large.desc'), speed: t('bgRemoveMode.models.large.speed') },
+  ];
   const [resultView, setResultView] = useState<'result' | 'compare' | 'split'>('result');
   const [compareValue, setCompareValue] = useState(50);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -46,7 +48,7 @@ export function BgRemoveMode() {
   const handleFileSelect = useCallback(
     async (file: File) => {
       if (!file.type.startsWith('image/')) {
-        alert('이미지 파일만 업로드할 수 있습니다.');
+        alert(t('bgRemoveMode.error.invalidFile'));
         return;
       }
 
@@ -64,13 +66,13 @@ export function BgRemoveMode() {
 
   const handleRunBgRemove = useCallback(async () => {
     if (!bgRemoveFile) {
-      alert('이미지를 먼저 업로드해주세요.');
+      alert(t('bgRemoveMode.error.noImage'));
       return;
     }
 
     try {
-      const modelNames = { small: 'Small', medium: 'Medium', large: 'Large' };
-      showProgress(`배경 제거 중... (${modelNames[bgRemoveOptions.model || 'medium']} 모델)`);
+      const modelName = MODEL_OPTIONS.find(m => m.value === (bgRemoveOptions.model || 'medium'))?.name || 'Medium';
+      showProgress(`${t('bgRemoveMode.processing')} (${modelName})`);
 
       if (!backgroundRemoverRef.current) {
         backgroundRemoverRef.current = new BackgroundRemover();
@@ -85,10 +87,10 @@ export function BgRemoveMode() {
       hideProgress();
     } catch (error) {
       hideProgress();
-      alert('배경 제거 실패: ' + (error as Error).message);
+      alert(t('bgRemoveMode.error.failed') + ': ' + (error as Error).message);
       console.error(error);
     }
-  }, [bgRemoveFile, bgRemoveOptions, showProgress, hideProgress, setBgRemoveResult]);
+  }, [bgRemoveFile, bgRemoveOptions, showProgress, hideProgress, setBgRemoveResult, t, MODEL_OPTIONS]);
 
   const handleDownload = useCallback(() => {
     if (!bgRemoveResult || !backgroundRemoverRef.current) return;
@@ -176,13 +178,13 @@ export function BgRemoveMode() {
   return (
     <>
       {/* 업로드 */}
-      <Card title="1. 이미지 업로드">
+      <Card title={t('bgRemoveMode.uploadTitle')}>
         <UploadArea
           id="bg-remove-input"
           accept="image/*"
           icon="🖼️"
-          title="배경을 제거할 이미지 파일을 선택하세요"
-          subtitle="지원 형식: PNG, JPG, WebP, GIF"
+          title={t('bgRemoveMode.uploadPlaceholder')}
+          subtitle={t('bgRemoveMode.uploadFormats')}
           hasFile={!!bgRemoveFile}
           onFileSelect={handleFileSelect}
         />
@@ -190,7 +192,7 @@ export function BgRemoveMode() {
         {bgRemoveUrl && (
           <div className="mt-6 flex flex-col md:flex-row items-center justify-center gap-6">
             <div className="flex-1 max-w-sm">
-              <h4 className="text-center text-sm text-slate-400 mb-2">원본 이미지</h4>
+              <h4 className="text-center text-sm text-slate-400 mb-2">{t('bgRemoveMode.originalImage')}</h4>
               <div className="checkerboard rounded-lg p-2">
                 <img
                   ref={originalImgRef}
@@ -202,7 +204,7 @@ export function BgRemoveMode() {
             </div>
             <div className="text-2xl text-primary">→</div>
             <div className="flex-1 max-w-sm">
-              <h4 className="text-center text-sm text-slate-400 mb-2">결과 미리보기</h4>
+              <h4 className="text-center text-sm text-slate-400 mb-2">{t('bgRemoveMode.resultPreview')}</h4>
               <div className="checkerboard rounded-lg p-2 min-h-[150px] flex items-center justify-center">
                 {bgRemoveResult ? (
                   <img
@@ -211,7 +213,7 @@ export function BgRemoveMode() {
                     className="max-w-full max-h-60 mx-auto rounded"
                   />
                 ) : (
-                  <span className="text-sm text-slate-500">배경 제거 후 여기에 표시됩니다</span>
+                  <span className="text-sm text-slate-500">{t('bgRemoveMode.resultPlaceholder')}</span>
                 )}
               </div>
             </div>
@@ -220,19 +222,19 @@ export function BgRemoveMode() {
 
         {bgRemoveImageInfo && (
           <p className="text-center text-sm text-slate-400 mt-4">
-            크기: {bgRemoveImageInfo.width} x {bgRemoveImageInfo.height} px
+            {t('bgRemoveMode.size')}: {bgRemoveImageInfo.width} x {bgRemoveImageInfo.height} px
           </p>
         )}
       </Card>
 
       {/* 옵션 */}
       {bgRemoveFile && !bgRemoveResult && (
-        <Card title="2. 배경 제거 옵션" badge="AI">
+        <Card title={t('bgRemoveMode.optionsTitle')} badge="AI">
           {/* 모델 선택 */}
           <div className="bg-bg rounded-xl p-4 mb-4">
-            <h3 className="text-sm font-semibold mb-1">🤖 AI 모델 선택</h3>
+            <h3 className="text-sm font-semibold mb-1">{t('bgRemoveMode.modelTitle')}</h3>
             <p className="text-xs text-slate-400 mb-3">
-              더 큰 모델일수록 정확도가 높지만 처리 시간이 오래 걸립니다.
+              {t('bgRemoveMode.modelDescription')}
             </p>
             <div className="grid grid-cols-3 gap-3">
               {MODEL_OPTIONS.map((opt) => (
@@ -263,13 +265,13 @@ export function BgRemoveMode() {
 
           {/* 출력 설정 */}
           <div className="bg-bg rounded-xl p-4 mb-4">
-            <h3 className="text-sm font-semibold mb-3">📤 출력 설정</h3>
+            <h3 className="text-sm font-semibold mb-3">{t('bgRemoveMode.outputTitle')}</h3>
             <div className="grid grid-cols-2 gap-4">
               <Select
-                label="출력 형식"
+                label={t('bgRemoveMode.outputFormat')}
                 options={[
-                  { value: 'image/png', label: 'PNG (투명 배경 지원)' },
-                  { value: 'image/webp', label: 'WebP (작은 파일 크기)' },
+                  { value: 'image/png', label: t('bgRemoveMode.formatPng') },
+                  { value: 'image/webp', label: t('bgRemoveMode.formatWebp') },
                 ]}
                 value={bgRemoveOptions.outputFormat}
                 onChange={(e) =>
@@ -277,7 +279,7 @@ export function BgRemoveMode() {
                 }
               />
               <RangeInput
-                label="출력 품질 (WebP만)"
+                label={t('bgRemoveMode.outputQuality')}
                 min={0.5}
                 max={1}
                 step={0.05}
@@ -292,9 +294,9 @@ export function BgRemoveMode() {
           <div className="bg-bg rounded-xl p-4 mb-4">
             <div className="flex items-center gap-3 mb-3">
               <span className="text-lg">🎮</span>
-              <h3 className="text-sm font-semibold">픽셀 아트 설정</h3>
+              <h3 className="text-sm font-semibold">{t('bgRemoveMode.pixelArtTitle')}</h3>
             </div>
-            
+
             <PixelArtSettings
               options={bgRemoveOptions}
               onChange={(newOptions) => setBgRemoveOptions(newOptions)}
@@ -307,7 +309,7 @@ export function BgRemoveMode() {
               onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
               className="w-full flex items-center justify-between text-sm font-semibold"
             >
-              <span>⚙️ 고급 설정</span>
+              <span>{t('bgRemoveMode.advancedTitle')}</span>
               <span className={clsx('transition-transform', isAdvancedOpen && 'rotate-180')}>
                 ▼
               </span>
@@ -316,10 +318,10 @@ export function BgRemoveMode() {
             {isAdvancedOpen && (
               <div className="mt-4 space-y-4">
                 <Select
-                  label="처리 장치"
+                  label={t('bgRemoveMode.device')}
                   options={[
-                    { value: 'gpu', label: 'GPU (빠름, 권장)' },
-                    { value: 'cpu', label: 'CPU (호환성 높음)' },
+                    { value: 'gpu', label: t('bgRemoveMode.deviceGpu') },
+                    { value: 'cpu', label: t('bgRemoveMode.deviceCpu') },
                   ]}
                   value={bgRemoveOptions.device}
                   onChange={(e) =>
@@ -328,28 +330,28 @@ export function BgRemoveMode() {
                 />
 
                 <div className="pt-4 border-t border-border">
-                  <h4 className="text-sm text-slate-400 mb-3">🎨 후처리 옵션</h4>
+                  <h4 className="text-sm text-slate-400 mb-3">🎨 {t('bgRemoveMode.postProcessing')}</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <RangeInput
-                      label="전경 임계값"
+                      label={t('bgRemoveMode.foregroundThreshold')}
                       min={0}
                       max={1}
                       step={0.01}
                       value={bgRemoveOptions.foregroundThreshold}
                       displayValue={(bgRemoveOptions.foregroundThreshold || 0.5).toFixed(2)}
-                      hint="값이 높으면 전경 판단이 엄격해집니다"
+                      hint={t('bgRemoveMode.foregroundThresholdHint')}
                       onChange={(e) =>
                         setBgRemoveOptions({ foregroundThreshold: parseFloat(e.target.value) })
                       }
                     />
                     <RangeInput
-                      label="경계선 블러"
+                      label={t('bgRemoveMode.edgeBlur')}
                       min={0}
                       max={10}
                       step={0.5}
                       value={bgRemoveOptions.edgeBlur}
                       displayValue={`${bgRemoveOptions.edgeBlur || 0}px`}
-                      hint="경계선을 부드럽게 처리 (픽셀 아트 시 비활성)"
+                      hint={t('bgRemoveMode.edgeBlurHint')}
                       onChange={(e) =>
                         setBgRemoveOptions({ edgeBlur: parseFloat(e.target.value) })
                       }
@@ -366,7 +368,7 @@ export function BgRemoveMode() {
                         }
                         className="w-4 h-4 accent-primary"
                       />
-                      <span className="text-sm">투명 영역 자동 자르기</span>
+                      <span className="text-sm">{t('bgRemoveMode.trimTransparent')}</span>
                     </label>
 
                     <div className="flex items-center gap-3">
@@ -387,7 +389,7 @@ export function BgRemoveMode() {
                           }
                           className="w-4 h-4 accent-primary"
                         />
-                        <span className="text-sm">배경색 사용</span>
+                        <span className="text-sm">{t('bgRemoveMode.backgroundColor')}</span>
                       </label>
                     </div>
                   </div>
@@ -397,14 +399,14 @@ export function BgRemoveMode() {
           </div>
 
           <Button size="lg" onClick={handleRunBgRemove} icon={<Sparkles className="w-5 h-5" />}>
-            배경 제거 실행
+            {t('bgRemoveMode.runButton')}
           </Button>
         </Card>
       )}
 
       {/* 결과 */}
       {bgRemoveResult && (
-        <Card title="3. 결과">
+        <Card title={t('bgRemoveMode.resultTitle')}>
           <div className="bg-bg rounded-xl overflow-hidden">
             {/* 탭 */}
             <div className="flex border-b border-border">
@@ -419,9 +421,9 @@ export function BgRemoveMode() {
                       : 'text-slate-400 hover:bg-primary/10'
                   )}
                 >
-                  {view === 'result' && '결과 이미지'}
-                  {view === 'compare' && '비교 보기'}
-                  {view === 'split' && '좌우 비교'}
+                  {view === 'result' && t('bgRemoveMode.resultTabs.result')}
+                  {view === 'compare' && t('bgRemoveMode.resultTabs.compare')}
+                  {view === 'split' && t('bgRemoveMode.resultTabs.split')}
                 </button>
               ))}
             </div>
@@ -457,7 +459,7 @@ export function BgRemoveMode() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="relative">
                     <span className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                      원본
+                      {t('bgRemoveMode.original')}
                     </span>
                     <img
                       src={bgRemoveUrl!}
@@ -467,7 +469,7 @@ export function BgRemoveMode() {
                   </div>
                   <div className="relative">
                     <span className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                      결과
+                      {t('bgRemoveMode.result')}
                     </span>
                     <img
                       src={bgRemoveResult.dataUrl}
@@ -482,12 +484,12 @@ export function BgRemoveMode() {
 
           {/* 처리 정보 */}
           <div className="bg-bg rounded-lg p-4 my-4 font-mono text-sm">
-            <strong>처리 정보:</strong>
+            <strong>{t('bgRemoveMode.processingInfoTitle')}:</strong>
             <br />
-            모델: {MODEL_OPTIONS.find((m) => m.value === bgRemoveOptions.model)?.name} |
-            처리 시간: {(bgRemoveResult.processingTime / 1000).toFixed(2)}초 |
-            크기: {bgRemoveResult.resultWidth}x{bgRemoveResult.resultHeight}
-            {bgRemoveOptions.trimTransparent && ' (자동 자르기 적용)'}
+            {t('bgRemoveMode.model')}: {MODEL_OPTIONS.find((m) => m.value === bgRemoveOptions.model)?.name} |
+            {t('bgRemoveMode.time')}: {(bgRemoveResult.processingTime / 1000).toFixed(2)}s |
+            {t('bgRemoveMode.size')}: {bgRemoveResult.resultWidth}x{bgRemoveResult.resultHeight}
+            {bgRemoveOptions.trimTransparent && ` (${t('bgRemoveMode.trimApplied')})`}
           </div>
 
           {/* 결과 광고 */}
@@ -496,17 +498,17 @@ export function BgRemoveMode() {
           {/* 버튼 */}
           <div className="flex flex-wrap gap-3">
             <Button onClick={handleDownload} icon={<Download className="w-4 h-4" />}>
-              PNG 다운로드
+              {t('bgRemoveMode.downloadPng')}
             </Button>
             <Button
               variant="secondary"
               onClick={() => setBgRemoveResult(null)}
               icon={<RefreshCw className="w-4 h-4" />}
             >
-              다시 시도 (설정 변경)
+              {t('bgRemoveMode.retry')}
             </Button>
             <Button variant="secondary" onClick={handleReset} icon={<ImagePlus className="w-4 h-4" />}>
-              새 이미지 선택
+              {t('bgRemoveMode.newImage')}
             </Button>
           </div>
         </Card>

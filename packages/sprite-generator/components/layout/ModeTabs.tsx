@@ -2,24 +2,26 @@
 
 import { Film, Image, Sparkles, Smartphone } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { useTranslation } from '@/lib/i18n';
 import type { AppMode } from '@/types';
 import { clsx } from 'clsx';
 
-const tabs: { mode: AppMode; icon: React.ReactNode; label: string }[] = [
-  { mode: 'video', icon: <Film className="w-5 h-5" />, label: '동영상에서 생성' },
-  { mode: 'sprite', icon: <Image className="w-5 h-5" />, label: '스프라이트 편집' },
-  { mode: 'bg-remove', icon: <Sparkles className="w-5 h-5" />, label: '배경 제거' },
-  { mode: 'expo-assets', icon: <Smartphone className="w-5 h-5" />, label: 'Expo 앱 아이콘' },
+const tabConfigs: { mode: AppMode; icon: React.ReactNode; labelKey: string }[] = [
+  { mode: 'video', icon: <Film className="w-5 h-5" />, labelKey: 'tabs.video' },
+  { mode: 'sprite', icon: <Image className="w-5 h-5" />, labelKey: 'tabs.sprite' },
+  { mode: 'bg-remove', icon: <Sparkles className="w-5 h-5" />, labelKey: 'tabs.bgRemove' },
+  { mode: 'expo-assets', icon: <Smartphone className="w-5 h-5" />, labelKey: 'tabs.expoAssets' },
 ];
 
 export function ModeTabs() {
   const mode = useAppStore((state) => state.mode);
   const setMode = useAppStore((state) => state.setMode);
+  const { t } = useTranslation();
 
   return (
     <section className="bg-bg-card rounded-2xl p-6 border border-border">
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        {tabs.map((tab) => (
+        {tabConfigs.map((tab) => (
           <button
             key={tab.mode}
             onClick={() => setMode(tab.mode)}
@@ -31,7 +33,7 @@ export function ModeTabs() {
             )}
           >
             {tab.icon}
-            <span>{tab.label}</span>
+            <span>{t(tab.labelKey)}</span>
           </button>
         ))}
       </div>

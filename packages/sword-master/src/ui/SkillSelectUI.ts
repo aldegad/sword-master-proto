@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { i18n } from '../i18n';
 
 /**
  * 스킬 카드 선택 UI - 덱/무덤에서 카드 선택
@@ -78,7 +79,7 @@ export class SkillSelectUI {
     const cancelBtn = this.scene.add.container(width/2, height - 188);
     const cancelBg = this.scene.add.rectangle(0, 0, 375, 94, COLORS.background.dark, 0.9);
     cancelBg.setStrokeStyle(3, COLORS.secondary.dark);
-    const cancelText = this.scene.add.text(0, 0, '취소', {
+    const cancelText = this.scene.add.text(0, 0, i18n.t('ui.buttons.cancel'), {
       font: 'bold 32px monospace',
       color: COLORS_STR.secondary.dark,
     }).setOrigin(0.5);
@@ -154,7 +155,7 @@ export class SkillSelectUI {
       const sword = data as SwordCard;
       const drawAtk = sword.drawAttack;
       const reachMap: Record<string, string> = {
-        single: '1적', double: '2적', triple: '3적', all: '전체', swordDouble: '무기x2'
+        single: i18n.t('ui.range.single'), double: i18n.t('ui.range.double'), triple: i18n.t('ui.range.triple'), all: i18n.t('ui.range.all'), swordDouble: i18n.t('ui.range.swordDouble')
       };
       const swiftTag = drawAtk.isSwift ? '⚡' : '';
       infoText = [
@@ -182,7 +183,7 @@ export class SkillSelectUI {
     // 선택 버튼 (RewardSelectionUI와 동일)
     const selectBtn = this.scene.add.rectangle(0, 216, 225, 75, COLORS.success.main, 0.9);
     selectBtn.setStrokeStyle(4, COLORS.primary.light);
-    const selectText = this.scene.add.text(0, 216, '선택', {
+    const selectText = this.scene.add.text(0, 216, i18n.t('ui.buttons.select'), {
       font: 'bold 28px monospace',
       color: COLORS_STR.primary.light,
     }).setOrigin(0.5);
