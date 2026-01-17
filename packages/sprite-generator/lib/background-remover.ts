@@ -33,18 +33,25 @@ export class BackgroundRemover {
 
     try {
       const { pipeline, env } = await import('@huggingface/transformers');
-      
-      // WASM 파일 로드 설정
+
+      // WASM 백엔드 설정 (WebGPU는 호환성 문제로 비활성화)
       env.allowLocalModels = false;
       env.useBrowserCache = true;
-      
+      // ONNX backend 설정 - WASM만 사용
+      if (env.backends?.onnx?.wasm) {
+        env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/';
+      }
+
       // 배경 제거용 이미지 세분화 파이프라인 생성
+      // 'wasm' 또는 'cpu' 백엔드 사용 (webgpu 대신)
       this.pipeline = await pipeline('image-segmentation', 'briaai/RMBG-1.4', {
-        device: 'webgpu',
+        device: 'wasm',
+        dtype: 'fp32',
       });
-      
+
       this.isInitialized = true;
       this.currentModel = model;
+      console.log('배경 제거 라이브러리 초기화 완료 (WASM 백엔드)');
     } catch (error) {
       console.error('배경 제거 라이브러리 로드 실패:', error);
       throw new Error('배경 제거 기능을 초기화할 수 없습니다.');

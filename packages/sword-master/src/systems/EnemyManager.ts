@@ -2,6 +2,7 @@ import type { GameScene } from '../scenes/GameScene';
 import type { Enemy, EnemyAction } from '../types';
 import { createWaveEnemies } from '../data/enemies';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { USE_SVG, ENEMY_TYPE_TO_SVG } from '../constants/sprites';
 
 // 적 행동 큐 아이템 타입
 interface ActionQueueItem {
@@ -148,10 +149,17 @@ spawnWaveEnemies() {
     
     const container = this.scene.add.container(x, y);
     
-    // 적 이모지 (스케일)
-    const emoji = this.scene.add.text(0, -38, enemy.emoji, {
-      font: '90px Arial',
-    }).setOrigin(0.5);
+    // 적 이미지 (SVG 또는 이모지 폴백)
+    let enemyVisual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    const svgKey = ENEMY_TYPE_TO_SVG[enemy.templateId];
+    if (USE_SVG && svgKey && this.scene.textures.exists(svgKey)) {
+      enemyVisual = this.scene.add.image(0, -38, svgKey);
+      enemyVisual.setDisplaySize(90, 90);
+    } else {
+      enemyVisual = this.scene.add.text(0, -38, enemy.emoji, {
+        font: '90px Arial',
+      }).setOrigin(0.5);
+    }
     
     // 적 이름 (스케일)
     const nameText = this.scene.add.text(0, 47, enemy.name, {
@@ -201,7 +209,7 @@ spawnWaveEnemies() {
     const debuffContainer = this.scene.add.container(10, 38);
     (container as any).debuffContainer = debuffContainer;
     
-    container.add([emoji, nameText, hpBarBg, damagePreviewBar, hpBar, hpText, defenseContainer, debuffContainer]);
+    container.add([enemyVisual, nameText, hpBarBg, damagePreviewBar, hpBar, hpText, defenseContainer, debuffContainer]);
     
     // 타겟 강조 효과 (숨김 상태, 스케일)
     const targetHighlight = this.scene.add.rectangle(0, -19, 169, 206, COLORS.secondary.dark, 0);
@@ -1009,9 +1017,9 @@ spawnWaveEnemies() {
   showDamagePreview(hoveredEnemy: Enemy) {
     const pending = this.scene.pendingCard;
     if (!pending) return;
-    
+
     const card = pending.card;
-    const sword = this.scene.playerState.currentSword;
+    const sword = this.scene.swordSlotSystem.getEquippedSword();
     
     // 범위 결정
     let reach = 'single';

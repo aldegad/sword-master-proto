@@ -94,9 +94,9 @@ export class BossRewardUI {
   
   private createRewardCard(card: Card, x: number, y: number, index: number): Phaser.GameObjects.Container {
     const wrapper = this.scene.add.container(x, y);
-    
+
     // CardRenderer로 상세 카드 생성
-    const sword = this.scene.gameScene.playerState.currentSword;
+    const sword = this.scene.gameScene.swordSlotSystem.getEquippedSword();
     const detailCard = this.cardRenderer.createDetailCard(card, sword);
     wrapper.add(detailCard);
     

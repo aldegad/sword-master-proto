@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Download } from 'lucide-react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { ResultAd } from '@/components/common/AdBanner';
 import { useAppStore } from '@/store/useAppStore';
 import { SpriteGenerator } from '@/lib/sprite-generator';
 
@@ -74,6 +75,9 @@ export function SpriteResult() {
           </>
         )}
       </div>
+
+      {/* 결과 광고 */}
+      <ResultAd />
 
       {/* 버튼 */}
       <div className="flex gap-3">

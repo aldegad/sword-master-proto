@@ -1,5 +1,6 @@
 export { TopUI } from './TopUI';
 export { SwordInfoUI } from './SwordInfoUI';
+export { SwordSlotUI } from './SwordSlotUI';
 export { CardUI, calculateCardPosition, CARD_LAYOUT } from './CardUI';
 export { TooltipUI } from './TooltipUI';
 export { ActionButtonsUI } from './ActionButtonsUI';

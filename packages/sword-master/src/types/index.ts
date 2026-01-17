@@ -37,14 +37,22 @@ export type {
 } from './enemy';
 
 // 플레이어 타입
-export type { 
-  Card, 
+export type {
+  Card,
   BuffType,
-  Buff, 
+  Buff,
   PassiveEffectType,
   PlayerPassive,
   PassiveTemplate,
-  PlayerState 
+  PlayerState
+} from './player';
+
+export {
+  SWORD_EQUIP_COST,
+  MAX_SWORD_SLOTS,
+  STARTER_SWORD_COUNT,
+  getEquippedSword,
+  getEquipCost
 } from './player';
 
 // 게임 상태 타입

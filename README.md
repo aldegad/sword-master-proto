@@ -1,71 +1,177 @@
-# Sword Master Monorepo
+# Sword Master
 
-게임 및 도구 프로젝트 모노레포입니다.
+**Action Card Runner Game** - 검의 달인이 되어 적을 베어라!
 
-## 프로젝트 구조
+Phaser 3 기반의 액션 카드 러너 게임과 게임 개발 도구 모음입니다.
 
-```
-packages/
-├── sword-master/       # 액션 카드 러너 게임
-└── sprite-generator/   # 동영상 → 스프라이트 변환 도구
-```
+## Play Now
 
-## 시작하기
+| Project | Live Demo |
+|---------|-----------|
+| **Sword Master** (Game) | [https://sword-master-a7a97.web.app](https://sword-master-a7a97.web.app) |
+| **Sprite Generator** (Tool) | [https://sprite-generator.web.app](https://sprite-generator.web.app) |
 
-### 필수 요구사항
+---
+
+## Projects
+
+### Sword Master (Game)
+
+Slay the Spire 스타일의 덱빌딩 + 액션 러너 게임
+
+**Features:**
+- 카드 기반 전투 시스템 - 공격, 방어, 스킬 카드를 조합하여 전투
+- 다양한 검 수집 - 카타나, 와키자시, 노다치, 무라마사, 쿠사나기 등 전설의 검들
+- 스킬 트리 시스템 - 레벨업하며 강력한 스킬 해금
+- 웨이브 기반 진행 - 적을 처치하고 보스에 도전
+- 상점 시스템 - 골드로 카드와 아이템 구매
+- 패시브 능력 - 영구 버프로 캐릭터 강화
+
+**Tech Stack:**
+- TypeScript
+- Phaser 3 (Game Engine)
+- Vite (Build Tool)
+
+### Sprite Generator (Tool)
+
+게임 개발자를 위한 스프라이트 시트 생성 도구
+
+**Features:**
+- **Video to Sprite** - 동영상에서 프레임 추출하여 스프라이트 시트 생성
+- **Sprite Import** - 기존 스프라이트 시트를 개별 프레임으로 분리
+- **AI Background Removal** - Hugging Face Transformers 기반 AI 배경 제거
+- **Metadata Export** - Phaser, Unity 호환 JSON 메타데이터 생성
+
+**Tech Stack:**
+- TypeScript
+- Next.js 14 (App Router)
+- Tailwind CSS
+- Zustand (State Management)
+- @huggingface/transformers (AI)
+
+---
+
+## Getting Started
+
+### Prerequisites
 
 - Node.js 18+
 - pnpm 8+
 
-### 설치
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/your-username/sword-master.git
+cd sword-master
+
+# Install dependencies
 pnpm install
 ```
 
-### 개발 서버 실행
+### Development
 
 ```bash
-# Sword Master 게임
+# Run Sword Master game (port 3000)
 pnpm dev:game
 
-# Sprite Generator 도구
+# Run Sprite Generator (port 3001)
 pnpm dev:sprite
 ```
 
-### 빌드
+### Build
 
 ```bash
-# Sword Master 게임 빌드
+# Build game
 pnpm build:game
 
-# Sprite Generator 도구 빌드
+# Build sprite generator
 pnpm build:sprite
 ```
 
-## 프로젝트 설명
+### Deploy
 
-### Sword Master (sword-master)
+```bash
+# Deploy game to Firebase
+pnpm deploy:game
 
-Phaser 기반의 액션 카드 러너 게임입니다.
+# Deploy sprite generator to Firebase
+pnpm deploy:sprite
+```
 
-- **포트**: 3000
-- **기술 스택**: TypeScript, Phaser 3, Vite
+---
 
-### Sprite Generator (sprite-generator)
+## Project Structure
 
-동영상 파일에서 프레임을 추출하여 스프라이트 시트를 생성하고 배경을 제거하는 도구입니다.
+```
+sword-master/
+├── packages/
+│   ├── sword-master/           # Phaser 3 Game
+│   │   ├── src/
+│   │   │   ├── main.ts         # Game entry point
+│   │   │   ├── scenes/         # Phaser scenes
+│   │   │   ├── systems/        # Game logic systems
+│   │   │   ├── data/           # Game content (swords, skills, enemies)
+│   │   │   ├── types/          # TypeScript types
+│   │   │   └── ui/             # UI components
+│   │   └── public/assets/      # Game assets
+│   │
+│   └── sprite-generator/       # Next.js Web App
+│       ├── app/                # Next.js App Router
+│       ├── components/         # React components
+│       ├── lib/                # Core processing logic
+│       ├── store/              # Zustand store
+│       └── types/              # TypeScript types
+│
+├── package.json                # Root package.json (workspaces)
+└── pnpm-workspace.yaml         # pnpm workspace config
+```
 
-- **포트**: 3001
-- **기술 스택**: TypeScript, Vite, @imgly/background-removal
+---
 
-#### 기능
+## Development Status (v1.0)
 
-1. **동영상 프레임 추출**: MP4, WebM, MOV 등의 동영상에서 지정된 FPS로 프레임 추출
-2. **스프라이트 시트 생성**: 추출된 프레임을 하나의 스프라이트 시트로 합성
-3. **AI 배경 제거**: 머신러닝 기반으로 프레임의 배경을 자동 제거
-4. **메타데이터 출력**: JSON 형식의 프레임 메타데이터 생성 (Phaser, Unity 등에서 사용 가능)
+### Completed
+- Core game loop with wave-based progression
+- Card-based combat system (attack, defense, skills)
+- Multiple swords with unique abilities
+- Skill tree and level-up system
+- Shop and economy system
+- Enemy AI and boss battles
+- Sprite sheet generation from video
+- AI-powered background removal
+- Firebase Hosting deployment
 
-## 라이센스
+### Known Issues
+- AI background removal may not work in production due to ONNX runtime issues
 
-MIT
+---
+
+## v2 Roadmap
+
+v2 will be developed as a private project, building on the lessons learned from v1:
+- Enhanced visual effects and animations
+- More diverse enemy types and boss mechanics
+- Equipment system beyond swords
+- Story mode and progression
+- Mobile touch controls
+- Multiplayer features
+
+---
+
+## Contributing
+
+This is v1, released as open source. Feel free to:
+- Report issues
+- Submit pull requests
+- Fork and create your own version
+
+---
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+Built with Phaser 3, Next.js, and TypeScript.

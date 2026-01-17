@@ -1,5 +1,5 @@
 import type { GameScene } from '../scenes/GameScene';
-import type { Enemy, SkillCard, EnemyAction, SwordCard } from '../types';
+import type { Enemy, SkillCard, EnemyAction } from '../types';
 import { COLORS } from '../constants/colors';
 import { hasPassive, getPassiveLevel } from '../data/passives';
 import { createEnemy, ENEMIES_TIER1 } from '../data/enemies';
@@ -17,7 +17,7 @@ export class CombatSystem {
   // ========== 플레이어 공격 ==========
   
   executeAttack(skill: SkillCard, targetEnemy?: Enemy) {
-    const sword = this.scene.playerState.currentSword;
+    const sword = this.scene.swordSlotSystem.getEquippedSword();
     if (!sword) return;
     
     // 타수 계산: 무기 타수 × 스킬 타수배율
@@ -234,15 +234,18 @@ export class CombatSystem {
    * '완벽 시전' 패시브가 있으면 내구도와 상관없이 모든 타수 시전 후 무기 파괴
    */
   private consumeDurabilityAndGetHits(requestedHits: number): number {
-    const sword = this.scene.playerState.currentSword;
+    const equippedIdx = this.scene.playerState.equippedSwordIndex;
+    if (equippedIdx < 0 || equippedIdx >= this.scene.playerState.swordInventory.length) return 0;
+
+    const sword = this.scene.playerState.swordInventory[equippedIdx];
     if (!sword) return 0;
-    
+
     // '완벽 시전' 패시브 체크
     const hasPerfectCast = hasPassive(this.scene.playerState.passives, 'perfectCast');
-    
+
     let actualHits: number;
     let durabilityToConsume: number;
-    
+
     if (hasPerfectCast) {
       // 완벽 시전: 내구도가 1 이상이면 모든 타수 시전
       if (sword.currentDurability <= 0) return 0;
@@ -254,24 +257,23 @@ export class CombatSystem {
       actualHits = Math.min(sword.currentDurability, requestedHits);
       durabilityToConsume = actualHits;
     }
-    
+
     if (actualHits <= 0) return 0;
-    
+
     sword.currentDurability -= durabilityToConsume;
     this.scene.updatePlayerWeaponDisplay();
-    
+
     if (sword.currentDurability <= 0) {
       this.scene.animationHelper.showMessage(`${sword.name}이(가) 부서졌다!`, COLORS.message.error);
-      this.scene.playerState.currentSword = null;
-      this.scene.updatePlayerWeaponDisplay();
+      this.scene.swordSlotSystem.removeSword(equippedIdx);
       this.scene.events.emit('handUpdated');  // 스킬 사용 가능 여부 갱신
     }
-    
+
     return actualHits;
   }
   
   executeDefense(skill: SkillCard) {
-    const sword = this.scene.playerState.currentSword;
+    const sword = this.scene.swordSlotSystem.getEquippedSword();
     
     // 카운트 방어 스킬 (통합 처리: 검 얽기, 철벽 등)
     if (skill.effect?.type === 'countDefense') {
@@ -361,155 +363,63 @@ export class CombatSystem {
         value: skill.effect.value,
         duration: skill.effect.duration || 3,
       });
-      
-      // 덱의 모든 검 내구도 1 회복
-      let restoredCount = 0;
-      this.scene.playerState.deck.forEach(card => {
-        if (card.type === 'sword') {
-          const sword = card.data;
-          if (sword.currentDurability < sword.durability) {
-            sword.currentDurability = Math.min(sword.durability, sword.currentDurability + 1);
-            restoredCount++;
-          }
-        }
-      });
-      
-      if (restoredCount > 0) {
-        this.scene.animationHelper.showMessage(`🔧 검 ${restoredCount}자루 내구도 회복!`, COLORS.message.success);
-      }
+
+      // 인벤토리의 모든 검 내구도 1 회복
+      this.scene.swordSlotSystem.restoreAllDurability(1);
+      this.scene.animationHelper.showMessage(`🔧 모든 검 내구도 +1!`, COLORS.message.success);
     } else if (skill.effect?.type === 'searchSword') {
-      // 덱에서 검 찾기
-      const swords = this.scene.playerState.deck.filter(c => c.type === 'sword');
-      if (swords.length === 0) {
-        this.scene.animationHelper.showMessage('덱에 검이 없다!', COLORS.message.error);
+      // [DEPRECATED] 검은 더 이상 덱에 없음 - 인벤토리에서 검 선택 UI 표시
+      const inventory = this.scene.playerState.swordInventory;
+      if (inventory.length === 0) {
+        this.scene.animationHelper.showMessage('보유 검이 없다!', COLORS.message.error);
         return;
       }
-      // 랜덤하게 최대 3개 선택
-      this.scene.cardSystem.shuffleArray(swords);
-      const selectableSwords = swords.slice(0, Math.min(skill.effect.value, swords.length));
-      this.scene.showSkillCardSelection('searchSword', selectableSwords);
+      // 검 슬롯 UI에서 선택하도록 안내
+      this.scene.animationHelper.showMessage('🗡️ 검 슬롯에서 장착할 검을 선택하세요!', COLORS.message.info);
     } else if (skill.effect?.type === 'graveRecall') {
-      // 무덤에서 카드 찾기
+      // 무덤에서 스킬 카드 찾기
       const graveCards = [...this.scene.playerState.discard];
       if (graveCards.length === 0) {
         this.scene.animationHelper.showMessage('무덤이 비어있다!', COLORS.message.error);
         return;
       }
-      // 랜덤하게 최대 3개 선택
+      // 랜덤하게 최대 3개 선택 - Card[] 형태로 변환
       this.scene.cardSystem.shuffleArray(graveCards);
       const selectableCards = graveCards.slice(0, Math.min(skill.effect.value, graveCards.length));
-      this.scene.showSkillCardSelection('graveRecall', selectableCards);
+      const cardsForUI = selectableCards.map(s => ({ type: 'skill' as const, data: s }));
+      this.scene.showSkillCardSelection('graveRecall', cardsForUI);
     } else if (skill.effect?.type === 'graveEquip') {
-      // 무덤에서 검 찾기
-      const graveSwords = this.scene.playerState.discard.filter(c => c.type === 'sword');
-      if (graveSwords.length === 0) {
-        this.scene.animationHelper.showMessage('무덤에 검이 없다!', COLORS.message.error);
-        return;
-      }
-      // 랜덤하게 최대 3개 선택
-      this.scene.cardSystem.shuffleArray(graveSwords);
-      const selectableSwords = graveSwords.slice(0, Math.min(3, graveSwords.length));
-      this.scene.showSkillCardSelection('graveEquip', selectableSwords);
+      // [DEPRECATED] 검은 더 이상 무덤에 없음 - 인벤토리 시스템 사용
+      this.scene.animationHelper.showMessage('검은 인벤토리에서 관리됩니다!', COLORS.message.info);
     } else if (skill.effect?.type === 'drawSwords') {
-      // 덱에서 검 꺼내기 (상위 N개)
+      // [DEPRECATED] 검은 더 이상 덱에 없음 - 인벤토리에서 관리
+      // 대신 스킬 카드를 추가로 드로우
       const count = skill.effect.value || 3;
-      let drawn = 0;
-      
-      // 덱이 비어있으면 무덤을 셔플하여 리필
-      this.scene.cardSystem.refillDeckIfNeeded();
-      
-      const tempDeck = [...this.scene.playerState.deck];
-      
-      for (let i = 0; i < tempDeck.length && drawn < count; i++) {
-        if (tempDeck[i].type === 'sword') {
-          // 덱에서 제거하고 손패로 추가
-          const cardIndex = this.scene.playerState.deck.indexOf(tempDeck[i]);
-          if (cardIndex !== -1) {
-            const [card] = this.scene.playerState.deck.splice(cardIndex, 1);
-            this.scene.playerState.hand.push(card);
-            drawn++;
-          }
-        }
-      }
-      
-      // 아직 부족하면 다시 리필 시도
-      if (drawn < count && this.scene.cardSystem.refillDeckIfNeeded()) {
-        const tempDeck2 = [...this.scene.playerState.deck];
-        for (let i = 0; i < tempDeck2.length && drawn < count; i++) {
-          if (tempDeck2[i].type === 'sword') {
-            const cardIndex = this.scene.playerState.deck.indexOf(tempDeck2[i]);
-            if (cardIndex !== -1) {
-              const [card] = this.scene.playerState.deck.splice(cardIndex, 1);
-              this.scene.playerState.hand.push(card);
-              drawn++;
-            }
-          }
-        }
-      }
-      
-      if (drawn > 0) {
-        this.scene.animationHelper.showMessage(`🎴 검 ${drawn}자루 획득!`, COLORS.message.success);
-      } else {
-        this.scene.animationHelper.showMessage('덱에 검이 없다!', COLORS.message.error);
-      }
-      this.scene.events.emit('handUpdated');
+      this.scene.cardSystem.drawCards(count);
+      this.scene.animationHelper.showMessage(`🎴 스킬 ${count}장 드로우!`, COLORS.message.success);
     } else if (skill.effect?.type === 'bladeGrab') {
-      // 검 잡기: 덱 최상위 검 즉시 장착+발도, 그 다음 검은 손패로
-      
-      // 덱이 비어있으면 무덤을 셔플하여 리필
-      this.scene.cardSystem.refillDeckIfNeeded();
-      
-      const deck = this.scene.playerState.deck;
-      let firstSwordIndex = -1;
-      let secondSwordIndex = -1;
-      
-      // 덱 상위부터 검 2개 찾기
-      for (let i = 0; i < deck.length; i++) {
-        if (deck[i].type === 'sword') {
-          if (firstSwordIndex === -1) {
-            firstSwordIndex = i;
-          } else if (secondSwordIndex === -1) {
-            secondSwordIndex = i;
-            break;
-          }
-        }
-      }
-      
-      if (firstSwordIndex === -1) {
-        this.scene.animationHelper.showMessage('덱에 검이 없다!', COLORS.message.error);
+      // [DEPRECATED] 검은 더 이상 덱에 없음
+      // 대신 인벤토리에서 무작위 검을 선택하여 장착
+      const inventory = this.scene.playerState.swordInventory;
+      if (inventory.length === 0) {
+        this.scene.animationHelper.showMessage('보유 검이 없다!', COLORS.message.error);
         return;
       }
-      
-      // 첫 번째 검: 즉시 장착 + 발도
-      const [firstSword] = deck.splice(firstSwordIndex, 1);
-      const swordData = firstSword.data as SwordCard;
-      
-      // 두 번째 검이 있으면 손패로 (인덱스 조정 필요)
-      let secondSwordData: SwordCard | null = null;
-      if (secondSwordIndex !== -1) {
-        const adjustedIndex = secondSwordIndex > firstSwordIndex ? secondSwordIndex - 1 : secondSwordIndex;
-        const [secondSword] = deck.splice(adjustedIndex, 1);
-        this.scene.playerState.hand.push(secondSword);
-        secondSwordData = secondSword.data as SwordCard;
+
+      // 현재 장착되지 않은 검 중에서 선택
+      const equippedIdx = this.scene.playerState.equippedSwordIndex;
+      const unequippedIndices = inventory
+        .map((_, i) => i)
+        .filter(i => i !== equippedIdx);
+
+      if (unequippedIndices.length === 0) {
+        this.scene.animationHelper.showMessage('다른 검이 없다!', COLORS.message.error);
+        return;
       }
-      
-      // UIScene 가져오기
-      const uiScene = this.scene.scene.get('UIScene') as import('../scenes/UIScene').UIScene;
-      
-      // 검 미리보기 UI 표시 후 확인 버튼 누르면 장착
-      uiScene.showSwordPreview(swordData, '🔍 잡은 검!', () => {
-        // 장착 + 발도
-        this.scene.cardSystem.equipSword(swordData);
-        
-        // 두 번째 검 메시지
-        if (secondSwordData) {
-          this.scene.time.delayedCall(500, () => {
-            this.scene.animationHelper.showMessage(`🎴 ${secondSwordData!.name} 손패로!`, COLORS.message.info);
-          });
-        }
-        
-        this.scene.events.emit('handUpdated');
-      });
+
+      // 무작위로 하나 선택하여 장착
+      const randomIdx = unequippedIndices[Math.floor(Math.random() * unequippedIndices.length)];
+      this.scene.swordSlotSystem.equipSword(randomIdx);
     } else if (skill.effect?.type === 'graveDrawTop') {
       // 무덤 상위 N장을 손패로 가져오기
       const count = skill.effect.value || 2;
@@ -640,7 +550,7 @@ export class CombatSystem {
       const template = ENEMIES_TIER1[minionType];
       
       if (template) {
-        const minion = createEnemy(template, this.scene.gameState.currentWave);
+        const minion = createEnemy(template, 900, minionType);
         minion.isSummoned = true;  // 소환된 적 표시 (경험치 없음)
         this.scene.gameState.enemies.push(minion);
         this.scene.enemyManager.createEnemySprite(minion);
@@ -677,7 +587,8 @@ export class CombatSystem {
    * 카운트 효과가 여러 개 있으면 먼저 장전한 것부터 순서대로 사용
    */
   private handleSingleHit(enemy: Enemy, action: EnemyAction, _isFirstHit: boolean) {
-    const sword = this.scene.playerState.currentSword;
+    const equippedIdx = this.scene.playerState.equippedSwordIndex;
+    const sword = this.scene.swordSlotSystem.getEquippedSword();
     let baseParryRate = sword ? sword.defense : 0;  // 기본 방어율 (10이면 10%)
     
     // 방어 버프 추가 방어율
@@ -744,8 +655,7 @@ export class CombatSystem {
       
       if (sword!.currentDurability <= 0) {
         this.scene.animationHelper.showMessage(`${sword!.name}이(가) 부서졌다!`, COLORS.message.error);
-        this.scene.playerState.currentSword = null;
-        this.scene.updatePlayerWeaponDisplay();
+        this.scene.swordSlotSystem.removeSword(equippedIdx);
         this.scene.events.emit('handUpdated');  // 스킬 사용 가능 여부 갱신
       }
       
@@ -764,8 +674,9 @@ export class CombatSystem {
       
       // 반격 체크 (counterAttack이 true인 경우)
       const shouldCounter = activeCountEffect?.data.counterAttack;
-      if (shouldCounter && this.scene.playerState.currentSword) {
-        const swordAttack = this.scene.playerState.currentSword.attack;
+      const counterSword = this.scene.swordSlotSystem.getEquippedSword();
+      if (shouldCounter && counterSword) {
+        const swordAttack = counterSword.attack;
         // flowRead는 currentCounterMultiplier 사용, countDefense는 attackMultiplier 사용
         const counterMultiplier = activeCountEffect!.type === 'flowRead' 
           ? currentCounterMultiplier 
@@ -1085,7 +996,7 @@ export class CombatSystem {
    * (내구도는 이미 스킬 사용 시 소모됨)
    */
   private async executeChargeAttack(effect: typeof this.scene.playerState.countEffects[0]) {
-    const sword = this.scene.playerState.currentSword;
+    const sword = this.scene.swordSlotSystem.getEquippedSword();
     if (!sword) {
       this.scene.animationHelper.showMessage('무기 없음! 강타 실패', COLORS.message.error);
       return;

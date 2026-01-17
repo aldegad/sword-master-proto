@@ -8,6 +8,7 @@ import { UploadArea } from '@/components/common/UploadArea';
 import { Button } from '@/components/common/Button';
 import { Select, RangeInput } from '@/components/common/Input';
 import { PixelArtSettings } from '@/components/shared/PixelArtSettings';
+import { ResultAd } from '@/components/common/AdBanner';
 import { useAppStore } from '@/store/useAppStore';
 import { BackgroundRemover } from '@/lib/background-remover';
 import type { ModelSize } from '@/types';
@@ -488,6 +489,9 @@ export function BgRemoveMode() {
             크기: {bgRemoveResult.resultWidth}x{bgRemoveResult.resultHeight}
             {bgRemoveOptions.trimTransparent && ' (자동 자르기 적용)'}
           </div>
+
+          {/* 결과 광고 */}
+          <ResultAd />
 
           {/* 버튼 */}
           <div className="flex flex-wrap gap-3">

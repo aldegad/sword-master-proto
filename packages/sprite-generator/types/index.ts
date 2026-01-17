@@ -1,5 +1,21 @@
 // 모드 타입
-export type AppMode = 'video' | 'sprite' | 'bg-remove';
+export type AppMode = 'video' | 'sprite' | 'bg-remove' | 'expo-assets';
+
+// Expo 앱 에셋 설정
+export interface ExpoAssetConfig {
+  name: string;
+  width: number;
+  height: number;
+  description: string;
+}
+
+// Expo 앱 에셋 결과
+export interface ExpoAssetResult {
+  name: string;
+  dataUrl: string;
+  width: number;
+  height: number;
+}
 
 // 프레임 추출 옵션
 export interface ExtractOptions {

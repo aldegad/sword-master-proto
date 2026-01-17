@@ -51,9 +51,9 @@ export class TooltipUI {
   show(x: number, y: number, card: Card, sourceHitArea?: Phaser.GameObjects.Rectangle) {
     this.tooltipContainer.removeAll(true);
     this.sourceHitArea = sourceHitArea || null;
-    
+
     // CardRenderer로 상세 카드 생성
-    const sword = this.scene.gameScene.playerState.currentSword;
+    const sword = this.scene.gameScene.swordSlotSystem.getEquippedSword();
     const detailCard = this.cardRenderer.createDetailCard(card, sword);
     
     // 위치 계산

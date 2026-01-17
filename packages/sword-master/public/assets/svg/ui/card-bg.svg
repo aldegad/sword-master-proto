@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140">
+  <defs>
+    <filter id="paper-texture" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="card-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8F4E8"/>
+      <stop offset="50%" style="stop-color:#F0E8D8"/>
+      <stop offset="100%" style="stop-color:#E8E0D0"/>
+    </linearGradient>
+    <filter id="ink-edge">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Card base with paper texture -->
+  <rect x="2" y="2" width="96" height="136" rx="6" ry="6"
+        fill="url(#card-grad)" filter="url(#paper-texture)"/>
+
+  <!-- Ink brush border -->
+  <rect x="2" y="2" width="96" height="136" rx="6" ry="6"
+        fill="none" stroke="#3A3A3A" stroke-width="2"
+        stroke-linecap="round" filter="url(#ink-edge)"/>
+
+  <!-- Inner decorative border -->
+  <rect x="6" y="6" width="88" height="128" rx="4" ry="4"
+        fill="none" stroke="#8B7355" stroke-width="1" opacity="0.5"/>
+
+  <!-- Corner ornaments (brush strokes) -->
+  <g stroke="#5A4A3A" stroke-width="1.5" stroke-linecap="round" opacity="0.6">
+    <!-- Top left -->
+    <path d="M10 12 L18 12 M12 10 L12 18"/>
+    <!-- Top right -->
+    <path d="M82 12 L90 12 M88 10 L88 18"/>
+    <!-- Bottom left -->
+    <path d="M10 128 L18 128 M12 122 L12 130"/>
+    <!-- Bottom right -->
+    <path d="M82 128 L90 128 M88 122 L88 130"/>
+  </g>
+
+  <!-- Subtle paper grain lines -->
+  <g stroke="#D0C8B8" stroke-width="0.3" opacity="0.4">
+    <line x1="10" y1="30" x2="90" y2="30"/>
+    <line x1="10" y1="110" x2="90" y2="110"/>
+  </g>
+</svg>

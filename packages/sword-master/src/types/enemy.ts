@@ -29,6 +29,7 @@ export interface EnemyAction {
 // 적
 export interface Enemy {
   id: string;
+  templateId: string;  // 템플릿 ID (SVG 매핑용)
   name: string;
   emoji: string;
   hp: number;

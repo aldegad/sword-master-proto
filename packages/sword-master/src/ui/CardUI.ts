@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { USE_SVG, SWORD_ID_TO_SVG } from '../constants/sprites';
 
 // 카드 레이아웃 상수
 export const CARD_LAYOUT = {
@@ -290,7 +291,9 @@ export class CardUI {
         ? targetX  // 새 카드는 바로 목표 위치에 (드로우 애니메이션이 날아오므로)
         : (prevPositions[index] ?? targetX);  // 기존 카드는 이전 위치에서
       
-      const cardSprite = this.createCardSprite(card, startX_anim, 0, index);
+      // SkillCard를 Card 래퍼로 감싸서 전달
+      const wrappedCard = { type: 'skill' as const, data: card };
+      const cardSprite = this.createCardSprite(wrappedCard, startX_anim, 0, index);
       cardSprite.setDepth(index);
       this.cardContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
@@ -324,7 +327,7 @@ export class CardUI {
     const canAfford = this.scene.gameScene.playerState.mana >= manaCost;
     
     // 무기가 없을 때 공격/특수 스킬은 사용 불가
-    const hasWeapon = this.scene.gameScene.playerState.currentSword !== null;
+    const hasWeapon = this.scene.gameScene.swordSlotSystem.getEquippedSword() !== null;
     const needsWeapon = !isSword && ((card.data as SkillCard).type === 'attack' || (card.data as SkillCard).type === 'special');
     const isDisabledByNoWeapon = needsWeapon && !hasWeapon;
     
@@ -444,11 +447,18 @@ export class CardUI {
     const textColor = canAfford ? COLORS_STR.rarity[sword.rarity as keyof typeof COLORS_STR.rarity || 'common'] : COLORS_STR.text.disabled;
     const subColor = canAfford ? COLORS_STR.text.secondary : COLORS_STR.text.disabled;
     
-    // 이모지 (스케일)
-    const emoji = this.scene.add.text(0, -84, sword.emoji, {
-      font: '51px Arial',
-    }).setOrigin(0.5);
-    
+    // 검 이미지 (SVG 또는 이모지 폴백)
+    let swordVisual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    const svgKey = SWORD_ID_TO_SVG[sword.id];
+    if (USE_SVG && svgKey && this.scene.textures.exists(svgKey)) {
+      swordVisual = this.scene.add.image(0, -84, svgKey);
+      swordVisual.setDisplaySize(56, 56);
+    } else {
+      swordVisual = this.scene.add.text(0, -84, sword.emoji, {
+        font: '51px Arial',
+      }).setOrigin(0.5);
+    }
+
     // 검 이름 (displayName 사용, 스케일)
     const displayName = sword.displayName || sword.name;
     const shortName = displayName.length > 6 ? displayName.slice(0, 5) + '..' : displayName;
@@ -489,9 +499,9 @@ export class CardUI {
       color: textColor,
     }).setOrigin(0.5);
     
-    container.add([emoji, nameText, statsText, durText, typeLabel]);
+    container.add([swordVisual, nameText, statsText, durText, typeLabel]);
   }
-  
+
   private renderSkillCard(container: Phaser.GameObjects.Container, skill: SkillCard, canAfford: boolean, isDisabledByNoWeapon: boolean = false) {
     // 신속 스킬은 금색, 일반 스킬은 청록
     const isSwift = skill.isSwift === true;

@@ -1,6 +1,6 @@
 'use client';
 
-import { Film, Image, Sparkles } from 'lucide-react';
+import { Film, Image, Sparkles, Smartphone } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { AppMode } from '@/types';
 import { clsx } from 'clsx';
@@ -9,6 +9,7 @@ const tabs: { mode: AppMode; icon: React.ReactNode; label: string }[] = [
   { mode: 'video', icon: <Film className="w-5 h-5" />, label: '동영상에서 생성' },
   { mode: 'sprite', icon: <Image className="w-5 h-5" />, label: '스프라이트 편집' },
   { mode: 'bg-remove', icon: <Sparkles className="w-5 h-5" />, label: '배경 제거' },
+  { mode: 'expo-assets', icon: <Smartphone className="w-5 h-5" />, label: 'Expo 앱 아이콘' },
 ];
 
 export function ModeTabs() {

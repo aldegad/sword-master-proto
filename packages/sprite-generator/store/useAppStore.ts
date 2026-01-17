@@ -10,6 +10,7 @@ import type {
   ProgressState,
   VideoMetadata,
   FrameSizeSuggestion,
+  ExpoAssetResult,
 } from '@/types';
 
 interface AppState {
@@ -72,6 +73,17 @@ interface AppState {
 
   bgRemoveResult: SingleImageResult | null;
   setBgRemoveResult: (result: SingleImageResult | null) => void;
+
+  // ===== Expo 에셋 모드 =====
+  expoSvgFile: File | null;
+  expoSvgUrl: string | null;
+  expoSvgInfo: { width: number; height: number } | null;
+  setExpoSvgFile: (file: File | null, url: string | null, info: { width: number; height: number } | null) => void;
+  
+  expoAssetResults: ExpoAssetResult[];
+  setExpoAssetResults: (results: ExpoAssetResult[]) => void;
+  
+  resetExpoAssetsMode: () => void;
 
   // ===== 공통 프레임 관리 =====
   extractedFrames: ExtractedFrame[];
@@ -148,6 +160,11 @@ const initialState = {
   },
   bgRemoveResult: null,
 
+  expoSvgFile: null,
+  expoSvgUrl: null,
+  expoSvgInfo: null,
+  expoAssetResults: [],
+
   extractedFrames: [],
   disabledFrames: new Set<number>(),
   disabledReverseFrames: new Set<number>(),
@@ -217,6 +234,22 @@ export const useAppStore = create<AppState>((set, get) => ({
   }),
 
   setBgRemoveResult: (result) => set({ bgRemoveResult: result }),
+
+  setExpoSvgFile: (file, url, info) => set({ 
+    expoSvgFile: file, 
+    expoSvgUrl: url, 
+    expoSvgInfo: info,
+    expoAssetResults: [],
+  }),
+  
+  setExpoAssetResults: (results) => set({ expoAssetResults: results }),
+  
+  resetExpoAssetsMode: () => set({
+    expoSvgFile: null,
+    expoSvgUrl: null,
+    expoSvgInfo: null,
+    expoAssetResults: [],
+  }),
 
   setExtractedFrames: (frames) => set({ 
     extractedFrames: frames,

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
+import { USE_SVG, SWORD_ID_TO_SVG } from '../constants/sprites';
 
 /**
  * 무기 정보 UI - 장착된 무기 정보 표시
@@ -11,6 +12,7 @@ export class SwordInfoUI {
   
   private swordInfoText!: Phaser.GameObjects.Text;
   private swordEmoji!: Phaser.GameObjects.Text;
+  private swordImage!: Phaser.GameObjects.Image | null;
   private specialEffectText!: Phaser.GameObjects.Text;
   private infoPanel!: Phaser.GameObjects.Rectangle;
   private tooltipContainer!: Phaser.GameObjects.Container;
@@ -60,7 +62,7 @@ export class SwordInfoUI {
   }
   
   private showTooltip() {
-    const sword = this.scene.gameScene.playerState.currentSword;
+    const sword = this.scene.gameScene.swordSlotSystem.getEquippedSword();
     if (!sword) return;
     
     this.tooltipContainer.removeAll(true);
@@ -90,8 +92,8 @@ export class SwordInfoUI {
   }
   
   private updateSwordInfo() {
-    const sword = this.scene.gameScene.playerState.currentSword;
-    
+    const sword = this.scene.gameScene.swordSlotSystem.getEquippedSword();
+
     if (!sword) {
       this.swordInfoText.setText('맨손 (NO WEAPON)\n⚡ 발도가 신속으로 발동!\n무기 카드를 사용하세요');
       this.swordInfoText.setColor(COLORS_STR.primary.main);
@@ -108,7 +110,24 @@ export class SwordInfoUI {
       all: '전체',
     };
     
-    this.swordEmoji.setText(sword.emoji);
+    // SVG 또는 이모지 표시
+    const svgKey = SWORD_ID_TO_SVG[sword.id];
+    if (USE_SVG && svgKey && this.scene.textures.exists(svgKey)) {
+      this.swordEmoji.setVisible(false);
+      if (this.swordImage) {
+        this.swordImage.setTexture(svgKey);
+        this.swordImage.setVisible(true);
+      } else {
+        this.swordImage = this.scene.add.image(432, 253, svgKey);
+        this.swordImage.setDisplaySize(75, 75);
+      }
+    } else {
+      if (this.swordImage) {
+        this.swordImage.setVisible(false);
+      }
+      this.swordEmoji.setVisible(true);
+      this.swordEmoji.setText(sword.emoji);
+    }
     const displayName = sword.displayName || sword.name;
     this.swordInfoText.setText([
       `${displayName}`,

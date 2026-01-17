@@ -1,0 +1,15 @@
+# Sprite Generator - robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://sprite-generator.web.app/sitemap.xml
+
+# Crawl-delay (optional, for polite crawlers)
+Crawl-delay: 1
+
+# Block unnecessary paths
+Disallow: /_next/static/
+Disallow: /api/
+

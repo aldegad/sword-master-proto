@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <filter id="ink-blur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.5"/>
+    </filter>
+    <linearGradient id="blade-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E8E8F0"/>
+      <stop offset="50%" style="stop-color:#C0C0D0"/>
+      <stop offset="100%" style="stop-color:#9090A0"/>
+    </linearGradient>
+  </defs>
+  <!-- Straight Korean sword blade -->
+  <path d="M14 52 L50 16 Q51 14 50 12 L48 11 L12 49 Q11 51 12 52 Z"
+        fill="url(#blade-grad)" stroke="#2C2C2C" stroke-width="1.5"
+        stroke-linecap="round" stroke-linejoin="round" filter="url(#ink-blur)"/>
+  <!-- Central ridge -->
+  <line x1="16" y1="50" x2="49" y2="14" stroke="#8080A0" stroke-width="0.6"
+        stroke-linecap="round" opacity="0.8"/>
+  <!-- Korean style guard (rectangular) -->
+  <rect x="9" y="48" width="8" height="4" rx="0.5" transform="rotate(-45 13 50)"
+        fill="#8B6914" stroke="#5A4510" stroke-width="1"/>
+  <!-- Handle with traditional pattern -->
+  <rect x="2" y="54" width="12" height="5" rx="1" transform="rotate(-45 8 56.5)"
+        fill="#2A1A0A" stroke="#1C1C1C" stroke-width="1"/>
+  <!-- Traditional Korean binding -->
+  <g stroke="#1E90FF" stroke-width="0.8" opacity="0.9" stroke-linecap="round">
+    <line x1="3" y1="57" x2="5" y2="55"/>
+    <line x1="6" y1="58" x2="8" y2="56"/>
+    <line x1="9" y1="59" x2="11" y2="57"/>
+  </g>
+</svg>

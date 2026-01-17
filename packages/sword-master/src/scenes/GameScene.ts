@@ -1,14 +1,14 @@
 import Phaser from 'phaser';
-import type { PlayerState, GameState, Card, PassiveTemplate } from '../types';
+import type { PlayerState, GameState, Card, PassiveTemplate, SkillCard } from '../types';
 import { GAME_CONSTANTS } from '../types';
-import { createSwordCard, getRandomSword, getRandomUniqueSword } from '../data/swords';
+import { getRandomSword, getRandomUniqueSword } from '../data/swords';
 import { isBossWave, getCurrentTier, ENEMIES_TIER1, ENEMIES_TIER2, createEnemy } from '../data/enemies';
 import { getRandomEvent, getRandomOutcome, type GameEvent, type EventChoice, type EventOutcome } from '../data/events';
 import { createSkillCard, getStarterDeck, getRandomSkill } from '../data/skills';
 import { addOrUpgradePassive, getRandomPassivesWithoutDuplicates } from '../data/passives';
-import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../systems';
+import { CombatSystem, CardSystem, EnemyManager, AnimationHelper, SwordSlotSystem } from '../systems';
 import { COLORS, COLORS_STR } from '../constants/colors';
-import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
+import { USE_SPRITES, SPRITE_SCALE, USE_SVG, SWORD_ID_TO_SVG } from '../constants/sprites';
 
 /**
  * 메인 게임 씬
@@ -25,9 +25,11 @@ export class GameScene extends Phaser.Scene {
   cardSystem!: CardSystem;
   enemyManager!: EnemyManager;
   animationHelper!: AnimationHelper;
+  swordSlotSystem!: SwordSlotSystem;
   
   // 게임 오브젝트
   playerSprite!: Phaser.GameObjects.Container;
+  playerWeaponVisual?: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
   enemySprites: Map<string, Phaser.GameObjects.Container> = new Map();
   backgroundTiles: Phaser.GameObjects.Graphics[] = [];
   
@@ -58,7 +60,7 @@ export class GameScene extends Phaser.Scene {
   // 스킬 효과로 인한 카드 선택
   skillSelectCards: Card[] = [];
   skillSelectType: 'searchSword' | 'graveRecall' | 'graveEquip' | null = null;
-  pendingSkillCard: Card | null = null;  // 취소 시 복구할 카드
+  pendingSkillCard: SkillCard | null = null;  // 취소 시 복구할 카드 (스킬만)
   
   // 이벤트 전투 후 보상
   pendingEventReward: EventOutcome | null = null;
@@ -82,7 +84,8 @@ export class GameScene extends Phaser.Scene {
     this.combatSystem = new CombatSystem(this);
     this.cardSystem = new CardSystem(this);
     this.enemyManager = new EnemyManager(this);
-    
+    this.swordSlotSystem = new SwordSlotSystem(this);
+
     this.initializeGame();
     this.createBackground();
     this.createPlayer();
@@ -111,33 +114,33 @@ export class GameScene extends Phaser.Scene {
   // ========== 초기화 ==========
 
   initializeGame() {
-    const starterSword = createSwordCard('armingsword')!;
-    
-    const { swords, skills } = getStarterDeck();
-    const deck: Card[] = [];
-    
-    swords.forEach(swordId => {
-      const sword = createSwordCard(swordId);
-      if (sword) deck.push({ type: 'sword', data: sword });
-    });
-    
-    skills.forEach(skillId => {
+    // 스킬만 덱에 (검은 별도 슬롯 시스템)
+    const skillIds = getStarterDeck();
+    const deck: SkillCard[] = [];
+
+    skillIds.forEach(skillId => {
       const skill = createSkillCard(skillId);
-      if (skill) deck.push({ type: 'skill', data: skill });
+      if (skill) deck.push(skill);
     });
-    
+
     this.cardSystem.shuffleArray(deck);
-    
+
     this.playerState = {
       hp: 50,
       maxHp: 50,
       mana: GAME_CONSTANTS.INITIAL_MANA,
       maxMana: GAME_CONSTANTS.INITIAL_MANA,
       defense: 0,
-      currentSword: starterSword,
+
+      // 검 슬롯 시스템 (덱/손패에서 분리)
+      swordInventory: [],
+      equippedSwordIndex: -1,
+
+      // 스킬만 (검은 별도 관리)
       hand: [],
       deck: deck,
       discard: [],
+
       buffs: [],
       countEffects: [],  // 카운트 효과 (패리, 철벽, 반격 등)
       position: 0,
@@ -147,6 +150,9 @@ export class GameScene extends Phaser.Scene {
       level: 1,
       silver: 0,  // 은전
     };
+
+    // 시작 검 지급 (katana, wakizashi, pagapdo)
+    this.swordSlotSystem.initializeStarterSwords();
     
     this.gameState = {
       phase: 'running',
@@ -236,8 +242,8 @@ export class GameScene extends Phaser.Scene {
   
   updatePlayerStatsDisplay() {
     if (!this.playerStatsText) return;
-    
-    const sword = this.playerState.currentSword;
+
+    const sword = this.swordSlotSystem.getEquippedSword();
     if (!sword) {
       this.playerStatsText.setText('');
       this.playerStatsText.setVisible(false);  // 무기 없으면 숨김
@@ -467,7 +473,33 @@ export class GameScene extends Phaser.Scene {
   }
 
   updatePlayerWeaponDisplay() {
-    // 무기 아이콘은 상단 UI에 표시되므로 플레이어 옆에는 표시하지 않음
+    // playerSprite가 아직 생성되지 않았으면 스킵
+    if (!this.playerSprite) return;
+
+    const sword = this.swordSlotSystem.getEquippedSword();
+
+    // 기존 무기 비주얼 제거
+    if (this.playerWeaponVisual) {
+      this.playerWeaponVisual.destroy();
+      this.playerWeaponVisual = undefined;
+    }
+
+    // 장착된 검이 있으면 표시
+    if (sword) {
+      const svgKey = SWORD_ID_TO_SVG[sword.id];
+      if (USE_SVG && svgKey && this.textures.exists(svgKey)) {
+        this.playerWeaponVisual = this.add.image(80, -100, svgKey);
+        this.playerWeaponVisual.setDisplaySize(64, 64);
+        this.playerWeaponVisual.setAngle(-30);  // 검을 들고 있는 각도
+      } else {
+        this.playerWeaponVisual = this.add.text(80, -100, sword.emoji, {
+          font: '48px Arial',
+        }).setOrigin(0.5);
+        this.playerWeaponVisual.setAngle(-30);
+      }
+      this.playerSprite.add(this.playerWeaponVisual);
+    }
+
     this.updatePlayerStatsDisplay();
     this.updatePlayerBuffDisplay();
     this.events.emit('statsUpdated');
@@ -932,7 +964,7 @@ export class GameScene extends Phaser.Scene {
     const template = pool[enemyType];
     
     if (template) {
-      const enemy = createEnemy(template, 700);
+      const enemy = createEnemy(template, 700, enemyType);
       this.gameState.enemies = [enemy];
       this.enemyManager.createEnemySprite(enemy);
     } else {
@@ -1126,11 +1158,14 @@ this.playerState.mana = this.playerState.maxMana;
    */
   selectLevelUpSkill(index: number) {
     if (index < 0 || index >= this.levelUpSkillCards.length) return;
-    
+
     const selectedCard = this.levelUpSkillCards[index];
-    this.playerState.deck.push(selectedCard);
-    this.cardSystem.shuffleArray(this.playerState.deck);
-    
+    // Card 래퍼에서 SkillCard 데이터 추출하여 덱에 추가
+    if (selectedCard.type === 'skill') {
+      this.playerState.deck.push(selectedCard.data);
+      this.cardSystem.shuffleArray(this.playerState.deck);
+    }
+
     this.animationHelper.showMessage(`${selectedCard.data.name} 스킬 획득!`, COLORS.success.dark);
     
     this.levelUpSkillCards = [];
@@ -1232,14 +1267,21 @@ this.playerState.mana = this.playerState.maxMana;
   
   selectBossReward(index: number) {
     if (index < 0 || index >= this.bossRewardCards.length) return;
-    
+
     const selectedCard = this.bossRewardCards[index];
-    this.playerState.deck.push(selectedCard);
-    this.cardSystem.shuffleArray(this.playerState.deck);
-    
     const isUnique = selectedCard.type === 'sword';
+
+    if (selectedCard.type === 'sword') {
+      // 검은 인벤토리에 추가
+      this.swordSlotSystem.acquireSword(selectedCard.data);
+    } else {
+      // 스킬은 덱에 추가
+      this.playerState.deck.push(selectedCard.data);
+      this.cardSystem.shuffleArray(this.playerState.deck);
+    }
+
     this.animationHelper.showMessage(
-      `${isUnique ? '⭐' : '📜'} ${selectedCard.data.name} 획득!`, 
+      `${isUnique ? '⭐' : '📜'} ${selectedCard.data.name} 획득!`,
       isUnique ? COLORS.rarity.unique : COLORS.success.dark
     );
     
@@ -1284,10 +1326,17 @@ selectRewardCard(index: number) {
     if (index < 0 || index >= this.rewardCards.length) return;
 
     const selectedCard = this.rewardCards[index];
-    this.playerState.deck.push(selectedCard);  // 덱에 추가
-    this.cardSystem.shuffleArray(this.playerState.deck);  // 덱 셔플
 
-    this.animationHelper.showMessage(`${selectedCard.data.name} 덱에 추가!`, COLORS.success.dark);
+    if (selectedCard.type === 'sword') {
+      // 검은 인벤토리에 추가
+      this.swordSlotSystem.acquireSword(selectedCard.data);
+    } else {
+      // 스킬은 덱에 추가
+      this.playerState.deck.push(selectedCard.data);
+      this.cardSystem.shuffleArray(this.playerState.deck);
+    }
+
+    this.animationHelper.showMessage(`${selectedCard.data.name} 획득!`, COLORS.success.dark);
 
     this.rewardCards = [];
     this.events.emit('rewardSelected');
@@ -1352,43 +1401,37 @@ selectRewardCard(index: number) {
     }
     this.events.emit('showSkillCardSelection');
   }
-  
+
   selectSkillCard(index: number) {
     if (index < 0 || index >= this.skillSelectCards.length) return;
-    
+
     const selectedCard = this.skillSelectCards[index];
-    
+
     switch (this.skillSelectType) {
       case 'searchSword':
-        // 덱에서 즉시 장착 + 발도 스킬 발동
-        const deckIdx = this.playerState.deck.findIndex(c => c === selectedCard);
-        if (deckIdx !== -1 && selectedCard.type === 'sword') {
-          this.playerState.deck.splice(deckIdx, 1);
-          this.cardSystem.equipSword(selectedCard.data);  // 장착 + 발도 공격
-          this.animationHelper.showMessage(`🔍 ${selectedCard.data.name} 소환!`, COLORS.primary.dark);
-        }
+        // [DEPRECATED] 검은 더 이상 덱에 없음 - 검 슬롯 UI에서 선택
+        this.animationHelper.showMessage('검 슬롯에서 장착할 검을 선택하세요!', COLORS.message.info);
         break;
-        
+
       case 'graveRecall':
-        // 무덤에서 손패로
-        const graveIdx = this.playerState.discard.findIndex(c => c === selectedCard);
-        if (graveIdx !== -1) {
-          this.playerState.discard.splice(graveIdx, 1);
-          this.playerState.hand.push(selectedCard);
-          this.animationHelper.showMessage(`${selectedCard.data.name}이(가) 돌아왔다!`, COLORS.success.dark);
+        // 무덤에서 손패로 - Card 래퍼에서 SkillCard 추출
+        if (selectedCard.type === 'skill') {
+          const skillCard = selectedCard.data;
+          const graveIdx = this.playerState.discard.findIndex(c => c.id === skillCard.id);
+          if (graveIdx !== -1) {
+            this.playerState.discard.splice(graveIdx, 1);
+            this.playerState.hand.push(skillCard);
+            this.animationHelper.showMessage(`${skillCard.name}이(가) 돌아왔다!`, COLORS.success.dark);
+          }
         }
         break;
-        
+
       case 'graveEquip':
-        // 무덤에서 즉시 장착
-        const equipIdx = this.playerState.discard.findIndex(c => c === selectedCard);
-        if (equipIdx !== -1 && selectedCard.type === 'sword') {
-          this.playerState.discard.splice(equipIdx, 1);
-          this.cardSystem.equipSword(selectedCard.data);
-        }
+        // [DEPRECATED] 검은 더 이상 무덤에 없음
+        this.animationHelper.showMessage('검은 인벤토리에서 관리됩니다!', COLORS.message.info);
         break;
     }
-    
+
     this.skillSelectCards = [];
     this.skillSelectType = null;
     this.pendingSkillCard = null;  // 선택 완료 시 초기화
@@ -1405,9 +1448,8 @@ selectRewardCard(index: number) {
         this.playerState.discard.splice(discardIdx, 1);
         this.playerState.hand.push(this.pendingSkillCard);
         // 마나도 복구
-        const skill = this.pendingSkillCard.data as any;
-        if (skill.manaCost) {
-          this.playerState.mana = Math.min(this.playerState.maxMana, this.playerState.mana + skill.manaCost);
+        if (this.pendingSkillCard.manaCost) {
+          this.playerState.mana = Math.min(this.playerState.maxMana, this.playerState.mana + this.pendingSkillCard.manaCost);
         }
         this.animationHelper.showMessage('취소됨', COLORS.message.muted);
       }

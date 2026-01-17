@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, COLORS_STR } from '../constants/colors';
-import { PLAYER_SPRITES, USE_SPRITES, loadedSpriteMeta, type SpriteSheetMeta } from '../constants/sprites';
+import { PLAYER_SPRITES, USE_SPRITES, loadedSpriteMeta, type SpriteSheetMeta, ALL_SVG_ASSETS, USE_SVG } from '../constants/sprites';
 import { FONTS } from '../constants/typography';
 
 export class BootScene extends Phaser.Scene {
@@ -61,7 +61,14 @@ export class BootScene extends Phaser.Scene {
     
     // 배경 이미지 로드
     this.load.image('background', 'assets/background.jpg');
-    
+
+    // SVG 에셋 로드
+    if (USE_SVG) {
+      ALL_SVG_ASSETS.forEach(svg => {
+        this.load.svg(svg.key, svg.path, { width: 64, height: 64 });
+      });
+    }
+
     // 스프라이트 로드 (atlas 형식으로 변경)
     if (USE_SPRITES) {
       PLAYER_SPRITES.forEach(sprite => {
