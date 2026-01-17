@@ -137,19 +137,19 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          suppressHydrationWarning
         />
-        
+
         {/* Google AdSense */}
         <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2628415146104368"
           crossOrigin="anonymous"
         />
-        
-        {/* Favicon 관련 (필요시 파일 추가) */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+
+        {/* Favicon - SVG 사용 */}
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
         <link rel="manifest" href="/manifest.json" />
         
         {/* 테마 색상 */}
