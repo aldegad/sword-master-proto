@@ -60,11 +60,48 @@
         display: block;
       }
     }
+
+    /* 푸터 스타일 */
+    #game-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(10, 14, 26, 0.9);
+      color: rgba(255, 255, 255, 0.5);
+      text-align: center;
+      padding: 6px 12px;
+      font-size: 11px;
+      border-top: 1px solid rgba(212, 175, 55, 0.2);
+    }
+
+    #game-footer a {
+      color: rgba(212, 175, 55, 0.7);
+      text-decoration: none;
+      margin-left: 4px;
+    }
+
+    #game-footer a:hover {
+      color: rgba(212, 175, 55, 1);
+    }
+
+    /* 전체화면일 때 푸터 숨김 */
+    :fullscreen #game-footer,
+    :-webkit-full-screen #game-footer {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div id="game-container"></div>
   <button id="fullscreen-btn">⛶ 전체화면</button>
+
+  <!-- 푸터 -->
+  <footer id="game-footer">
+    © 2025 Soo Hong Kim |
+    <a href="https://github.com/aldegad" target="_blank" rel="noopener">GitHub</a>
+  </footer>
   
   <script type="module" src="/src/main.ts"></script>
   <script>

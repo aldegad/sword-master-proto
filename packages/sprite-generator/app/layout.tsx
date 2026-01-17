@@ -30,9 +30,9 @@ export const metadata: Metadata = {
   ],
 
   // 작성자
-  authors: [{ name: 'Sprite Generator Team' }],
-  creator: 'Sprite Generator',
-  publisher: 'Sprite Generator',
+  authors: [{ name: 'Soo Hong Kim', url: 'https://github.com/aldegad' }],
+  creator: 'Soo Hong Kim',
+  publisher: 'Soo Hong Kim',
 
   // 로봇
   robots: {

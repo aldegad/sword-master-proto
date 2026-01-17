@@ -60,6 +60,29 @@ export default function Home() {
       <BottomBannerAd />
 
       <ProgressOverlay />
+
+      {/* 푸터 */}
+      <footer className="mt-12 pt-6 border-t border-gray-700 text-center text-sm text-gray-400">
+        <p>
+          © {new Date().getFullYear()} Soo Hong Kim. All rights reserved.
+        </p>
+        <p className="mt-2 space-x-4">
+          <a
+            href="https://github.com/aldegad"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-white transition-colors"
+          >
+            GitHub
+          </a>
+          <a
+            href="mailto:aldegad@gmail.com"
+            className="hover:text-white transition-colors"
+          >
+            Contact
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
