@@ -506,8 +506,11 @@
     </footer>
   </div>
 
+  <!-- 게임 스크립트 (미리 로드, 시작 버튼 클릭 시 실행) -->
+  <script type="module" src="/src/main.ts"></script>
+
   <script>
-    let gameLoaded = false;
+    let gameStarted = false;
 
     // 게임 시작 버튼
     document.getElementById('start-game-btn').addEventListener('click', async () => {
@@ -518,27 +521,24 @@
       // 로딩 표시
       loadingOverlay.classList.add('active');
 
-      // 게임 스크립트 로드 (한 번만)
-      if (!gameLoaded) {
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = '/src/main.ts';
-        document.body.appendChild(script);
-        gameLoaded = true;
-
-        // 게임 로드 대기
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-
       // 랜딩 페이지 숨기고 게임 표시
       landingPage.style.display = 'none';
       gameWrapper.classList.add('active');
-      loadingOverlay.classList.remove('active');
 
       // body 스타일 변경
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
       document.body.style.userSelect = 'none';
+
+      // 게임 시작 (한 번만)
+      if (!gameStarted && window.startGame) {
+        window.startGame();
+        gameStarted = true;
+      }
+
+      // 로딩 완료 대기
+      await new Promise(resolve => setTimeout(resolve, 500));
+      loadingOverlay.classList.remove('active');
     });
 
     // 돌아가기 버튼
