@@ -7,7 +7,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#16213e">
+  <meta name="google-adsense-account" content="ca-pub-2628415146104368">
   <title>검을 두른 채 걷다</title>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2628415146104368"
+     crossorigin="anonymous"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
     
@@ -91,11 +96,74 @@
     :-webkit-full-screen #game-footer {
       display: none;
     }
+
+    /* 광고 배너 스타일 */
+    .ad-container {
+      position: fixed;
+      z-index: 999;
+      background: rgba(10, 14, 26, 0.95);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .ad-top {
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 90px;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    }
+
+    .ad-bottom {
+      bottom: 25px;
+      left: 0;
+      right: 0;
+      height: 90px;
+      border-top: 1px solid rgba(212, 175, 55, 0.2);
+    }
+
+    /* 전체화면일 때 광고 숨김 */
+    :fullscreen .ad-container,
+    :-webkit-full-screen .ad-container {
+      display: none;
+    }
+
+    /* 광고가 있을 때 게임 컨테이너 조정 */
+    body.has-ads #game-container {
+      padding-top: 90px;
+      padding-bottom: 115px;
+      height: calc(100% - 205px);
+    }
+
+    body.has-ads #game-footer {
+      bottom: 90px;
+    }
+
+    body.has-ads #fullscreen-btn {
+      bottom: 100px;
+    }
   </style>
 </head>
-<body>
+<body class="has-ads">
+  <!-- 상단 광고 배너 -->
+  <div class="ad-container ad-top">
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:728px;height:90px"
+         data-ad-client="ca-pub-2628415146104368"
+         data-ad-slot="auto"></ins>
+  </div>
+
   <div id="game-container"></div>
   <button id="fullscreen-btn">⛶ 전체화면</button>
+
+  <!-- 하단 광고 배너 -->
+  <div class="ad-container ad-bottom">
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:728px;height:90px"
+         data-ad-client="ca-pub-2628415146104368"
+         data-ad-slot="auto"></ins>
+  </div>
 
   <!-- 푸터 -->
   <footer id="game-footer">
@@ -124,6 +192,14 @@
     window.addEventListener('load', () => {
       setTimeout(() => window.scrollTo(0, 1), 100);
     });
+
+    // AdSense 광고 초기화
+    try {
+      (adsbygoogle = window.adsbygoogle || []).push({});
+      (adsbygoogle = window.adsbygoogle || []).push({});
+    } catch (e) {
+      console.log('AdSense not loaded');
+    }
   </script>
 </body>
 </html>
