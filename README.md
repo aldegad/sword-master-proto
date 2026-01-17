@@ -184,7 +184,7 @@ This is v1. Feel free to:
 - 유료 서비스에 통합
 - 상업용 게임 개발에 코드 재사용
 
-상업적 라이센스가 필요하시면 연락주세요: https://github.com/soohongkim
+상업적 라이센스가 필요하시면 연락주세요: aldegad@gmail.com
 
 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
 
