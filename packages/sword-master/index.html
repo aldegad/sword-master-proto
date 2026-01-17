@@ -145,25 +145,9 @@
     }
   </style>
 </head>
-<body class="has-ads">
-  <!-- 상단 광고 배너 -->
-  <div class="ad-container ad-top">
-    <ins class="adsbygoogle"
-         style="display:inline-block;width:728px;height:90px"
-         data-ad-client="ca-pub-2628415146104368"
-         data-ad-slot="auto"></ins>
-  </div>
-
+<body>
   <div id="game-container"></div>
   <button id="fullscreen-btn">⛶ 전체화면</button>
-
-  <!-- 하단 광고 배너 -->
-  <div class="ad-container ad-bottom">
-    <ins class="adsbygoogle"
-         style="display:inline-block;width:728px;height:90px"
-         data-ad-client="ca-pub-2628415146104368"
-         data-ad-slot="auto"></ins>
-  </div>
 
   <!-- 푸터 -->
   <footer id="game-footer">
@@ -193,14 +177,6 @@
     window.addEventListener('load', () => {
       setTimeout(() => window.scrollTo(0, 1), 100);
     });
-
-    // AdSense 광고 초기화
-    try {
-      (adsbygoogle = window.adsbygoogle || []).push({});
-      (adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {
-      console.log('AdSense not loaded');
-    }
   </script>
 </body>
 </html>
