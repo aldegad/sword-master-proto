@@ -71,3 +71,7 @@ Video to sprite sheet converter with AI background removal.
 ## Language
 
 Code comments are written in Korean (한국어).
+
+## Git Commit Rules
+
+- Do NOT add `Co-Authored-By` to commit messages
