@@ -6,203 +6,361 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#16213e">
+  <meta name="theme-color" content="#0f0a1f">
   <meta name="google-adsense-account" content="ca-pub-2628415146104368">
   <meta name="description" content="Slay the Spire 스타일의 덱빌딩 액션 게임. 다양한 검을 수집하고, 카드를 조합하여 적을 베어라! 무료 브라우저 게임.">
-  <meta name="keywords" content="검 게임, 카드 게임, 덱빌딩, 로그라이크, 브라우저 게임, 무료 게임, 액션 게임, Slay the Spire">
+  <meta name="keywords" content="검 게임, 카드 게임, 덱빌딩, 로그라이크, 브라우저 게임, 무료 게임, 액션 게임">
   <title>검을 두른 채 걷다 | 덱빌딩 액션 게임</title>
 
-  <!-- Open Graph -->
   <meta property="og:title" content="검을 두른 채 걷다 - 덱빌딩 액션 게임">
   <meta property="og:description" content="다양한 검을 수집하고, 카드를 조합하여 적을 베어라!">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://sword-master-a7a97.web.app">
 
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2628415146104368"
-     crossorigin="anonymous"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2628415146104368" crossorigin="anonymous"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --gold: #c9a227;
+      --gold-light: #e8d48b;
+      --gold-dark: #8b6914;
+      --bg-dark: #0a0612;
+      --bg-card: rgba(255,255,255,0.02);
+      --text-primary: #f5f5f5;
+      --text-secondary: #9a9a9a;
+      --accent: #ff6b35;
     }
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      background: #0a0e1a;
-      font-family: 'Noto Sans KR', sans-serif;
-      color: #e0e0e0;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
     }
 
     /* 랜딩 페이지 */
     #landing-page {
       min-height: 100vh;
-      background: linear-gradient(180deg, #0a0e1a 0%, #1a1f35 50%, #0a0e1a 100%);
-      overflow-y: auto;
+      position: relative;
     }
 
-    .landing-hero {
+    /* 배경 효과 */
+    .bg-gradient {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201, 162, 39, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 105, 20, 0.1) 0%, transparent 50%),
+        linear-gradient(180deg, #0a0612 0%, #12091f 50%, #0a0612 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 히어로 섹션 */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       text-align: center;
-      padding: 60px 20px 40px;
-      background: radial-gradient(ellipse at center top, rgba(212, 175, 55, 0.1) 0%, transparent 60%);
+      padding: 40px 24px;
+      position: relative;
+      z-index: 1;
     }
 
-    .landing-hero h1 {
-      font-size: 3rem;
-      font-weight: 900;
-      color: #d4af37;
-      text-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
-      margin-bottom: 16px;
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(201, 162, 39, 0.08) 0%, transparent 70%);
+      pointer-events: none;
     }
 
-    .landing-hero .subtitle {
-      font-size: 1.2rem;
-      color: #a0a0a0;
-      margin-bottom: 32px;
-    }
-
-    .start-btn {
+    .hero-badge {
       display: inline-block;
-      padding: 16px 48px;
-      font-size: 1.3rem;
-      font-weight: bold;
-      color: #1a1512;
-      background: linear-gradient(135deg, #d4af37 0%, #f0d060 50%, #d4af37 100%);
+      padding: 8px 20px;
+      background: rgba(201, 162, 39, 0.1);
+      border: 1px solid rgba(201, 162, 39, 0.3);
+      border-radius: 50px;
+      font-size: 0.85rem;
+      color: var(--gold-light);
+      margin-bottom: 32px;
+      letter-spacing: 0.5px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin-bottom: 48px;
+      font-weight: 300;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 48px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #0a0612;
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
       border: none;
-      border-radius: 12px;
+      border-radius: 60px;
       cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 24px rgba(201, 162, 39, 0.3);
+      position: relative;
+      overflow: hidden;
     }
 
-    .start-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 30px rgba(212, 175, 55, 0.6);
+    .cta-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
     }
 
-    .landing-content {
-      max-width: 1000px;
+    .cta-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(201, 162, 39, 0.4);
+    }
+
+    .cta-btn:hover::before {
+      left: 100%;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      opacity: 0.6;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* 콘텐츠 섹션 */
+    .content {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 40px 20px;
+      padding: 80px 24px 60px;
     }
 
     .section {
+      margin-bottom: 100px;
+    }
+
+    .section-header {
+      text-align: center;
       margin-bottom: 48px;
     }
 
-    .section h2 {
-      font-size: 1.5rem;
-      color: #d4af37;
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-    }
-
-    .section p {
-      line-height: 1.8;
-      color: #c0c0c0;
-      margin-bottom: 16px;
-    }
-
-    /* 특징 그리드 */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    .feature-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(212, 175, 55, 0.2);
-      border-radius: 12px;
-      padding: 24px;
-    }
-
-    .feature-card h3 {
-      color: #d4af37;
-      font-size: 1.1rem;
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 2px;
       margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.4rem);
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* 특징 카드 */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .feature {
+      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 32px;
+      transition: all 0.3s;
+    }
+
+    .feature:hover {
+      border-color: rgba(201, 162, 39, 0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, rgba(201, 162, 39, 0.2) 0%, rgba(201, 162, 39, 0.05) 100%);
+      border-radius: 16px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
     }
 
-    .feature-card p {
+    .feature h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .feature p {
       font-size: 0.95rem;
-      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.7;
     }
 
     /* 조작법 */
-    .controls-list {
+    .controls {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
     }
 
-    .control-item {
+    .control {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 8px;
+      gap: 16px;
+      padding: 20px 24px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 14px;
     }
 
-    .control-key {
-      display: inline-block;
-      padding: 6px 12px;
-      background: rgba(212, 175, 55, 0.2);
-      border: 1px solid rgba(212, 175, 55, 0.4);
-      border-radius: 6px;
-      font-weight: bold;
-      color: #d4af37;
-      min-width: 50px;
-      text-align: center;
+    .key {
+      min-width: 48px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(201, 162, 39, 0.15) 0%, rgba(201, 162, 39, 0.05) 100%);
+      border: 1px solid rgba(201, 162, 39, 0.3);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--gold-light);
+    }
+
+    .control span:last-child {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
     }
 
     /* FAQ */
-    .faq-item {
-      margin-bottom: 16px;
-      padding: 16px 20px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 8px;
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .faq-item h4 {
-      color: #e0e0e0;
-      margin-bottom: 8px;
+    .faq {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 14px;
+      overflow: hidden;
     }
 
-    .faq-item p {
-      font-size: 0.9rem;
-      margin: 0;
+    .faq-q {
+      padding: 20px 24px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .faq-q::after {
+      content: '+';
+      font-size: 1.2rem;
+      color: var(--gold);
+    }
+
+    .faq-a {
+      padding: 0 24px 20px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
     }
 
     /* 푸터 */
-    .landing-footer {
+    .footer {
       text-align: center;
-      padding: 30px 20px;
-      border-top: 1px solid rgba(212, 175, 55, 0.2);
-      color: #808080;
-      font-size: 0.9rem;
+      padding: 40px 24px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      position: relative;
+      z-index: 1;
     }
 
-    .landing-footer a {
-      color: #d4af37;
+    .footer a {
+      color: var(--gold);
       text-decoration: none;
-      margin: 0 8px;
+      margin: 0 12px;
+      transition: color 0.2s;
     }
 
-    .landing-footer a:hover {
-      text-decoration: underline;
+    .footer a:hover {
+      color: var(--gold-light);
     }
 
-    /* 게임 컨테이너 (숨김) */
+    .footer p:first-child {
+      margin-bottom: 12px;
+    }
+
+    /* 게임 래퍼 */
     #game-wrapper {
       display: none;
       width: 100%;
@@ -210,11 +368,11 @@
       position: fixed;
       top: 0;
       left: 0;
+      background: #0a0612;
+      z-index: 1000;
     }
 
-    #game-wrapper.active {
-      display: block;
-    }
+    #game-wrapper.active { display: block; }
 
     #game-container {
       width: 100%;
@@ -224,108 +382,72 @@
       align-items: center;
     }
 
-    /* 전체화면 버튼 */
-    #fullscreen-btn {
+    #fullscreen-btn, #back-btn {
       position: fixed;
-      bottom: 10px;
-      right: 10px;
       z-index: 9999;
-      background: rgba(212, 175, 55, 0.8);
-      color: #1a1512;
       border: none;
       border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 14px;
-      font-weight: bold;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
       cursor: pointer;
+      transition: all 0.2s;
       display: none;
     }
 
-    #fullscreen-btn:hover {
-      background: rgba(212, 175, 55, 1);
+    #game-wrapper.active #fullscreen-btn,
+    #game-wrapper.active #back-btn { display: block; }
+
+    #fullscreen-btn {
+      bottom: 16px;
+      right: 16px;
+      background: rgba(201, 162, 39, 0.9);
+      color: #0a0612;
     }
 
-    #game-wrapper.active #fullscreen-btn {
-      display: block;
+    #back-btn {
+      top: 16px;
+      left: 16px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
     }
+
+    #fullscreen-btn:hover { background: var(--gold-light); }
+    #back-btn:hover { background: rgba(255,255,255,0.2); }
 
     :fullscreen #fullscreen-btn,
-    :-webkit-full-screen #fullscreen-btn {
-      display: none;
-    }
+    :fullscreen #back-btn,
+    :-webkit-full-screen #fullscreen-btn,
+    :-webkit-full-screen #back-btn { display: none; }
 
-    /* 게임 내 푸터 */
     #game-footer {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
       z-index: 1000;
-      background: rgba(10, 14, 26, 0.9);
-      color: rgba(255, 255, 255, 0.5);
+      background: rgba(10, 6, 18, 0.95);
+      color: rgba(255,255,255,0.4);
       text-align: center;
-      padding: 6px 12px;
+      padding: 8px;
       font-size: 11px;
-      border-top: 1px solid rgba(212, 175, 55, 0.2);
       display: none;
     }
 
-    #game-wrapper.active #game-footer {
-      display: block;
-    }
+    #game-wrapper.active #game-footer { display: block; }
+    :fullscreen #game-footer, :-webkit-full-screen #game-footer { display: none; }
 
     #game-footer a {
-      color: rgba(212, 175, 55, 0.7);
+      color: var(--gold);
       text-decoration: none;
       margin-left: 4px;
     }
 
-    #game-footer a:hover {
-      color: rgba(212, 175, 55, 1);
-    }
-
-    :fullscreen #game-footer,
-    :-webkit-full-screen #game-footer {
-      display: none;
-    }
-
-    /* 뒤로가기 버튼 */
-    #back-btn {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 9999;
-      background: rgba(100, 100, 100, 0.6);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 14px;
-      cursor: pointer;
-      display: none;
-    }
-
-    #back-btn:hover {
-      background: rgba(100, 100, 100, 0.8);
-    }
-
-    #game-wrapper.active #back-btn {
-      display: block;
-    }
-
-    :fullscreen #back-btn,
-    :-webkit-full-screen #back-btn {
-      display: none;
-    }
-
-    /* 로딩 오버레이 */
+    /* 로딩 */
     #loading-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #0a0e1a;
+      inset: 0;
+      background: #0a0612;
       display: none;
       justify-content: center;
       align-items: center;
@@ -333,241 +455,201 @@
       z-index: 10000;
     }
 
-    #loading-overlay.active {
-      display: flex;
+    #loading-overlay.active { display: flex; }
+
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 2px solid rgba(201, 162, 39, 0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .loading-text {
-      color: #d4af37;
-      font-size: 1.5rem;
-      margin-bottom: 20px;
+      margin-top: 20px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
     }
 
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 3px solid rgba(212, 175, 55, 0.2);
-      border-top-color: #d4af37;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    /* 반응형 */
+    @media (max-width: 768px) {
+      .hero { padding: 32px 20px; }
+      .content { padding: 60px 20px 40px; }
+      .section { margin-bottom: 60px; }
+      .feature { padding: 24px; }
     }
   </style>
 </head>
 <body>
-  <!-- 랜딩 페이지 -->
+  <div class="bg-gradient"></div>
+
   <div id="landing-page">
-    <div class="landing-hero">
+    <section class="hero">
+      <span class="hero-badge">Deckbuilding Action RPG</span>
       <h1>검을 두른 채 걷다</h1>
-      <p class="subtitle">Slay the Spire 스타일의 덱빌딩 액션 게임</p>
-      <button class="start-btn" id="start-game-btn">⚔️ 게임 시작</button>
-    </div>
+      <p class="hero-desc">전설의 검을 수집하고, 카드를 조합하여<br>당신만의 전투 스타일을 완성하세요</p>
+      <button class="cta-btn" id="start-game-btn">
+        <span>게임 시작</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+      <div class="scroll-hint">
+        <span>스크롤하여 더 알아보기</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12l7 7 7-7"/>
+        </svg>
+      </div>
+    </section>
 
-    <div class="landing-content">
-      <!-- 게임 소개 -->
+    <div class="content">
       <section class="section">
-        <h2>🎮 게임 소개</h2>
-        <p>
-          <strong>검을 두른 채 걷다</strong>는 카드 덱빌딩과 액션 전투가 결합된 로그라이크 게임입니다.
-          다양한 전설의 검을 수집하고, 공격/방어/스킬 카드를 조합하여 적을 물리치세요.
-          웨이브를 클리어하고 보스를 처치하여 더 강력한 검과 카드를 얻을 수 있습니다.
-        </p>
-        <p>
-          모든 플레이는 브라우저에서 진행되며, 별도의 설치가 필요 없습니다.
-          데스크톱과 모바일 모두 지원합니다.
-        </p>
-      </section>
-
-      <!-- 게임 특징 -->
-      <section class="section">
-        <h2>✨ 게임 특징</h2>
-        <div class="features-grid">
-          <div class="feature-card">
-            <h3>⚔️ 다양한 검 수집</h3>
-            <p>카타나, 와키자시, 노다치, 무라마사, 쿠사나기 등 전설의 검들을 수집하세요. 각 검마다 고유한 능력과 카드가 있습니다.</p>
+        <div class="section-header">
+          <span class="section-label">Features</span>
+          <h2 class="section-title">게임 특징</h2>
+        </div>
+        <div class="features">
+          <div class="feature">
+            <div class="feature-icon">⚔️</div>
+            <h3>전설의 검 수집</h3>
+            <p>카타나, 무라마사, 쿠사나기 등 각자 고유한 능력을 가진 전설의 검들을 수집하고 마스터하세요.</p>
           </div>
-          <div class="feature-card">
-            <h3>🃏 덱빌딩 전투</h3>
-            <p>공격, 방어, 스킬 카드를 조합하여 자신만의 전략을 세우세요. 상점에서 새 카드를 구매하고 덱을 강화하세요.</p>
+          <div class="feature">
+            <div class="feature-icon">🃏</div>
+            <h3>전략적 덱빌딩</h3>
+            <p>공격, 방어, 스킬 카드를 조합하여 상황에 맞는 최적의 전략을 구사하세요.</p>
           </div>
-          <div class="feature-card">
-            <h3>📈 스킬 트리</h3>
-            <p>레벨업하며 강력한 패시브 스킬을 해금하세요. 크리티컬, 흡혈, 방어력 증가 등 다양한 능력을 선택할 수 있습니다.</p>
+          <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <h3>스킬 성장</h3>
+            <p>레벨업을 통해 강력한 패시브 스킬을 해금하고 캐릭터를 강화하세요.</p>
           </div>
-          <div class="feature-card">
-            <h3>👹 웨이브 & 보스</h3>
-            <p>웨이브마다 등장하는 적들을 처치하고 보스에 도전하세요. 보스를 처치하면 희귀한 보상을 얻을 수 있습니다.</p>
-          </div>
-          <div class="feature-card">
-            <h3>🛒 상점 시스템</h3>
-            <p>전투에서 얻은 골드로 카드, 포션, 아이템을 구매하세요. 현명한 투자가 승리의 열쇠입니다.</p>
-          </div>
-          <div class="feature-card">
-            <h3>🎯 전략적 타겟팅</h3>
-            <p>적을 선택하여 공격하고, 범위 공격으로 여러 적을 동시에 처치하세요. 상황에 맞는 전략이 필요합니다.</p>
+          <div class="feature">
+            <div class="feature-icon">👹</div>
+            <h3>도전적인 보스</h3>
+            <p>웨이브를 클리어하고 강력한 보스에 도전하여 희귀한 보상을 획득하세요.</p>
           </div>
         </div>
       </section>
 
-      <!-- 조작법 -->
       <section class="section">
-        <h2>🎮 조작법</h2>
-        <div class="controls-list">
-          <div class="control-item">
-            <span class="control-key">클릭</span>
-            <span>카드 선택 및 사용</span>
+        <div class="section-header">
+          <span class="section-label">Controls</span>
+          <h2 class="section-title">조작법</h2>
+        </div>
+        <div class="controls">
+          <div class="control">
+            <span class="key">클릭</span>
+            <span>카드 선택/사용</span>
           </div>
-          <div class="control-item">
-            <span class="control-key">드래그</span>
-            <span>카드를 적에게 드래그하여 공격</span>
+          <div class="control">
+            <span class="key">드래그</span>
+            <span>카드로 공격</span>
           </div>
-          <div class="control-item">
-            <span class="control-key">우클릭</span>
-            <span>카드 상세 정보 보기</span>
-          </div>
-          <div class="control-item">
-            <span class="control-key">Space</span>
+          <div class="control">
+            <span class="key">Space</span>
             <span>턴 종료</span>
           </div>
-          <div class="control-item">
-            <span class="control-key">D</span>
+          <div class="control">
+            <span class="key">D</span>
             <span>덱 보기</span>
           </div>
-          <div class="control-item">
-            <span class="control-key">ESC</span>
-            <span>메뉴 / 취소</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <span class="section-label">FAQ</span>
+          <h2 class="section-title">자주 묻는 질문</h2>
+        </div>
+        <div class="faq-list">
+          <div class="faq">
+            <div class="faq-q">모바일에서도 플레이할 수 있나요?</div>
+            <div class="faq-a">네, 모바일 브라우저에서도 터치로 플레이할 수 있습니다.</div>
+          </div>
+          <div class="faq">
+            <div class="faq-q">게임 진행이 저장되나요?</div>
+            <div class="faq-a">현재 버전에서는 세션 중에만 진행이 유지됩니다. 세이브 기능은 추후 업데이트 예정입니다.</div>
+          </div>
+          <div class="faq">
+            <div class="faq-q">게임이 어려워요. 팁이 있나요?</div>
+            <div class="faq-a">방어 카드를 적절히 사용하고, 상점에서 체력 회복 아이템을 구매하세요. 적의 공격 패턴을 파악하는 것이 중요합니다.</div>
           </div>
         </div>
-      </section>
-
-      <!-- FAQ -->
-      <section class="section">
-        <h2>❓ 자주 묻는 질문</h2>
-        <div class="faq-item">
-          <h4>게임 진행이 저장되나요?</h4>
-          <p>현재 버전에서는 브라우저를 닫으면 진행이 초기화됩니다. 추후 세이브 기능이 추가될 예정입니다.</p>
-        </div>
-        <div class="faq-item">
-          <h4>모바일에서도 플레이할 수 있나요?</h4>
-          <p>네, 모바일 브라우저에서도 플레이 가능합니다. 터치로 카드를 선택하고 드래그하여 사용하세요.</p>
-        </div>
-        <div class="faq-item">
-          <h4>게임이 너무 어려워요.</h4>
-          <p>처음에는 카타나로 시작하여 기본 조작을 익히세요. 방어 카드를 적절히 사용하고, 상점에서 체력 회복 포션을 구매하면 도움이 됩니다.</p>
-        </div>
-        <div class="faq-item">
-          <h4>버그를 발견했어요.</h4>
-          <p>GitHub Issues에 버그를 제보해주시면 확인 후 수정하겠습니다. 감사합니다!</p>
-        </div>
-      </section>
-
-      <!-- 개발 정보 -->
-      <section class="section">
-        <h2>🛠️ 개발 정보</h2>
-        <p>
-          이 게임은 <strong>Phaser 3</strong> 게임 엔진과 <strong>TypeScript</strong>로 개발되었습니다.
-          오픈소스 프로젝트로, GitHub에서 소스 코드를 확인할 수 있습니다.
-        </p>
-        <p>
-          <strong>버전:</strong> 1.0.0<br>
-          <strong>개발자:</strong> Soo Hong Kim<br>
-          <strong>라이선스:</strong> PolyForm Noncommercial License 1.0.0
-        </p>
       </section>
     </div>
 
-    <footer class="landing-footer">
+    <footer class="footer">
       <p>© 2025 Soo Hong Kim. All rights reserved.</p>
       <p>
-        <a href="https://github.com/aldegad" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/aldegad" target="_blank">GitHub</a>
         <a href="mailto:aldegad@gmail.com">Contact</a>
       </p>
     </footer>
   </div>
 
-  <!-- 로딩 오버레이 -->
   <div id="loading-overlay">
-    <div class="loading-text">게임 로딩 중...</div>
-    <div class="loading-spinner"></div>
+    <div class="loader"></div>
+    <div class="loading-text">게임을 불러오는 중...</div>
   </div>
 
-  <!-- 게임 래퍼 -->
   <div id="game-wrapper">
-    <button id="back-btn">← 돌아가기</button>
+    <button id="back-btn">← 나가기</button>
     <div id="game-container"></div>
     <button id="fullscreen-btn">⛶ 전체화면</button>
     <footer id="game-footer">
       © 2025 Soo Hong Kim |
-      <a href="https://github.com/aldegad" target="_blank" rel="noopener">GitHub</a> |
+      <a href="https://github.com/aldegad" target="_blank">GitHub</a> |
       <a href="mailto:aldegad@gmail.com">Contact</a>
     </footer>
   </div>
 
-  <!-- 게임 스크립트 (미리 로드, 시작 버튼 클릭 시 실행) -->
   <script type="module" src="/src/main.ts"></script>
-
   <script>
     let gameStarted = false;
 
-    // 게임 시작 버튼
     document.getElementById('start-game-btn').addEventListener('click', async () => {
-      const landingPage = document.getElementById('landing-page');
-      const gameWrapper = document.getElementById('game-wrapper');
-      const loadingOverlay = document.getElementById('loading-overlay');
+      const landing = document.getElementById('landing-page');
+      const game = document.getElementById('game-wrapper');
+      const loading = document.getElementById('loading-overlay');
 
-      // 로딩 표시
-      loadingOverlay.classList.add('active');
+      loading.classList.add('active');
+      landing.style.display = 'none';
 
-      // 랜딩 페이지 숨기고 게임 표시
-      landingPage.style.display = 'none';
-      gameWrapper.classList.add('active');
+      Object.assign(document.body.style, {
+        overflow: 'hidden',
+        touchAction: 'none',
+        userSelect: 'none'
+      });
 
-      // body 스타일 변경
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-      document.body.style.userSelect = 'none';
-
-      // 게임 시작 (한 번만)
       if (!gameStarted && window.startGame) {
         window.startGame();
         gameStarted = true;
       }
 
-      // 로딩 완료 대기
-      await new Promise(resolve => setTimeout(resolve, 500));
-      loadingOverlay.classList.remove('active');
+      await new Promise(r => setTimeout(r, 800));
+      game.classList.add('active');
+      loading.classList.remove('active');
     });
 
-    // 돌아가기 버튼
     document.getElementById('back-btn').addEventListener('click', () => {
-      const landingPage = document.getElementById('landing-page');
-      const gameWrapper = document.getElementById('game-wrapper');
-
-      gameWrapper.classList.remove('active');
-      landingPage.style.display = 'block';
-
-      // body 스타일 복원
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-      document.body.style.userSelect = '';
+      document.getElementById('game-wrapper').classList.remove('active');
+      document.getElementById('landing-page').style.display = 'block';
+      Object.assign(document.body.style, { overflow: '', touchAction: '', userSelect: '' });
     });
 
-    // 전체화면 토글
     document.getElementById('fullscreen-btn').addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      } else {
-        document.exitFullscreen().catch(() => {});
-      }
+      document.fullscreenElement
+        ? document.exitFullscreen()
+        : document.documentElement.requestFullscreen().catch(() => {});
     });
 
-    // 전체화면 상태에 따라 버튼 텍스트 변경
     document.addEventListener('fullscreenchange', () => {
-      const fsBtn = document.getElementById('fullscreen-btn');
-      fsBtn.textContent = document.fullscreenElement ? '✕ 나가기' : '⛶ 전체화면';
+      document.getElementById('fullscreen-btn').textContent =
+        document.fullscreenElement ? '✕ 나가기' : '⛶ 전체화면';
     });
   </script>
 </body>
