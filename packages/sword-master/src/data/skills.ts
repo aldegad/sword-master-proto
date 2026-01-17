@@ -513,25 +513,26 @@ export function getSkillsByType(type: SkillCard['type']): string[] {
     .map(([id]) => id);
 }
 
-// 시작 검 목록 (별도 슬롯 시스템용)
-// 일반검(katana), 단검(wakizashi), 갑옷파괴(pagapdo)
-export function getStarterSwords(): string[] {
-  return ['katana', 'wakizashi', 'pagapdo'];
-}
-
-// 기본 덱 구성 (스킬만 - 검은 별도 슬롯 시스템으로 분리됨)
-export function getStarterDeck(): string[] {
-  return [
-    'slash', 'slash',
-    'thrust',
-    'consecutiveSlash',
-    'parry', 'parry',
-    'quickSlash',
-    'focus',
-    'powerStrike',
-    'sweepingBlow',
-    'slashAndDraw',
-    'setupBoard', 'setupBoard',
-    'followUpSlash',
-  ];
+// 기본 덱 구성 (동양검만 사용)
+export function getStarterDeck(): { swords: string[]; skills: string[] } {
+  return {
+    swords: [
+      'katana', 'samjeongdo', 'wakizashi',  // 기본 3종 (동양검)
+      'bongukgeom',  // 추가 1종
+      'pagapdo', 'katana',  // 칼 2개 추가 (파갑도 = 구 해갑도)
+    ],
+    skills: [
+      'slash', 'slash',
+      'thrust',              // thrust 하나 줄임
+      'consecutiveSlash',    // 연속베기 (구 이연격)
+      'parry', 'parry',
+      'quickSlash',
+      'focus',
+      'powerStrike',
+      'sweepingBlow',
+      'slashAndDraw',        // 베며 가다듬기
+      'setupBoard', 'setupBoard',
+      'followUpSlash',       // 이어베기 추가 (요이도로시 대체)
+    ],
+  };
 }

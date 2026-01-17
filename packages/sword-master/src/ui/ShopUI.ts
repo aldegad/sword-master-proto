@@ -4,7 +4,6 @@ import type { SwordCard } from '../types';
 import { getCleanSword } from '../data/swords';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
-import { USE_SVG, SWORD_ID_TO_SVG } from '../constants/sprites';
 
 interface ShopItem {
   sword: SwordCard;
@@ -173,18 +172,11 @@ export class ShopUI {
     const rarityColor = COLORS.rarity[item.sword.rarity as keyof typeof COLORS.rarity] || COLORS.rarity.common;
     bg.setStrokeStyle(3, canAfford ? rarityColor : COLORS.text.disabled);
     
-    // 검 이미지 (SVG 또는 이모지 폴백)
-    let swordVisual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-    const svgKey = SWORD_ID_TO_SVG[item.sword.id];
-    if (USE_SVG && svgKey && this.scene.textures.exists(svgKey)) {
-      swordVisual = this.scene.add.image(0, -70, svgKey);
-      swordVisual.setDisplaySize(56, 56);
-    } else {
-      swordVisual = this.scene.add.text(0, -70, item.sword.emoji, {
-        font: '56px Arial',
-      }).setOrigin(0.5);
-    }
-
+    // 이모지
+    const emoji = this.scene.add.text(0, -70, item.sword.emoji, {
+      font: '56px Arial',
+    }).setOrigin(0.5);
+    
     // 이름
     const name = this.scene.add.text(0, -10, item.sword.displayName || item.sword.name, {
       font: 'bold 16px monospace',
@@ -221,7 +213,7 @@ export class ShopUI {
       buyBtn.add(soldOut);
     }
     
-    container.add([bg, swordVisual, name, info, price, buyBtn]);
+    container.add([bg, emoji, name, info, price, buyBtn]);
     
     // 호버 이벤트 - 상세 정보 표시
     bg.setInteractive({ useHandCursor: canAfford });
@@ -268,10 +260,11 @@ export class ShopUI {
     
     // 은전 차감
     player.silver -= item.price;
-
-    // 검을 인벤토리에 추가
-    this.scene.gameScene.swordSlotSystem.acquireSword(item.sword);
-
+    
+    // 검을 덱에 추가
+    player.deck.push({ type: 'sword', data: item.sword });
+    this.scene.gameScene.cardSystem.shuffleArray(player.deck);
+    
     // 구매 완료 메시지
     this.scene.gameScene.animationHelper.showMessage(`${item.sword.displayName || item.sword.name} 구매!`, COLORS.message.success);
     

@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import type { Card, SwordCard, SkillCard, Buff } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
-import { USE_SVG, SWORD_ID_TO_SVG } from '../constants/sprites';
 
 // 파란색 하이라이트 색상 (무기에 따라 변하는 수치)
 const HIGHLIGHT_COLOR = '#4A90D9';
@@ -137,18 +136,11 @@ export class CardRenderer {
       : COLORS_STR.text.disabled;
     const subColor = canAfford ? COLORS_STR.text.secondary : COLORS_STR.text.disabled;
     
-    // 검 이미지 (SVG 또는 이모지 폴백)
-    let swordVisual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-    const svgKey = SWORD_ID_TO_SVG[sword.id];
-    if (USE_SVG && svgKey && this.scene.textures.exists(svgKey)) {
-      swordVisual = this.scene.add.image(0, -84, svgKey);
-      swordVisual.setDisplaySize(56, 56);
-    } else {
-      swordVisual = this.scene.add.text(0, -84, sword.emoji, {
-        font: '51px Arial',
-      }).setOrigin(0.5);
-    }
-
+    // 이모지
+    const emoji = this.scene.add.text(0, -84, sword.emoji, {
+      font: '51px Arial',
+    }).setOrigin(0.5);
+    
     // 이름
     const displayName = sword.displayName || sword.name;
     const shortName = displayName.length > 6 ? displayName.slice(0, 5) + '..' : displayName;
@@ -186,7 +178,7 @@ export class CardRenderer {
       color: sword.isMirage ? '#9B59B6' : textColor,  // 신기루면 보라색
     }).setOrigin(0.5);
     
-    container.add([swordVisual, nameText, statsText, durText, typeLabel]);
+    container.add([emoji, nameText, statsText, durText, typeLabel]);
   }
   
   private renderSkillSummary(container: Phaser.GameObjects.Container, skill: SkillCard, canAfford: boolean, isDisabled: boolean) {
@@ -285,15 +277,8 @@ export class CardRenderer {
     
     let yPos = -height/2 + 25;
     
-    // 헤더 (검 이미지 + 이름 + 마나)
-    let swordVisual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-    const svgKey = SWORD_ID_TO_SVG[sword.id];
-    if (USE_SVG && svgKey && this.scene.textures.exists(svgKey)) {
-      swordVisual = this.scene.add.image(-width/2 + 48, yPos + 28, svgKey);
-      swordVisual.setDisplaySize(56, 56);
-    } else {
-      swordVisual = this.scene.add.text(-width/2 + 20, yPos, sword.emoji, { font: '56px Arial' });
-    }
+    // 헤더 (이모지 + 이름 + 마나)
+    const emoji = this.scene.add.text(-width/2 + 20, yPos, sword.emoji, { font: '56px Arial' });
     const name = this.scene.add.text(-width/2 + 90, yPos + 8, sword.displayName || sword.name, {
       font: 'bold 28px monospace',
       color: textColor,
@@ -302,7 +287,7 @@ export class CardRenderer {
       font: 'bold 24px monospace',
       color: '#5DADE2',
     });
-    container.add([swordVisual, name, mana]);
+    container.add([emoji, name, mana]);
     yPos += 70;
     
     // 신기루 태그 (사용하지 않으면 턴 종료 시 사라짐)

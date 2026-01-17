@@ -3,7 +3,6 @@ import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { CardRenderer } from './CardRenderer';
-import { USE_SVG, SWORD_ID_TO_SVG } from '../constants/sprites';
 
 /**
  * 덱 뷰어 UI - 덱 클릭 시 전체 카드 목록 표시
@@ -301,37 +300,36 @@ export class DeckViewerUI {
     
     if (this.viewMode === 'deck') {
       // 덱 모드: 장착중 + 손패 + 덱
-
+      
       // 장착 중인 무기
-      const equippedSword = this.scene.gameScene.swordSlotSystem.getEquippedSword();
-      if (equippedSword) {
-        allCards.push({
-          card: { type: 'sword', data: equippedSword },
+      if (this.scene.gameScene.playerState.currentSword) {
+        allCards.push({ 
+          card: { type: 'sword', data: this.scene.gameScene.playerState.currentSword },
           location: '장착중'
         });
       }
-
-      // 손패 (SkillCard를 Card 래퍼로 감싸기)
-      this.scene.gameScene.playerState.hand.forEach(skill => {
-        allCards.push({ card: { type: 'skill', data: skill }, location: '손패' });
+      
+      // 손패
+      this.scene.gameScene.playerState.hand.forEach(card => {
+        allCards.push({ card, location: '손패' });
       });
-
-      // 덱 (SkillCard를 Card 래퍼로 감싸기)
-      this.scene.gameScene.playerState.deck.forEach(skill => {
-        allCards.push({ card: { type: 'skill', data: skill }, location: '덱' });
+      
+      // 덱
+      this.scene.gameScene.playerState.deck.forEach(card => {
+        allCards.push({ card, location: '덱' });
       });
-
+      
       // 카드 수 표시
-      const equipped = equippedSword ? 1 : 0;
+      const equipped = this.scene.gameScene.playerState.currentSword ? 1 : 0;
       this.cardCountText.setText(
         `총 ${allCards.length}장 (장착: ${equipped} / 손패: ${this.scene.gameScene.playerState.hand.length} / 덱: ${this.scene.gameScene.playerState.deck.length})`
       );
     } else {
-      // 무덤 모드: 무덤만 (SkillCard를 Card 래퍼로 감싸기)
-      this.scene.gameScene.playerState.discard.forEach(skill => {
-        allCards.push({ card: { type: 'skill', data: skill }, location: '무덤' });
+      // 무덤 모드: 무덤만
+      this.scene.gameScene.playerState.discard.forEach(card => {
+        allCards.push({ card, location: '무덤' });
       });
-
+      
       // 카드 수 표시
       this.cardCountText.setText(`총 ${allCards.length}장`);
     }
@@ -371,26 +369,11 @@ export class DeckViewerUI {
     bg.setStrokeStyle(3, borderColor);
     container.add(bg);
     
-    // 이미지 (검은 SVG, 스킬은 이모지)
-    if (isSword) {
-      const sword = data as SwordCard;
-      const svgKey = SWORD_ID_TO_SVG[sword.id];
-      if (USE_SVG && svgKey && this.scene.textures.exists(svgKey)) {
-        const swordImage = this.scene.add.image(0, -50, svgKey);
-        swordImage.setDisplaySize(48, 48);
-        container.add(swordImage);
-      } else {
-        const emoji = this.scene.add.text(0, -50, data.emoji, {
-          font: '42px Arial',
-        }).setOrigin(0.5);
-        container.add(emoji);
-      }
-    } else {
-      const emoji = this.scene.add.text(0, -50, data.emoji, {
-        font: '42px Arial',
-      }).setOrigin(0.5);
-      container.add(emoji);
-    }
+    // 이모지
+    const emoji = this.scene.add.text(0, -50, data.emoji, {
+      font: '42px Arial',
+    }).setOrigin(0.5);
+    container.add(emoji);
     
     // 이름
     const displayName = isSword ? ((data as SwordCard).displayName || data.name) : data.name;
@@ -469,7 +452,7 @@ export class DeckViewerUI {
     // 상세 카드 생성
     const detailCard = this.cardRenderer.createDetailCard(
       card,
-      card.type === 'skill' ? this.scene.gameScene.swordSlotSystem.getEquippedSword() : null
+      card.type === 'skill' ? this.scene.gameScene.playerState.currentSword : null
     );
     this.detailContainer.add(detailCard);
   }

@@ -4,7 +4,6 @@ import type { SwordCard } from '../types';
 import {
   TopUI,
   SwordInfoUI,
-  SwordSlotUI,
   CardUI,
   TooltipUI,
   ActionButtonsUI,
@@ -33,7 +32,6 @@ export class UIScene extends Phaser.Scene {
   // UI 헬퍼들
   topUI!: TopUI;
   swordInfoUI!: SwordInfoUI;
-  swordSlotUI!: SwordSlotUI;
   cardUI!: CardUI;
   tooltipUI!: TooltipUI;
   actionButtonsUI!: ActionButtonsUI;
@@ -66,7 +64,6 @@ export class UIScene extends Phaser.Scene {
     // UI 헬퍼 초기화 (순서 중요 - tooltipUI가 cardUI보다 먼저 필요)
     this.topUI = new TopUI(this);
     this.swordInfoUI = new SwordInfoUI(this);
-    this.swordSlotUI = new SwordSlotUI(this);
     this.tooltipUI = new TooltipUI(this);
     this.cardUI = new CardUI(this);
     this.actionButtonsUI = new ActionButtonsUI(this);
@@ -132,7 +129,7 @@ export class UIScene extends Phaser.Scene {
   }
   
   private updateNoWeaponWarning() {
-    const hasWeapon = this.gameScene.swordSlotSystem.getEquippedSword() !== null;
+    const hasWeapon = this.gameScene.playerState.currentSword !== null;
     const inCombat = this.gameScene.gameState.phase === 'combat';
     
     // 전투 중이고 무기가 없을 때만 표시
@@ -235,7 +232,7 @@ export class UIScene extends Phaser.Scene {
     container.add(counterText);
     
     // 상세 카드 생성
-    const detailCard = this.cardRenderer.createDetailCard(card, this.gameScene.swordSlotSystem.getEquippedSword());
+    const detailCard = this.cardRenderer.createDetailCard(card, this.gameScene.playerState.currentSword);
     container.add(detailCard);
     
     // 카드 타입에 따른 라벨
@@ -620,15 +617,12 @@ private setupEventListeners() {
       onComplete: () => {
         // 애니메이션 카드 제거
         animCard.destroy();
-
+        
         // 실제 카드 추가 (애니메이션 완료 후!)
-        // Card 래퍼에서 SkillCard 추출
-        if (card.type === 'skill') {
-          this.gameScene.playerState.hand.push(card.data);
-        }
+        this.gameScene.playerState.hand.push(card);
         this.cardUI.consumeReservedSlot();
         this.gameScene.events.emit('handUpdated');
-
+        
         // 완료 콜백
         onComplete();
       },

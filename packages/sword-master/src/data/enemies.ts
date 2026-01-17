@@ -241,15 +241,14 @@ export const STRONG_BOSSES: Record<string, EnemyTemplate> = {
 let enemyIdCounter = 0;
 
 // 적 생성 함수
-export function createEnemy(template: EnemyTemplate, x: number = 900, templateId: string = 'unknown'): Enemy {
+export function createEnemy(template: EnemyTemplate, x: number = 900): Enemy {
   const actions: EnemyAction[] = template.actions.map(action => ({
     ...action,
     currentDelay: action.delay,
   }));
-
+  
   const enemy: Enemy = {
     id: `enemy_${enemyIdCounter++}`,
-    templateId,
     name: template.name,
     emoji: template.emoji,
     hp: template.hp,
@@ -320,7 +319,7 @@ function getRandomEnemyFromTier(tier: 1 | 2, wave?: number): Enemy {
     template = ENEMIES_TIER1[randomKey];
   }
   
-  return createEnemy(template, 900, randomKey);
+  return createEnemy(template);
 }
 
 // 보스 여부 확인 (5의 배수)
@@ -342,50 +341,45 @@ export function getCurrentTier(wave: number): 1 | 2 {
 // 보스 생성 (특정 웨이브는 고정 보스)
 function createBoss(wave: number): Enemy {
   let template: EnemyTemplate;
-  let templateId: string;
-
+  
   // 특정 웨이브 고정 보스
   if (wave === 5) {
     // 5웨이브: 산채두목 고정
     template = MID_BOSSES.banditLeader;
-    templateId = 'banditLeader';
   } else if (wave === 10) {
     // 10웨이브: 토포사 고정
     template = STRONG_BOSSES.toposa;
-    templateId = 'toposa';
   } else if (wave === 15) {
     // 15웨이브: 검귀 고정
     template = MID_BOSSES.swordMaster;
-    templateId = 'swordMaster';
   } else if (wave === 20) {
     // 20웨이브: 용전사 고정
     template = STRONG_BOSSES.dragonWarrior;
-    templateId = 'dragonWarrior';
   } else {
     // 그 외: 랜덤 보스
-    const isStrong = isStrongBossWave(wave);
-    const bossPool = isStrong ? STRONG_BOSSES : MID_BOSSES;
-    const bossKeys = Object.keys(bossPool);
-    templateId = bossKeys[Math.floor(Math.random() * bossKeys.length)];
-    template = bossPool[templateId];
+  const isStrong = isStrongBossWave(wave);
+  const bossPool = isStrong ? STRONG_BOSSES : MID_BOSSES;
+  const bossKeys = Object.keys(bossPool);
+  const randomKey = bossKeys[Math.floor(Math.random() * bossKeys.length)];
+    template = bossPool[randomKey];
   }
-
+  
   // 웨이브에 따라 보스 강화 (10웨이브마다 15% 씩 강화)
   const waveMultiplier = 1 + Math.floor(wave / 10) * 0.15;
-
+  
   const scaledTemplate: EnemyTemplate = {
     ...template,
     hp: Math.floor(template.hp * waveMultiplier),
     defense: Math.floor(template.defense * waveMultiplier),
   };
-
-  const enemy = createEnemy(scaledTemplate, 700, templateId);
+  
+  const enemy = createEnemy(scaledTemplate, 700);
   enemy.isBoss = true;
   enemy.actionTemplates = template.actions.map(action => ({
     ...action,
     currentDelay: action.delay,
   }));
-
+  
   return enemy;
 }
 
