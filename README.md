@@ -141,6 +141,7 @@ sword-master/
 - Sprite sheet generation from video
 - AI-powered background removal
 - Firebase Hosting deployment
+- **i18n 다국어 지원 (한국어/영어)** - 브라우저 언어 자동 감지
 
 ### Known Issues
 - AI background removal may not work in production due to ONNX runtime issues
@@ -190,4 +191,14 @@ This is v1. Feel free to:
 
 ---
 
-Built with Phaser 3, Next.js, and TypeScript.
+---
+
+## Support
+
+게임이 재밌으셨다면 응원 메시지를 보내주세요! 🙏
+
+📧 **aldegad@gmail.com**
+
+---
+
+Built with ❤️ by Soo Hong Kim (김수홍) in Korea 🇰🇷
