@@ -19,25 +19,24 @@ export function ModeTabs() {
   const { t } = useTranslation();
 
   return (
-    <section className="bg-bg-card rounded-2xl p-6 border border-border">
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+    <section className="bg-bg-card/50 backdrop-blur-sm rounded-2xl p-4 border border-border/50">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
         {tabConfigs.map((tab) => (
           <button
             key={tab.mode}
             onClick={() => setMode(tab.mode)}
             className={clsx(
-              'flex items-center justify-center gap-3 px-6 py-3 rounded-xl border-2 font-semibold transition-all',
+              'flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-medium transition-all duration-200',
               mode === tab.mode
-                ? 'border-primary bg-primary/15 text-white'
-                : 'border-border text-slate-400 hover:border-primary hover:text-white'
+                ? 'bg-gradient-to-r from-primary to-blue-500 text-white shadow-lg shadow-primary/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             )}
           >
             {tab.icon}
-            <span>{t(tab.labelKey)}</span>
+            <span suppressHydrationWarning>{t(tab.labelKey)}</span>
           </button>
         ))}
       </div>
     </section>
   );
 }
-

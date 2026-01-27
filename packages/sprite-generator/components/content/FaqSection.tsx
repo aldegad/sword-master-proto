@@ -1,6 +1,5 @@
-'use client';
-
-import { useState } from 'react';
+// Server Component - SEO를 위해 정적 렌더링
+// <details>/<summary>로 JavaScript 없이 아코디언 구현
 
 interface FaqItem {
   question: string;
@@ -43,8 +42,6 @@ const faqData: FaqItem[] = [
 ];
 
 export function FaqSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-
   return (
     <section className="mt-16 space-y-6">
       <h2 className="text-2xl font-bold text-white text-center">
@@ -53,19 +50,14 @@ export function FaqSection() {
 
       <div className="max-w-3xl mx-auto space-y-3">
         {faqData.map((item, index) => (
-          <div
+          <details
             key={index}
-            className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"
+            className="group bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden"
           >
-            <button
-              onClick={() => setOpenIndex(openIndex === index ? null : index)}
-              className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-800/80 transition-colors"
-            >
+            <summary className="px-6 py-4 cursor-pointer flex items-center justify-between hover:bg-gray-800/80 transition-colors list-none [&::-webkit-details-marker]:hidden">
               <span className="font-medium text-white">{item.question}</span>
               <svg
-                className={`w-5 h-5 text-gray-400 transition-transform ${
-                  openIndex === index ? 'rotate-180' : ''
-                }`}
+                className="w-5 h-5 text-gray-400 transition-transform group-open:rotate-180"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -77,13 +69,11 @@ export function FaqSection() {
                   d="M19 9l-7 7-7-7"
                 />
               </svg>
-            </button>
-            {openIndex === index && (
-              <div className="px-6 pb-4 text-gray-300 text-sm leading-relaxed">
-                {item.answer}
-              </div>
-            )}
-          </div>
+            </summary>
+            <div className="px-6 pb-4 text-gray-300 text-sm leading-relaxed">
+              {item.answer}
+            </div>
+          </details>
         ))}
       </div>
     </section>

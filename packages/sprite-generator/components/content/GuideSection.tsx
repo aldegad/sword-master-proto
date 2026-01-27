@@ -1,4 +1,4 @@
-'use client';
+// Server Component - SEO를 위해 정적 렌더링
 
 export function GuideSection() {
   return (
