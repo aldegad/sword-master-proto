@@ -7,7 +7,6 @@ export const metadata = {
 export default function GamePage() {
   return (
     <main className="container">
-      <h1 className="page-title">Game Runtime (Phaser.js)</h1>
       <section className="game-shell">
         <div className="game-stage">
           <PhaserGame />

@@ -77,41 +77,6 @@ a {
   border-color: var(--accent);
 }
 
-.settings-wrap {
-  position: relative;
-}
-
-.settings-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 210px;
-  padding: 8px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  z-index: 60;
-}
-
-.settings-item {
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  color: var(--text);
-  border-radius: 10px;
-  padding: 10px 12px;
-  text-align: left;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.settings-item:hover {
-  border-color: var(--accent);
-}
-
 .container {
   max-width: 1080px;
   margin: 0 auto;
@@ -310,7 +275,81 @@ a {
 .phaser-controls {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 10px;
+  position: relative;
+  z-index: 30;
+}
+
+.icon-button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.icon-button:hover {
+  border-color: var(--accent);
+}
+
+.icon-button img {
+  display: block;
+}
+
+.icon-button.icon-only {
+  width: 38px;
+  height: 38px;
+  justify-content: center;
+  padding: 0;
+}
+
+.game-settings-wrap {
+  position: relative;
+}
+
+.game-settings-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 80;
+}
+
+.game-settings-item {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.84rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-settings-item:hover {
+  border-color: var(--accent);
+}
+
+.game-settings-item img {
+  display: block;
 }
 
 .phaser-host {
@@ -352,14 +391,12 @@ a {
     flex-wrap: wrap;
   }
 
-  .settings-menu {
-    right: auto;
-    left: 0;
-    min-width: 190px;
-  }
-
   .hero {
     padding: 26px 18px;
+  }
+
+  .game-settings-menu {
+    min-width: 190px;
   }
 
   .game-stage-inner {

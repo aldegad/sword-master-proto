@@ -25,20 +25,21 @@ test.describe('Next.js Pages Screenshot', () => {
 
     await page.screenshot({ path: 'screenshots/game-landing-ko.png', fullPage: true });
 
-    await page.click('#settings-button');
-    await page.click('#locale-toggle');
+    await page.click('#lang-toggle');
     await expect(page.getByText('Play Game')).toBeVisible();
     await page.screenshot({ path: 'screenshots/game-landing-en.png', fullPage: true });
 
-    await page.click('#settings-button');
-    await page.click('#open-rulebook-modal');
+    await page.getByRole('link', { name: /Game|게임/ }).first().click();
+    await expect(page.locator('#game-settings-button')).toBeVisible();
+    await expect(page.locator('.phaser-host canvas')).toHaveCount(1, { timeout: 20000 });
+
+    await page.click('#game-settings-button');
+    await expect(page.locator('#game-fullscreen-toggle')).toBeVisible();
+    await page.click('#game-open-rulebook-modal');
     await expect(page.getByRole('dialog', { name: '룰북' })).toBeVisible();
     await page.click('#close-rulebook-modal');
     await expect(page.locator('#rulebook-modal-overlay')).toHaveCount(0);
 
-    await page.getByRole('link', { name: /Game|게임/ }).first().click();
-    await expect(page.getByText('Game Runtime (Phaser.js)')).toBeVisible();
-    await expect(page.locator('.phaser-host canvas')).toHaveCount(1, { timeout: 20000 });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: 'screenshots/game-play-ko.png', fullPage: true });
 
