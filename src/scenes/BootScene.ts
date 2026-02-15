@@ -2,35 +2,25 @@ import * as Phaser from 'phaser';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { PLAYER_SPRITES, USE_SPRITES, loadedSpriteMeta, type SpriteSheetMeta } from '../constants/sprites';
 import { FONTS } from '../constants/typography';
+import {
+  GAME_SESSION_STORAGE_KEY,
+  GAME_SESSION_VERSION,
+  hasRestorableSavedSnapshot,
+} from '../domain/gameSession';
 
 export class BootScene extends Phaser.Scene {
-  private readonly SAVE_STORAGE_KEY = 'sword-master-save-v1';
-  private readonly SAVE_VERSION = 1;
+  private readonly SAVE_STORAGE_KEY = GAME_SESSION_STORAGE_KEY;
+  private readonly SAVE_VERSION = GAME_SESSION_VERSION;
 
   constructor() {
     super({ key: 'BootScene' });
   }
 
   private hasRestorableSave(): boolean {
-    try {
-      const raw = window.localStorage.getItem(this.SAVE_STORAGE_KEY);
-      if (!raw) return false;
-
-      const parsed = JSON.parse(raw) as { version?: unknown } | null;
-      if (!parsed || typeof parsed !== 'object' || parsed.version !== this.SAVE_VERSION) {
-        window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
-        return false;
-      }
-      return true;
-    } catch {
-      // 저장 데이터 손상 시 삭제 후 일반 시작 플로우로 진행
-      try {
-        window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
-      } catch {
-        // noop
-      }
-      return false;
-    }
+    return hasRestorableSavedSnapshot(window.localStorage, {
+      storageKey: this.SAVE_STORAGE_KEY,
+      version: this.SAVE_VERSION,
+    });
   }
 
   /**

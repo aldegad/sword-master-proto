@@ -10,31 +10,17 @@ import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../syst
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
 import { GAME_START_CONFIG } from '../constants/gameStart';
-import { isGamePhase, transitionGamePhase } from '../domain/gameFlow';
-
-type SkillSelectType = 'searchSword' | 'graveRecall' | 'graveEquip';
-
-interface SavedGameSnapshot {
-  version: number;
-  savedAt: string;
-  playerState: PlayerState;
-  gameState: GameState;
-  runtime: {
-    isMoving: boolean;
-    moveDistance: number;
-    rewardCards: Card[];
-    levelUpSkillCards: Card[];
-    levelUpPassives: PassiveTemplate[];
-    bossRewardCards: Card[];
-    skillSelectCards: Card[];
-    skillSelectType: SkillSelectType | null;
-    pendingSkillCard: Card | null;
-    pendingEventReward: EventOutcome | null;
-    pendingEvent: boolean;
-    pendingLevelUp: boolean;
-    isEventSkillSelection: boolean;
-  };
-}
+import { transitionGamePhase } from '../domain/gameFlow';
+import {
+  clearSavedSnapshot,
+  GAME_SESSION_STORAGE_KEY,
+  GAME_SESSION_VERSION,
+  loadSavedSnapshot,
+  persistSavedSnapshotPayload,
+  serializeSavedSnapshot,
+  type SavedGameSnapshot,
+  type SkillSelectType,
+} from '../domain/gameSession';
 
 /**
  * 메인 게임 씬
@@ -99,8 +85,8 @@ export class GameScene extends Phaser.Scene {
   isEventSkillSelection: boolean = false;
 
   // 자동 저장
-  private readonly SAVE_STORAGE_KEY = 'sword-master-save-v1';
-  private readonly SAVE_VERSION = 1;
+  private readonly SAVE_STORAGE_KEY = GAME_SESSION_STORAGE_KEY;
+  private readonly SAVE_VERSION = GAME_SESSION_VERSION;
   private readonly SAVE_INTERVAL_MS = 400;
   private lastSaveAt = 0;
   private lastSavedPayload = '';
@@ -226,10 +212,6 @@ export class GameScene extends Phaser.Scene {
     window.addEventListener('beforeunload', this.beforeUnloadHandler);
   }
 
-  private isObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-  }
-
   private isPhase(phase: GamePhase): boolean {
     return this.gameState.phase === phase;
   }
@@ -243,70 +225,38 @@ export class GameScene extends Phaser.Scene {
     return true;
   }
 
-  private parseSavedSnapshot(raw: string): SavedGameSnapshot | null {
-    try {
-      const parsed = JSON.parse(raw) as Partial<SavedGameSnapshot>;
-      if (!this.isObject(parsed)) return null;
-      if (parsed.version !== this.SAVE_VERSION) return null;
-      if (!this.isObject(parsed.playerState) || !this.isObject(parsed.gameState) || !this.isObject(parsed.runtime)) {
-        return null;
-      }
-
-      const player = parsed.playerState as PlayerState;
-      const game = parsed.gameState as GameState;
-      const runtime = parsed.runtime as SavedGameSnapshot['runtime'];
-
-      if (!Array.isArray(player.hand) || !Array.isArray(player.deck) || !Array.isArray(player.discard)) return null;
-      if (!Array.isArray(player.buffs) || !Array.isArray(player.countEffects) || !Array.isArray(player.passives)) return null;
-      if (!Array.isArray(game.enemies) || !isGamePhase(game.phase)) return null;
-      if (!Array.isArray(runtime.rewardCards) || !Array.isArray(runtime.levelUpSkillCards)) return null;
-      if (!Array.isArray(runtime.levelUpPassives) || !Array.isArray(runtime.bossRewardCards)) return null;
-      if (!Array.isArray(runtime.skillSelectCards)) return null;
-
-      return parsed as SavedGameSnapshot;
-    } catch {
-      return null;
-    }
-  }
-
   private tryRestoreGameSnapshot(): boolean {
-    try {
-      const raw = window.localStorage.getItem(this.SAVE_STORAGE_KEY);
-      if (!raw) return false;
+    const loaded = loadSavedSnapshot(window.localStorage, {
+      storageKey: this.SAVE_STORAGE_KEY,
+      version: this.SAVE_VERSION,
+    });
+    if (!loaded) return false;
 
-      const snapshot = this.parseSavedSnapshot(raw);
-      if (!snapshot) {
-        window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
-        return false;
-      }
+    const { snapshot, raw } = loaded;
+    this.playerState = snapshot.playerState;
+    this.gameState = snapshot.gameState;
 
-      this.playerState = snapshot.playerState;
-      this.gameState = snapshot.gameState;
+    this.isMoving = snapshot.runtime.isMoving;
+    this.moveDistance = snapshot.runtime.moveDistance;
+    this.rewardCards = snapshot.runtime.rewardCards;
+    this.levelUpSkillCards = snapshot.runtime.levelUpSkillCards;
+    this.levelUpPassives = snapshot.runtime.levelUpPassives;
+    this.bossRewardCards = snapshot.runtime.bossRewardCards;
+    this.skillSelectCards = snapshot.runtime.skillSelectCards;
+    this.skillSelectType = snapshot.runtime.skillSelectType;
+    this.pendingSkillCard = snapshot.runtime.pendingSkillCard;
+    this.pendingEventReward = snapshot.runtime.pendingEventReward;
+    this.pendingEvent = snapshot.runtime.pendingEvent;
+    this.pendingLevelUp = snapshot.runtime.pendingLevelUp;
+    this.isEventSkillSelection = snapshot.runtime.isEventSkillSelection;
 
-      this.isMoving = snapshot.runtime.isMoving;
-      this.moveDistance = snapshot.runtime.moveDistance;
-      this.rewardCards = snapshot.runtime.rewardCards;
-      this.levelUpSkillCards = snapshot.runtime.levelUpSkillCards;
-      this.levelUpPassives = snapshot.runtime.levelUpPassives;
-      this.bossRewardCards = snapshot.runtime.bossRewardCards;
-      this.skillSelectCards = snapshot.runtime.skillSelectCards;
-      this.skillSelectType = snapshot.runtime.skillSelectType;
-      this.pendingSkillCard = snapshot.runtime.pendingSkillCard;
-      this.pendingEventReward = snapshot.runtime.pendingEventReward;
-      this.pendingEvent = snapshot.runtime.pendingEvent;
-      this.pendingLevelUp = snapshot.runtime.pendingLevelUp;
-      this.isEventSkillSelection = snapshot.runtime.isEventSkillSelection;
+    // 입력 상태는 복원하지 않음
+    this.isExchangeMode = false;
+    this.isTargetingMode = false;
+    this.pendingCard = null;
 
-      // 입력 상태는 복원하지 않음
-      this.isExchangeMode = false;
-      this.isTargetingMode = false;
-      this.pendingCard = null;
-
-      this.lastSavedPayload = raw;
-      return true;
-    } catch {
-      return false;
-    }
+    this.lastSavedPayload = raw;
+    return true;
   }
 
   private restoreLoadedSession() {
@@ -401,27 +351,24 @@ export class GameScene extends Phaser.Scene {
     const now = this.time.now;
     if (!force && now - this.lastSaveAt < this.SAVE_INTERVAL_MS) return;
 
-    try {
-      const payload = JSON.stringify(this.buildSnapshot());
-      if (!force && payload === this.lastSavedPayload) {
-        this.lastSaveAt = now;
-        return;
-      }
-      window.localStorage.setItem(this.SAVE_STORAGE_KEY, payload);
+    const payload = serializeSavedSnapshot(this.buildSnapshot());
+    if (!force && payload === this.lastSavedPayload) {
+      this.lastSaveAt = now;
+      return;
+    }
+
+    const saved = persistSavedSnapshotPayload(window.localStorage, payload, {
+      storageKey: this.SAVE_STORAGE_KEY,
+    });
+    if (saved) {
       this.lastSavedPayload = payload;
       this.lastSaveAt = now;
-    } catch {
-      // localStorage 사용 불가 시 저장 스킵
     }
   }
 
   private clearSavedGameSnapshot() {
-    try {
-      window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
-      this.lastSavedPayload = '';
-    } catch {
-      // localStorage 사용 불가 시 무시
-    }
+    clearSavedSnapshot(window.localStorage, { storageKey: this.SAVE_STORAGE_KEY });
+    this.lastSavedPayload = '';
   }
 
   // ========== 배경 & 플레이어 ==========
