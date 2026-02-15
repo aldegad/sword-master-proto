@@ -8,6 +8,11 @@ import {
   getTargetCountByReach as getTargetCountByReachUtil,
   resolveReachWithSword,
 } from '../utils/reach';
+import {
+  applyArmorReduction,
+  applyEnemyStatusTick,
+  applySwordOnHitEffects,
+} from './effectResolver';
 
 /**
  * 전투 시스템 - 공격, 방어, 데미지 계산 담당
@@ -160,15 +165,10 @@ export class CombatSystem {
           
           // armorBreaker 효과: 적 방어력 영구 감소 (첫 타격에만, 0 이하로 내려가지 않음)
           if (hitIndex === 0 && isArmorBreaker && skill.effect) {
-            const armorReduction = skill.effect.value;
-            const oldDefense = enemy.defense;
-            enemy.defense = Math.max(0, enemy.defense - armorReduction);
-            if (oldDefense > 0) {
-              this.scene.animationHelper.showMessage(`🔨 ${enemy.name} 방어력 -${Math.min(armorReduction, oldDefense)}!`, COLORS.message.warning);
-            }
+            applyArmorReduction(this.scene, enemy, skill.effect.value, { includeEnemyName: true });
           }
           
-// 출혈 효과 (첫 타격에만) - 중첩 가능
+          // 출혈 효과 (첫 타격에만) - 중첩 가능
           if (hitIndex === 0 && skill.effect?.type === 'bleed') {
             enemy.bleeds.push({
               damage: skill.effect.value,
@@ -179,37 +179,11 @@ export class CombatSystem {
             this.scene.enemyManager.updateEnemySprite(enemy);
           }
 
-          // 무기 장착 효과: 출혈 (bleedOnHit) - 중첩 가능
-          if (hitIndex === 0 && sword.bleedOnHit) {
-            enemy.bleeds.push({
-              damage: sword.bleedOnHit.damage,
-              duration: sword.bleedOnHit.duration,
+          // 무기 장착 효과: 출혈/독/방어구 파괴 (첫 타격에만)
+          if (hitIndex === 0) {
+            applySwordOnHitEffects(this.scene, enemy, sword, {
+              armorBreakMessageWithEnemyName: false,
             });
-            this.scene.animationHelper.showMessage(`🩸 출혈! ${sword.bleedOnHit.damage}뎀/${sword.bleedOnHit.duration}턴`, COLORS.effect.damage);
-            // 디버프 UI 업데이트
-            this.scene.enemyManager.updateEnemySprite(enemy);
-          }
-          
-          // 무기 장착 효과: 독 (poisonOnHit) - 중첩 가능
-          if (hitIndex === 0 && sword.poisonOnHit) {
-            enemy.poisons.push({
-              damage: sword.poisonOnHit.damage,
-              duration: sword.poisonOnHit.duration,
-            });
-            this.scene.animationHelper.showMessage(`☠️ 독! ${sword.poisonOnHit.damage}뎀/${sword.poisonOnHit.duration}턴`, COLORS.effect.damage);
-            // 디버프 UI 업데이트
-            this.scene.enemyManager.updateEnemySprite(enemy);
-          }
-          
-          // 무기 장착 효과: 방어구 파괴 (armorBreakOnHit)
-          if (sword.armorBreakOnHit && sword.armorBreakOnHit > 0) {
-            const oldDefense = enemy.defense;
-            const reduceAmount = Math.min(sword.armorBreakOnHit, oldDefense);
-            enemy.defense = Math.max(0, enemy.defense - sword.armorBreakOnHit);
-            if (reduceAmount > 0) {
-              this.scene.animationHelper.showMessage(`🔨 방어력 -${reduceAmount}!`, COLORS.message.warning);
-              this.scene.enemyManager.updateEnemySprite(enemy);
-            }
           }
           
           // 스턴 효과 (첫 타격에만)
@@ -1174,39 +1148,13 @@ export class CombatSystem {
   
   applyBleedDamage() {
     this.scene.gameState.enemies.forEach(enemy => {
-      if (enemy.bleeds.length > 0) {
-        // 모든 출혈 데미지 적용
-        enemy.bleeds.forEach((bleed, index) => {
-          this.scene.animationHelper.showMessage(`🩸 ${enemy.name} 출혈${enemy.bleeds.length > 1 ? `(${index + 1})` : ''}! -${bleed.damage}`, COLORS.effect.damage);
-          this.damageEnemy(enemy, bleed.damage);
-          bleed.duration--;
-        });
-        
-        // 만료된 출혈 제거
-        enemy.bleeds = enemy.bleeds.filter(bleed => bleed.duration > 0);
-        
-        // 디버프 UI 업데이트
-        this.scene.enemyManager.updateEnemySprite(enemy);
-      }
+      applyEnemyStatusTick(this.scene, enemy, 'bleed', { damageMode: 'perStack' });
     });
   }
   
   applyPoisonDamage() {
     this.scene.gameState.enemies.forEach(enemy => {
-      if (enemy.poisons.length > 0) {
-        // 모든 독 데미지 적용
-        enemy.poisons.forEach((poison, index) => {
-          this.scene.animationHelper.showMessage(`☠️ ${enemy.name} 독${enemy.poisons.length > 1 ? `(${index + 1})` : ''}! -${poison.damage}`, COLORS.effect.damage);
-          this.damageEnemy(enemy, poison.damage);
-          poison.duration--;
-        });
-        
-        // 만료된 독 제거
-        enemy.poisons = enemy.poisons.filter(poison => poison.duration > 0);
-        
-        // 디버프 UI 업데이트
-        this.scene.enemyManager.updateEnemySprite(enemy);
-      }
+      applyEnemyStatusTick(this.scene, enemy, 'poison', { damageMode: 'perStack' });
     });
   }
   

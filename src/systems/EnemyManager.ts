@@ -6,6 +6,7 @@ import {
   getTargetCountByReach,
   resolveReachWithSword,
 } from '../utils/reach';
+import { applyEnemyStatusTick } from './effectResolver';
 
 // 적 행동 큐 아이템 타입
 interface ActionQueueItem {
@@ -921,31 +922,8 @@ spawnWaveEnemies() {
    * @returns 적이 죽었는지 여부
    */
   private applyBleedDamageToEnemy(enemy: Enemy): boolean {
-    if (!enemy.bleeds || enemy.bleeds.length === 0) return false;
-    
-    let totalBleedDamage = 0;
-    
-    // 모든 출혈 데미지 적용
-    enemy.bleeds.forEach((bleed, index) => {
-      this.scene.animationHelper.showMessage(
-        `🩸 ${enemy.name} 출혈${enemy.bleeds.length > 1 ? `(${index + 1})` : ''}! -${bleed.damage}`, 
-        COLORS.effect.damage
-      );
-      totalBleedDamage += bleed.damage;
-      bleed.duration--;
-    });
-    
-    // 만료된 출혈 제거
-    enemy.bleeds = enemy.bleeds.filter(b => b.duration > 0);
-    
-    // 데미지 적용
-    if (totalBleedDamage > 0) {
-      this.scene.combatSystem.damageEnemy(enemy, totalBleedDamage);
-    }
-    
-    // UI 업데이트
-    this.updateEnemySprite(enemy);
-    
+    const totalBleedDamage = applyEnemyStatusTick(this.scene, enemy, 'bleed', { damageMode: 'total' });
+    if (totalBleedDamage <= 0) return false;
     return enemy.hp <= 0;
   }
   
@@ -954,31 +932,8 @@ spawnWaveEnemies() {
    * @returns 적이 죽었는지 여부
    */
   private applyPoisonDamageToEnemy(enemy: Enemy): boolean {
-    if (!enemy.poisons || enemy.poisons.length === 0) return false;
-    
-    let totalPoisonDamage = 0;
-    
-    // 모든 독 데미지 적용
-    enemy.poisons.forEach((poison, index) => {
-      this.scene.animationHelper.showMessage(
-        `☠️ ${enemy.name} 독${enemy.poisons.length > 1 ? `(${index + 1})` : ''}! -${poison.damage}`, 
-        COLORS.effect.damage
-      );
-      totalPoisonDamage += poison.damage;
-      poison.duration--;
-    });
-    
-    // 만료된 독 제거
-    enemy.poisons = enemy.poisons.filter(p => p.duration > 0);
-    
-    // 데미지 적용
-    if (totalPoisonDamage > 0) {
-      this.scene.combatSystem.damageEnemy(enemy, totalPoisonDamage);
-    }
-    
-    // UI 업데이트
-    this.updateEnemySprite(enemy);
-    
+    const totalPoisonDamage = applyEnemyStatusTick(this.scene, enemy, 'poison', { damageMode: 'total' });
+    if (totalPoisonDamage <= 0) return false;
     return enemy.hp <= 0;
   }
   

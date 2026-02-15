@@ -4,6 +4,11 @@ import { GAME_CONSTANTS } from '../constants/gameConfig';
 import { getRandomSword, createJangwang } from '../data/swords';
 import { getRandomSkill } from '../data/skills';
 import { COLORS } from '../constants/colors';
+import {
+  applyCriticalDrawAttackEffects,
+  applyDrawAttackEffects,
+  applySwordOnHitEffects,
+} from './effectResolver';
 
 /**
  * 카드 시스템 - 카드 사용, 드로우, 교환 담당
@@ -335,77 +340,11 @@ export class CardSystem {
         ? damage 
         : Math.max(1, damage - effectiveDefense);
       this.scene.combatSystem.damageEnemy(enemy, actualDamage, isCritical);
-      
-      // 적 방어력 영구 감소 효과 (armorReduce)
-      // gameState에서 실제 적 객체를 찾아서 수정
-      if (drawAtk.armorReduce && drawAtk.armorReduce > 0) {
-        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
-        if (actualEnemy) {
-          const oldDefense = actualEnemy.defense;
-          const reduceAmount = Math.min(drawAtk.armorReduce, oldDefense);
-          actualEnemy.defense = Math.max(0, actualEnemy.defense - drawAtk.armorReduce);
-          if (reduceAmount > 0) {
-            this.scene.animationHelper.showMessage(`🔨 ${actualEnemy.name} 방어력 -${reduceAmount}!`, COLORS.message.warning);
-            // UI 업데이트
-            this.scene.enemyManager.updateEnemySprite(actualEnemy);
-          }
-        }
-      }
-      
-      // 무기 장착 효과: 출혈 (bleedOnHit) - 중첩 가능
-      if (sword.bleedOnHit) {
-        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
-        if (actualEnemy) {
-          actualEnemy.bleeds.push({
-            damage: sword.bleedOnHit.damage,
-            duration: sword.bleedOnHit.duration,
-          });
-          this.scene.animationHelper.showMessage(`🩸 출혈! ${sword.bleedOnHit.damage}뎀/${sword.bleedOnHit.duration}턴`, COLORS.effect.damage);
-          // 디버프 UI 업데이트
-          this.scene.enemyManager.updateEnemySprite(actualEnemy);
-        }
-      }
-      
-      // 무기 장착 효과: 독 (poisonOnHit) - 중첩 가능
-      if (sword.poisonOnHit) {
-        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
-        if (actualEnemy) {
-          actualEnemy.poisons.push({
-            damage: sword.poisonOnHit.damage,
-            duration: sword.poisonOnHit.duration,
-          });
-          this.scene.animationHelper.showMessage(`☠️ 독! ${sword.poisonOnHit.damage}뎀/${sword.poisonOnHit.duration}턴`, COLORS.effect.damage);
-          // 디버프 UI 업데이트
-          this.scene.enemyManager.updateEnemySprite(actualEnemy);
-        }
-      }
-      
-      // 무기 장착 효과: 방어구 파괴 (armorBreakOnHit)
-      if (sword.armorBreakOnHit && sword.armorBreakOnHit > 0) {
-        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
-        if (actualEnemy) {
-          const oldDefense = actualEnemy.defense;
-          const reduceAmount = Math.min(sword.armorBreakOnHit, oldDefense);
-          actualEnemy.defense = Math.max(0, actualEnemy.defense - sword.armorBreakOnHit);
-          if (reduceAmount > 0) {
-            this.scene.animationHelper.showMessage(`🔨 방어력 -${reduceAmount}!`, COLORS.message.warning);
-            this.scene.enemyManager.updateEnemySprite(actualEnemy);
-          }
-        }
-      }
-      
-      // 대기턴 증가 효과는 equipSword에서 즉시 처리됨 (대기턴 감소 전에 적용되어야 함)
-      
-      // 적 스킬 취소 - 항상 발동 (본국검)
-      if (drawAtk.cancelEnemySkill) {
-        const actualEnemy = this.scene.gameState.enemies.find(e => e.id === enemy.id);
-        if (actualEnemy && actualEnemy.actionQueue && actualEnemy.actionQueue.length > 0) {
-          // 첫 번째 대기 스킬을 큐에서 제거 (취소)
-          const cancelledAction = actualEnemy.actionQueue.shift()!;
-          this.scene.animationHelper.showMessage(`🚫 ${cancelledAction.name} 취소!`, COLORS.message.warning);
-          this.scene.enemyManager.updateEnemyActionDisplay();
-        }
-      }
+
+      applyDrawAttackEffects(this.scene, enemy, drawAtk);
+      applySwordOnHitEffects(this.scene, enemy, sword, {
+        armorBreakMessageWithEnemyName: false,
+      });
     });
     
     // 집중 버프 소모
@@ -493,43 +432,8 @@ export class CardSystem {
             const isPiercing = drawAtk.criticalPierce || drawAtk.pierce;
             const actualDamage = isPiercing ? damage : Math.max(1, damage - effectiveDefense);
             scene.combatSystem.damageEnemy(enemy, actualDamage, true);
-            
-            // 크리티컬 출혈 적용
-            if (drawAtk.criticalBleed) {
-              const actualEnemy = scene.gameState.enemies.find(e => e.id === enemy.id);
-              if (actualEnemy) {
-                actualEnemy.bleeds.push({
-                  damage: drawAtk.criticalBleed.damage,
-                  duration: drawAtk.criticalBleed.duration,
-                });
-                scene.animationHelper.showMessage(`🩸 대출혈! ${drawAtk.criticalBleed.damage}뎀/${drawAtk.criticalBleed.duration}턴`, COLORS.effect.damage);
-                scene.enemyManager.updateEnemySprite(actualEnemy);
-              }
-            }
-            
-            // 크리티컬 독 적용
-            if (drawAtk.criticalPoison) {
-              const actualEnemy = scene.gameState.enemies.find(e => e.id === enemy.id);
-              if (actualEnemy) {
-                actualEnemy.poisons.push({
-                  damage: drawAtk.criticalPoison.damage,
-                  duration: drawAtk.criticalPoison.duration,
-                });
-                scene.animationHelper.showMessage(`☠️ 맹독! ${drawAtk.criticalPoison.damage}뎀/${drawAtk.criticalPoison.duration}턴`, COLORS.effect.damage);
-                scene.enemyManager.updateEnemySprite(actualEnemy);
-              }
-            }
-            
-            // 적 스킬 취소 - 크리티컬 시에만 (요이도로시)
-            if (drawAtk.criticalCancelEnemySkill) {
-              const actualEnemy = scene.gameState.enemies.find(e => e.id === enemy.id);
-              if (actualEnemy && actualEnemy.actionQueue && actualEnemy.actionQueue.length > 0) {
-                // 첫 번째 대기 스킬을 큐에서 제거 (취소)
-                const cancelledAction = actualEnemy.actionQueue.shift()!;
-                scene.animationHelper.showMessage(`🚫 ${cancelledAction.name} 취소!`, COLORS.message.warning);
-                scene.enemyManager.updateEnemyActionDisplay();
-              }
-            }
+
+            applyCriticalDrawAttackEffects(scene, enemy, drawAtk);
           });
           
           // 붉은 플래시 페이드아웃
