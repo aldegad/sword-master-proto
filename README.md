@@ -1,85 +1,55 @@
 # Sword Master
 
-**Action Card Runner Game** - 검의 달인이 되어 적을 베어라.
+Sword Master 웹 허브/데모 리포지토리입니다.
 
-Phaser 3 기반의 덱빌딩 액션 게임 데모 프로젝트입니다.
+현재 구조는 **Next.js(App Router)** 기반이며, 게임 캔버스는 **Pixi.js** 런타임으로 분리되어 있습니다.
 
 ## Live Demo
 
-- Sword Master (Landing): https://sword-master-a7a97.web.app/
-- Sword Master (Game): https://sword-master-a7a97.web.app/game/
+- Landing: https://sword-master-a7a97.web.app/
+- Game: https://sword-master-a7a97.web.app/game/
 - Rulebook: https://sword-master-a7a97.web.app/rulebook/
-
-## Sprite Generator Notice
-
-기존 스프라이트 제네레이터는 이 저장소에서 분리되었습니다.
-
-- Legacy repo: https://github.com/aldegad/artkit-legacy
-- Legacy service: https://sprite-generator.web.app/
-
-현재 유지보수되는 최신 프로젝트는 아래입니다.
-
-- Maintained repo: https://github.com/aldegad/artkit
-- Maintained service: https://artkit.web.app/
-
-## Features
-
-- 카드 기반 전투 시스템 (공격/방어/스킬)
-- 웨이브 진행 + 보스전
-- 스킬 성장 및 상점 시스템
-- 검 수집/강화
-- 한국어/영어 지원
 
 ## Tech Stack
 
+- Next.js 14 (App Router, Static Export)
+- React 18
+- Pixi.js 8
 - TypeScript
-- Phaser 3
-- Vite
 - Firebase Hosting
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- pnpm 8+
-
-### Install
+## Scripts
 
 ```bash
 pnpm install
-```
-
-### Dev
-
-```bash
-pnpm dev
-```
-
-### Build
-
-```bash
+pnpm dev       # http://localhost:3000
 pnpm build
-```
-
-### Deploy
-
-```bash
-pnpm deploy
+pnpm run deploy
+pnpm test:e2e
 ```
 
 ## Project Structure
 
+```text
+app/
+  page.tsx              # Landing
+  game/page.tsx         # Pixi runtime entry
+  rulebook/page.tsx     # Rulebook page
+components/
+  common/SiteNav.tsx
+  landing/LandingContent.tsx
+public/
+  assets/
 ```
-index.html            # Landing page (/)
-game/index.html       # Game page (/game/)
-rulebook/index.html   # Rulebook page (/rulebook/)
-src/                  # Phaser game source
-public/               # Static assets
-```
+
+## Sprite Generator Notice
+
+스프라이트 제네레이터는 별도 저장소로 분리되었습니다.
+
+- Legacy repo: https://github.com/aldegad/artkit-legacy
+- Maintained repo: https://github.com/aldegad/artkit
+- Maintained service: https://artkit.web.app/
 
 ## License
 
 PolyForm Noncommercial License 1.0.0
-
-상업적 라이선스 문의: aldegad@gmail.com

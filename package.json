@@ -2,22 +2,26 @@
   "name": "sword-master",
   "version": "1.0.0",
   "private": true,
-  "description": "액션 카드 러너 게임 - 검과 검술의 마스터가 되어라!",
-  "type": "module",
+  "description": "Sword Master - Next.js + Pixi.js",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "deploy": "pnpm build && firebase deploy --only hosting",
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "deploy": "next build && firebase deploy --only hosting",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "phaser": "^3.70.0"
+    "next": "^14.2.35",
+    "pixi.js": "^8.13.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@playwright/test": "1.57.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.0.10"
+    "@types/node": "^20.19.27",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^5.3.3"
   }
 }

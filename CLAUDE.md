@@ -5,40 +5,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Development Commands
 
 ```bash
-# Install dependencies (requires pnpm 8+, Node.js 18+)
 pnpm install
-
-# Development server (port 3000)
 pnpm dev
-
-# Build
 pnpm build
-
-# Deploy to Firebase Hosting
-pnpm deploy
-
-# E2E tests
+pnpm run deploy
 pnpm test:e2e
 ```
 
-## Project Structure
+## Architecture
 
-Single-project repository for Sword Master (Phaser 3 game + static pages).
+- Next.js App Router structure (`app/`)
+- Landing page: `app/page.tsx`
+- Game runtime page: `app/game/page.tsx`
+- Rulebook page: `app/rulebook/page.tsx`
+- Pixi runtime bootstrap: `app/game/PixiGame.tsx`
 
-- `index.html` - Landing page (`/`)
-- `game/index.html` - Game page (`/game/`)
-- `rulebook/index.html` - Rulebook page (`/rulebook/`)
-- `src/main.ts` - Phaser initialization
-- `src/scenes/` - BootScene, GameScene, UIScene
-- `src/systems/` - Combat/Card/Enemy/Animation systems
-- `src/data/` - swords, skills, enemies, events, passives
-- `src/ui/` - UI layer for UIScene
-- `public/` - assets and sprite sheets
+## Notes
 
-## Language
-
-Code comments are written in Korean (한국어).
-
-## Git Commit Rules
-
-- Do NOT add `Co-Authored-By` to commit messages
+- Game runtime is Pixi.js based.
+- Firebase deploys static export output (`dist/`).
+- Do NOT add `Co-Authored-By` to commit messages.
