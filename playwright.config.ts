@@ -21,7 +21,7 @@ export default defineConfig({
   // 웹서버 설정
   webServer: [
     {
-      command: 'pnpm dev:game',
+      command: 'pnpm dev',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,

@@ -53,30 +53,29 @@ pnpm install
 ### Dev
 
 ```bash
-pnpm dev:game
+pnpm dev
 ```
 
 ### Build
 
 ```bash
-pnpm build:game
+pnpm build
 ```
 
 ### Deploy
 
 ```bash
-pnpm deploy:game
+pnpm deploy
 ```
 
 ## Project Structure
 
 ```
-packages/
-  sword-master/
-    index.html            # Landing page (/)
-    game/index.html       # Game page (/game/)
-    rulebook/index.html   # Rulebook page (/rulebook/)
-    src/                  # Phaser game source
+index.html            # Landing page (/)
+game/index.html       # Game page (/game/)
+rulebook/index.html   # Rulebook page (/rulebook/)
+src/                  # Phaser game source
+public/               # Static assets
 ```
 
 ## License
