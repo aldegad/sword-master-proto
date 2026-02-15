@@ -1,0 +1,482 @@
+{
+  "ui": {
+    "topBar": {
+      "health": "❤ HP",
+      "mana": "◈ Mana",
+      "level": "LV.{{level}} [{{exp}}/{{expNeeded}}]",
+      "wave": "Wave {{wave}}",
+      "turn": "Turn {{turn}}",
+      "score": "Score {{score}}",
+      "silver": "💰 {{amount}} Silver",
+      "passive": "🔮 Passive"
+    },
+    "phases": {
+      "running": "▶ Moving...",
+      "combat": "⚔ Combat!",
+      "victory": "★ Victory!",
+      "paused": "‖ Paused",
+      "gameOver": "✕ Defeat",
+      "event": "❗ Event"
+    },
+    "buttons": {
+      "endTurn": "▶ End Turn",
+      "wait": "‖ Wait",
+      "cancel": "✕ Cancel",
+      "exchange": "↻ Exchange",
+      "restart": "Restart",
+      "exit": "Exit",
+      "purchase": "Purchase",
+      "skip": "Skip",
+      "confirm": "Confirm",
+      "select": "Select",
+      "close": "Close",
+      "langToggle": "🌐 한/EN"
+    },
+    "cards": {
+      "hand": "─ Hand ─",
+      "deck": "Deck",
+      "grave": "Grave",
+      "handMax": "─ Hand - Max {{max}} ─",
+      "attack": "ATK",
+      "defense": "DEF",
+      "durability": "DUR",
+      "mana": "Mana",
+      "range": "Range",
+      "pierce": "Pierce",
+      "attackCount": "Hits"
+    },
+    "range": {
+      "single": "1 foe",
+      "double": "2 foes",
+      "triple": "3 foes",
+      "all": "All",
+      "weapon": "Weapon",
+      "swordDouble": "Weapon x2"
+    },
+    "skillType": {
+      "skill": "Skill",
+      "swift": "⚡Swift"
+    },
+    "location": {
+      "equipped": "Equipped",
+      "hand": "Hand",
+      "deck": "Deck",
+      "grave": "Grave"
+    },
+    "misc": {
+      "max": "MAX",
+      "sword": "Sword",
+      "hits": "hits",
+      "defenseSkill": "Defense Skill",
+      "buffSkill": "Buff Skill",
+      "durability": "DUR",
+      "defense": "DEF",
+      "pierce": "PRC"
+    },
+    "swordInfo": {
+      "title": "◈ Drawn Sword",
+      "noWeapon": "Bare Hands\n⚡ Draw attacks are Swift!\nUse a weapon card",
+      "stats": "ATK{{attack}} DEF{{defense}}% PRC{{pierce}} {{count}}hits",
+      "rangeAndDur": "Range:{{range}} DUR:{{current}}/{{max}}",
+      "bleedEffect": "🩸 Causes Bleed",
+      "poisonEffect": "☠️ Causes Poison",
+      "armorBreakEffect": "💥 Breaks Armor"
+    },
+    "shop": {
+      "title": "🧳 Wandering Merchant",
+      "notEnough": "Not enough silver!",
+      "purchased": "Purchased {{name}}!",
+      "merchantLeft": "The merchant has left!",
+      "price": "{{price}} Silver"
+    },
+    "reward": {
+      "title": "🎁 Select a Reward Card!",
+      "skip": "Skip",
+      "skipSilver": "💰 +{{amount}} Silver",
+      "bossReward": "👑 Boss Defeated!",
+      "bossSubtitle": "Select a skill or unique weapon",
+      "selectSword": "Select a Sword"
+    },
+    "levelUp": {
+      "title": "🎉 Level Up! Select a Skill!",
+      "selectSkill": "Select Skill",
+      "step": "{{current}}/{{total}} Selected"
+    },
+    "event": {
+      "title": "❗ Event",
+      "victoryTitle": "⚔️ Victory! Select a Reward",
+      "warriorThanks": "The warrior expresses gratitude.",
+      "heal": "💚 Heal",
+      "silverReward": "💰 Reward",
+      "silverAmount": "+{{amount}} Silver"
+    },
+    "deckViewer": {
+      "title": "📚 Deck List",
+      "graveTitle": "🪦 Grave List",
+      "cardDetail": "🔍 Card Detail",
+      "hintText": "Hover over a card\nfor details",
+      "closeBtn": "✕ Close",
+      "scrollHint": "🖱️ Scroll with wheel or buttons",
+      "empty": "Deck is empty",
+      "totalCards": "Total: {{count}}",
+      "cardCount": "Total: {{total}} (Equipped: {{equipped}} / Hand: {{hand}} / Deck: {{deck}})"
+    },
+    "tooltip": {
+      "drawAttack": "Draw Attack",
+      "swift": "⚡Swift",
+      "unique": "★ Unique",
+      "effect": "Effect",
+      "durability": "Durability",
+      "defense": "DEF",
+      "ignoreDefense": "Ignore DEF",
+      "cancelSkill": "Cancel Skill",
+      "weaponRange": "Weapon Range",
+      "criticalDesc": "Critical when enemy delay is 1!\n({{percent}}% = {{damage}} dmg)",
+      "bleed": "Bleed {{damage}}/{{duration}}t",
+      "poison": "Poison {{damage}}/{{duration}}t",
+      "attackMultiplier": "ATK Multiplier",
+      "hitMultiplier": "Hit Multiplier",
+      "range": "Range",
+      "defenseMultiplier": "DEF Rate",
+      "waitTime": "Wait Time",
+      "turns": "turns",
+      "counterMultiplier": "Counter Multiplier",
+      "defenseBonus": "DEF Bonus"
+    },
+    "messages": {
+      "victory": "Victory!",
+      "defeat": "Defeat...",
+      "newWave": "Wave {{wave}} Begins!",
+      "bossAppear": "Boss Appears!",
+      "exchangeOncePerTurn": "Exchange once per turn only!",
+      "merchantLeft": "The merchant has left!",
+      "warriorThanks": "The warrior expresses gratitude."
+    },
+    "landing": {
+      "title": "Sword Master",
+      "subtitle": "Become a Joseon swordsman and conquer the land!",
+      "start": "Start Game",
+      "demo": "🎮 Demo",
+      "steamSoon": "Coming to Steam",
+      "madeIn": "Made in Korea 🇰🇷",
+      "copyright": "© {{year}} Soo Hong Kim (김수홍)"
+    }
+  },
+  "data": {
+    "prefixes": {
+      "chipped": { "name": "Chipped" }
+    },
+    "swords": {
+      "samjeongdo": {
+        "name": "Samjeongdo",
+        "description": "A standard military sword of Joseon officers. Well-balanced weapon for both offense and defense.",
+        "drawAttack": { "name": "Officer's Draw", "effect": "A textbook draw attack focused on fundamentals" }
+      },
+      "katana": {
+        "name": "Katana",
+        "description": "The iconic sword of Japanese infantry. Excels at slashing with pressure on single targets.",
+        "drawAttack": { "name": "Iaijutsu", "effect": "Draw and slash in one motion!" }
+      },
+      "byeongdo": {
+        "name": "Byeongdo",
+        "description": "A Chinese military sword. Simple and practical design, efficient in group combat.",
+        "drawAttack": { "name": "Cross Slash", "effect": "Wide horizontal swing hitting 2 enemies" },
+        "specialEffect": "2-target range attack"
+      },
+      "pagapdo": {
+        "name": "Armor Breaker",
+        "description": "Specialized for armor destruction. Built for cumulative damage through defense reduction.",
+        "drawAttack": { "name": "Armor Rend", "effect": "Ignores defense. Defense -5." }
+      },
+      "yoroikiri": {
+        "name": "Yoroikiri",
+        "description": "A sword that targets armor gaps and weak points. Specialized for destruction over cutting.",
+        "drawAttack": { "name": "Armor Split", "effect": "Cuts through armor" },
+        "specialEffect": "Pierce Specialization: High base pierce"
+      },
+      "jungdo": {
+        "name": "Jungdo",
+        "description": "A thick, wide-bladed Chinese sword. High piercing power against shields and heavy infantry.",
+        "drawAttack": { "name": "Heavy Slash", "effect": "Crush the enemy with a heavy blade" }
+      },
+      "bongukgeom": {
+        "name": "Bongukgeom",
+        "description": "The essence of Korean swordsmanship. A defensive control weapon that disrupts enemy attack flow.",
+        "drawAttack": { "name": "Disruption", "effect": "**Skill Cancel**! Negates enemy's upcoming skill" }
+      },
+      "gekkenkatana": {
+        "name": "Gekken Katana",
+        "description": "A technique-focused sword for iaijutsu and counters. High skill ceiling rewards masters.",
+        "drawAttack": { "name": "Lightning Flash", "effect": "Critical when enemy delay is 1!" }
+      },
+      "jian": {
+        "name": "Jian",
+        "description": "A precision-focused thrusting sword. Low power but excellent skill scaling for control play.",
+        "drawAttack": { "name": "Vital Strike", "effect": "Strike vital points precisely. Causes bleed." }
+      },
+      "bisu": {
+        "name": "Bisu",
+        "description": "A simple and practical dagger. Specialized for stealth, escort, and quick preemptive strikes.",
+        "drawAttack": { "name": "Preemptive Strike", "effect": "**Swift** Defense-ignoring critical when enemy delay is 1!" }
+      },
+      "wakizashi": {
+        "name": "Wakizashi",
+        "description": "A companion sword. Specialized for quick combos and conditional criticals.",
+        "drawAttack": { "name": "Quick Stab", "effect": "" }
+      },
+      "yoroidoshi": {
+        "name": "Yoroidoshi",
+        "description": "An armor-piercing dagger. Specialized for bleed and sustained damage against heavy targets.",
+        "drawAttack": { "name": "Pierce & Cut", "effect": "**Skill Cancel** when enemy delay is 1." }
+      },
+      "jagaekdangeom": {
+        "name": "Assassin's Dagger",
+        "description": "A dagger for assassination and close-range takedowns. Specialized for poison effects.",
+        "drawAttack": { "name": "Assassinate", "effect": "Defense-ignoring + deadly poison when enemy delay is 1!" }
+      },
+      "woldo": {
+        "name": "Woldo",
+        "description": "A large sword for generals. Specialized for multi-target attacks and area damage.",
+        "drawAttack": { "name": "Grand Slash", "effect": "Swing the woldo wide for a full sweep!" }
+      },
+      "nodachi": {
+        "name": "Nodachi",
+        "description": "An oversized greatsword. Overwhelming power and reach for aggressive pressure.",
+        "drawAttack": { "name": "Great Iaijutsu", "effect": "Sweep with the massive blade" }
+      },
+      "guandao": {
+        "name": "Guandao",
+        "description": "The Green Dragon Crescent Blade. Its intimidating presence synergizes with morale debuffs.",
+        "drawAttack": { "name": "Dragon Slash", "effect": "Slash all enemies with dragon's fury" },
+        "specialEffect": "Intimidation: Enemy ATK -10%"
+      },
+      "jangwang": {
+        "name": "Afterglow",
+        "description": "A moment of letting go. The flash of sword enlightenment.",
+        "drawAttack": { "name": "Flash", "effect": "Pierce all enemies with blinding light" },
+        "specialEffect": "One moment of brilliance."
+      },
+      "chilseong": {
+        "name": "Seven Star Sword",
+        "description": "A divine blade imbued with the Big Dipper's power. A legendary sword of Baekje.",
+        "drawAttack": { "name": "Seven Star Slash", "effect": "Starlight empowers the blade" },
+        "specialEffect": "Blessing of the Seven Stars"
+      },
+      "saingum": {
+        "name": "Saingum",
+        "description": "The sword of justice from Joseon. Cuts down evil and upholds righteousness.",
+        "drawAttack": { "name": "Evil Slayer", "effect": "Cut down the wicked aura" },
+        "specialEffect": "Blessed with righteous energy"
+      },
+      "muramasa": {
+        "name": "Muramasa",
+        "description": "The cursed Muramasa. A demon blade that hungers for blood.",
+        "drawAttack": { "name": "Blood Slash", "effect": "The demon blade craves blood!" },
+        "specialEffect": "Blood-calling blade"
+      },
+      "masamune": {
+        "name": "Masamune",
+        "description": "The legendary Masamune. A blade imbued with the sword saint's soul.",
+        "drawAttack": { "name": "Moonless", "effect": "Quiet as moonlight, yet razor sharp" },
+        "specialEffect": "Sword Saint's Blessing"
+      },
+      "kusanagi": {
+        "name": "Kusanagi",
+        "description": "One of the Three Sacred Treasures. The grass-cutting sword.",
+        "drawAttack": { "name": "Heavenly Cloud Slash", "effect": "Divine wind cuts down enemies" },
+        "specialEffect": "Divine Sword's Aura"
+      }
+    },
+    "skills": {
+      "slash": { "name": "Slash", "description": "Basic slash attack." },
+      "thrust": { "name": "Thrust", "description": "Piercing thrust. Enemy DEF -3." },
+      "consecutiveSlash": { "name": "Combo Slash", "description": "Consecutive slashes. Weapon hits x2!" },
+      "flurry": { "name": "Flurry", "description": "Continuous flowing strikes without pause." },
+      "sweepingBlow": { "name": "Sweep", "description": "Wide horizontal swing. Weapon range x2." },
+      "whirlwind": { "name": "Whirlwind", "description": "Spinning attack hitting all enemies" },
+      "crescent": { "name": "Crescent Moon", "description": "Wide crescent arc slash" },
+      "powerStrike": { "name": "Power Strike", "description": "Single hit. After 1 wait, powerful strike! x3.0 damage." },
+      "heavenSplitter": { "name": "Heaven Splitter", "description": "Ultimate strike! Stun." },
+      "bleedingEdge": { "name": "Bleeding Edge", "description": "Deep wound causes bleeding" },
+      "vampireSlash": { "name": "Vampire Slash", "description": "Absorb 30% of damage as HP!" },
+      "armorBreaker": { "name": "Armor Break", "description": "Ignores defense! x1.5. Enemy DEF -5." },
+      "slashAndDraw": { "name": "Slash & Draw", "description": "Slash enemy and draw 1 card!" },
+      "quickSlash": { "name": "Opening!", "description": "Strike at an opening. Critical with daggers" },
+      "flashStrike": { "name": "Flash Strike", "description": "Swift double strike! Doesn't reduce enemy delay." },
+      "followUpSlash": { "name": "Follow-up", "description": "Continue the attack flow. Only usable after attacking this turn." },
+      "taunt": { "name": "Taunt", "description": "Provoke enemy! Enemy delay -1, draw 1 card." },
+      "parry": { "name": "Blade Lock", "description": "Defense x5 for 1 wait. Counter on successful block!" },
+      "ironWall": { "name": "Deflect", "description": "Defense x10 for 3 waits. Consumed after 1 block." },
+      "flowRead": { "name": "Read the Flow", "description": "Read for 5 waits. Defense/counter increases with wait!" },
+      "focus": { "name": "Focus", "description": "Next attack multiplier +50%!" },
+      "sharpen": { "name": "Sharpen", "description": "ATK +5 for 3 turns. Restore 1 durability to all deck swords. (Consumable)" },
+      "bladeDance": { "name": "Blade Dance", "description": "Draw 3 cards! All drawn cards activate immediately!" },
+      "sheathe": { "name": "Sheathe", "description": "Return weapon to hand. Sheathe card also returns to hand." },
+      "setupBoard": { "name": "Set Up", "description": "Draw 2 cards from deck." },
+      "bladeSeeker": { "name": "Blade Grab", "description": "Equip top sword from deck + draw attack! Next sword goes to hand." },
+      "soulRecall": { "name": "Recall", "description": "Bring top 2 cards from grave to hand." },
+      "ancestorBlade": { "name": "Grave Blade", "description": "Equip random sword from grave and use its draw attack." },
+      "sweepSlash": { "name": "Sweep Slash", "description": "Wide swing at weapon range x2 for x2.0 damage." },
+      "bladeStorm": { "name": "Blade Storm", "description": "Fierce swings cutting through all enemies." },
+      "finalJudgment": { "name": "Final Judgment", "description": "Strike so hard the blade shatters. *Weapon is destroyed after use.*" }
+    },
+    "enemies": {
+      "bandit": { "name": "Bandit", "actions": { "slash": { "name": "Slash", "description": "Swings blade" } } },
+      "archer": { "name": "Bandit Archer", "actions": { "arrow": { "name": "Shot", "description": "Fires arrow" }, "powerShot": { "name": "Power Shot", "description": "Aimed shot!" } } },
+      "swordsman": { "name": "Bandit Swordsman", "actions": { "quickSlash": { "name": "Quick Slash", "description": "Quick cut" }, "powerSlash": { "name": "Power Slash", "description": "Charged strike" } } },
+      "shieldman": { "name": "Bandit Shieldbearer", "actions": { "taunt": { "name": "Taunt", "description": "Target me!" }, "guard": { "name": "Guard", "description": "Raises shield" }, "bash": { "name": "Shield Bash", "description": "Bashes with shield" } } },
+      "imperialSwordsman": { "name": "Imperial Swordsman", "actions": { "formalSlash": { "name": "Formal Slash", "description": "Textbook strike" }, "piercingStrike": { "name": "Pierce", "description": "Strikes vitals" }, "guardStance": { "name": "Defend", "description": "Defensive stance" } } },
+      "ronin": { "name": "Ronin", "actions": { "iai": { "name": "Iaijutsu", "description": "Quick draw!" }, "combo": { "name": "Combo", "description": "Consecutive cuts" } } },
+      "knight": { "name": "Knight", "actions": { "shieldBash": { "name": "Shield", "description": "Raises shield" }, "slash": { "name": "Strike", "description": "Sword swing" }, "charge": { "name": "Charge", "description": "Preparing charge!" } } },
+      "assassin": { "name": "Assassin", "actions": { "ambush": { "name": "Ambush", "description": "Surprise attack!" }, "vital": { "name": "Vital Strike", "description": "Targeting vitals!" } } },
+      "shaman": { "name": "Shaman", "actions": { "curse": { "name": "Curse", "description": "Casts curse" }, "heal": { "name": "Heal", "description": "Heals ally" }, "bolt": { "name": "Magic Bolt", "description": "Fires magic bolt" } } },
+      "samurai": { "name": "Samurai", "actions": { "katanaSlash": { "name": "Quick Slash", "description": "Swift strike" }, "dualStrike": { "name": "Dual Strike", "description": "Twin blade cut" }, "counter": { "name": "Counter", "description": "Counter stance" } } },
+      "spearShield": { "name": "Spear & Shield", "actions": { "taunt": { "name": "Battle Cry", "description": "Face me!" }, "spearGuard": { "name": "Spear Guard", "description": "Defensive spear" }, "spearThrust": { "name": "Spear Thrust", "description": "Deep thrust" }, "sweepAttack": { "name": "Spear Sweep", "description": "Wide sweep" } } },
+      "swordMaster": { "name": "Sword Demon", "actions": { "windSlash": { "name": "Wind Slash", "description": "Sword wind!" }, "combo": { "name": "Triple Strike", "description": "3-hit combo! (Each hit can be blocked)" }, "ultimate": { "name": "Finisher", "description": "Ultimate move...!" } } },
+      "banditLeader": { "name": "Bandit Chief", "actions": { "heavyBlow": { "name": "Heavy Blow", "description": "Crushing strike!" }, "callMinions": { "name": "Call", "description": "Calls reinforcements!" }, "poisonBlade": { "name": "Poison Blade", "description": "Cowardly poisoned stab" } } },
+      "dragonWarrior": { "name": "Dragon Warrior", "actions": { "greatSlash": { "name": "Great Slash", "description": "Greatsword swing" }, "guard": { "name": "Iron Wall", "description": "Iron defense" }, "dragonBreath": { "name": "Dragon Fire", "description": "Dragon's breath!" }, "dragonStrike": { "name": "Dragon Strike", "description": "Dragon's blow!" } } },
+      "toposa": { "name": "Toposa", "actions": { "officialSlash": { "name": "Official Slash", "description": "Military technique" }, "arrest": { "name": "Arrest", "description": "Throws rope" }, "corruption": { "name": "Bribery", "description": "Corrupt power summons aid" }, "execution": { "name": "Execution", "description": "Execute in the name of justice!" } } }
+    },
+    "passives": {
+      "waitIncrease": { "name": "Patience", "description": "Wait count per turn +1" },
+      "perfectCast": { "name": "Mastery", "description": "Cast skills perfectly regardless of durability" },
+      "defenseBonus": { "name": "Iron Skin", "description": "Defense rate +1%" },
+      "drawIncrease": { "name": "Dexterity", "description": "Draw 1 extra card at turn start" }
+    },
+    "events": {
+      "wounded_traveler": {
+        "name": "Wounded Traveler",
+        "description": "A wounded traveler lies by the road.\nWill you help them?",
+        "choices": {
+          "help": "Help them",
+          "ignore": "Ignore and pass by"
+        },
+        "outcomes": {
+          "reward": "Thank you! Please take this.",
+          "trap": "It's a trap! Bandits appear!",
+          "treasure": "Thank you... Please accept this heirloom.",
+          "nothing": "You passed by."
+        }
+      },
+      "traveling_merchant": {
+        "name": "Traveling Merchant",
+        "description": "\"Fine goods, noble swordsman!\"\nThe merchant displays their wares.",
+        "choices": {
+          "browse": "Browse the goods",
+          "pass": "Pass by"
+        },
+        "outcomes": {
+          "shop": "The merchant shows their wares.",
+          "nothing": "The merchant packs up reluctantly."
+        }
+      },
+      "old_shrine": {
+        "name": "Old Shrine",
+        "description": "An old shrine stands by the road.\nWill you pray?",
+        "choices": {
+          "pray": "Pray",
+          "pass": "Pass by"
+        },
+        "outcomes": {
+          "blessing": "Received divine blessing!",
+          "silver": "Found silver left by someone at the shrine.",
+          "peace": "Felt at peace.",
+          "nothing": "You passed by."
+        }
+      },
+      "bandit_ambush": {
+        "name": "Suspicious Presence",
+        "description": "You feel eyes watching.\nWill you investigate?",
+        "choices": {
+          "investigate": "Investigate carefully",
+          "run": "Quickly move on"
+        },
+        "outcomes": {
+          "ambush": "Found hidden bandits!",
+          "loot": "Found loot dropped by fleeing bandits!",
+          "nothing": "Found nothing.",
+          "safe": "Passed without incident.",
+          "attacked": "Suddenly attacked!"
+        }
+      },
+      "secret_scroll": {
+        "name": "Secret Scroll",
+        "description": "An old scroll peeks from between rocks.\nIt seems to be a martial arts manual!",
+        "choices": {
+          "read": "Examine the scroll",
+          "pass": "Could be dangerous. Pass by"
+        },
+        "outcomes": {
+          "skill": "Reading the scroll's contents...",
+          "nothing": "Avoided a possible trap."
+        }
+      },
+      "captured_warrior": {
+        "name": "Captured Warrior",
+        "description": "A warrior is surrounded by assassins.\nWill you help?",
+        "choices": {
+          "fight": "Fight together",
+          "ignore": "Ignore"
+        },
+        "outcomes": {
+          "combat": "Battle against the assassins!",
+          "nothing": "You passed by indifferently."
+        }
+      },
+      "cursed_altar": {
+        "name": "Cursed Altar",
+        "description": "A dark aura surrounds an altar.\nWill you investigate?",
+        "choices": {
+          "investigate": "Investigate",
+          "avoid": "Avoid"
+        },
+        "outcomes": {
+          "treasure": "Found ancient treasure!",
+          "curse": "Struck by a curse!",
+          "spirit": "An evil spirit awakens!",
+          "nothing": "Perhaps a wise choice..."
+        }
+      },
+      "ronin_duel": {
+        "name": "Ronin's Challenge",
+        "description": "A ronin approaches and requests a duel.\n\"I wish to see your swordsmanship.\"",
+        "choices": {
+          "accept": "Accept the duel",
+          "refuse": "Refuse"
+        },
+        "outcomes": {
+          "duel": "The duel begins!",
+          "leave": "The ronin leaves disappointed.",
+          "forced": "The ronin insists on fighting anyway!"
+        }
+      },
+      "sacred_shrine": {
+        "name": "Sacred Shrine",
+        "description": "A shrine to the god of swordsmanship.\n\"Offer tribute for the secrets of the blade...\"",
+        "choices": {
+          "offer": "Offer 50 silver as tribute",
+          "pray": "Just pray",
+          "pass": "Pass by"
+        },
+        "outcomes": {
+          "skill": "Divine revelation descends...",
+          "blessing": "Received divine blessing.",
+          "peace": "Found inner peace.",
+          "nothing": "You passed by."
+        }
+      },
+      "weapon_merchant": {
+        "name": "Weapon Merchant",
+        "description": "\"Looking for fine blades?\"\nThe merchant displays rare swords.",
+        "choices": {
+          "browse": "Browse the swords",
+          "pass": "Not interested"
+        },
+        "outcomes": {
+          "shop": "The merchant shows their swords.",
+          "nothing": "The merchant bows respectfully."
+        }
+      }
+    }
+  }
+}

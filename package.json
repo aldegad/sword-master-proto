@@ -2,7 +2,7 @@
   "name": "sword-master",
   "version": "1.0.0",
   "private": true,
-  "description": "Sword Master - Next.js + Pixi.js",
+  "description": "Sword Master - Next.js + Phaser.js",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "next": "^14.2.35",
-    "pixi.js": "^8.13.2",
+    "phaser": "^3.90.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

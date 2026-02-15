@@ -10,7 +10,7 @@ const STORAGE_KEY = 'sword-master-locale';
 const copy = {
   ko: {
     title: '검을 두른 채 걷다',
-    desc: 'Next.js 구조로 정리된 웹 허브 + Pixi 기반 게임 런타임',
+    desc: 'Next.js 구조로 정리된 웹 허브 + Phaser 기반 게임 런타임',
     play: '게임 시작',
     rulebook: '룰북 보기',
     localeBtn: 'EN',
@@ -22,7 +22,7 @@ const copy = {
       },
       {
         title: 'Game (/game)',
-        desc: '게임 캔버스는 Pixi.js로 분리해 엔진 레이어를 독립시켰습니다.',
+        desc: '게임 캔버스는 Phaser.js로 구동되며 기존 전투 시스템을 사용합니다.',
       },
       {
         title: 'Rulebook (/rulebook)',
@@ -37,7 +37,7 @@ const copy = {
   },
   en: {
     title: 'Walk with the Blade',
-    desc: 'Next.js web hub + Pixi-based game runtime',
+    desc: 'Next.js web hub + Phaser-based game runtime',
     play: 'Play Game',
     rulebook: 'Open Rulebook',
     localeBtn: '한글',
@@ -49,7 +49,7 @@ const copy = {
       },
       {
         title: 'Game (/game)',
-        desc: 'The runtime canvas is isolated into a Pixi.js game layer.',
+        desc: 'The runtime canvas runs on Phaser.js with the original combat systems.',
       },
       {
         title: 'Rulebook (/rulebook)',

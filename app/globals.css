@@ -224,6 +224,22 @@ a {
   border-radius: 10px;
 }
 
+.phaser-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.phaser-host {
+  width: 100%;
+  height: 70vh;
+  min-height: 480px;
+  max-height: 820px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+
 .game-note {
   border: none;
   border-radius: 12px;
@@ -258,6 +274,11 @@ a {
   }
 
   .game-stage-inner {
+    min-height: 420px;
+    height: 62vh;
+  }
+
+  .phaser-host {
     min-height: 420px;
     height: 62vh;
   }

@@ -1,4 +1,4 @@
-import { PixiGame } from './PixiGame';
+import { PhaserGame } from './PhaserGame';
 
 export const metadata = {
   title: 'Game',
@@ -7,14 +7,14 @@ export const metadata = {
 export default function GamePage() {
   return (
     <main className="container">
-      <h1 className="page-title">Game Runtime (Pixi.js)</h1>
+      <h1 className="page-title">Game Runtime (Phaser.js)</h1>
       <section className="game-shell">
         <div className="game-stage">
-          <PixiGame />
+          <PhaserGame />
         </div>
         <aside className="game-note">
-          Pixi 전용 런타임으로 동작하며 그래픽은 단색/미니멀 UI로 단순화했습니다.
-          카드 사용 시 적 대기턴이 감소하고, 턴 종료 버튼으로 전투를 진행합니다.
+          기존 Phaser 기반 시스템으로 복구되었습니다.
+          캐릭터 애니메이션, 카드 상세/툴팁, 전투 UI 레이어를 포함한 전체 게임 흐름을 사용합니다.
         </aside>
       </section>
     </main>

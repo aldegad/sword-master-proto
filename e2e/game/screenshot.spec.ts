@@ -29,13 +29,13 @@ test.describe('Next.js Pages Screenshot', () => {
     await expect(page.getByText('Play Game')).toBeVisible();
     await page.screenshot({ path: 'screenshots/game-landing-en.png', fullPage: true });
 
-    await page.goto('http://localhost:3000/game');
-    await expect(page.getByText('Game Runtime (Pixi.js)')).toBeVisible();
-    await expect(page.locator('canvas')).toBeVisible();
+    await page.getByRole('link', { name: '게임' }).click();
+    await expect(page.getByText('Game Runtime (Phaser.js)')).toBeVisible();
+    await expect(page.locator('.phaser-host canvas')).toHaveCount(1, { timeout: 20000 });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: 'screenshots/game-play-ko.png', fullPage: true });
 
-    await page.goto('http://localhost:3000/rulebook');
+    await page.getByRole('link', { name: '룰북' }).click();
     await expect(page.getByRole('heading', { name: '룰북' })).toBeVisible();
     await page.screenshot({ path: 'screenshots/game-intro-ko.png', fullPage: true });
     expect(pageErrors).toEqual([]);

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: 'Sword Master',
     template: '%s | Sword Master',
   },
-  description: 'Sword Master web hub built with Next.js and Pixi.js',
+  description: 'Sword Master web hub built with Next.js and Phaser.js',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
