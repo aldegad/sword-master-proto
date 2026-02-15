@@ -2,10 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-
-type Locale = 'ko' | 'en';
-
-const STORAGE_KEY = 'sword-master-locale';
+import { LOCALE_EVENT, type Locale, applyLocale, detectLocale } from '@/lib/locale';
 
 const copy = {
   ko: {
@@ -13,7 +10,6 @@ const copy = {
     desc: 'Next.js 구조로 정리된 웹 허브 + Phaser 기반 게임 런타임',
     play: '게임 시작',
     rulebook: '룰북 보기',
-    localeBtn: 'EN',
     featureTitle: '프로젝트 구성',
     cards: [
       {
@@ -40,7 +36,6 @@ const copy = {
     desc: 'Next.js web hub + Phaser-based game runtime',
     play: 'Play Game',
     rulebook: 'Open Rulebook',
-    localeBtn: '한글',
     featureTitle: 'Project Layout',
     cards: [
       {
@@ -64,43 +59,34 @@ const copy = {
   },
 } as const;
 
-function detectLocale(): Locale {
-  if (typeof window === 'undefined') return 'ko';
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === 'ko' || saved === 'en') return saved;
-  return navigator.language.startsWith('ko') ? 'ko' : 'en';
-}
-
 export function LandingContent() {
   const [locale, setLocale] = useState<Locale>('ko');
 
   useEffect(() => {
     const next = detectLocale();
     setLocale(next);
-    document.documentElement.lang = next;
+    applyLocale(next);
+
+    const onLocaleChanged = () => {
+      const changed = detectLocale();
+      setLocale(changed);
+      applyLocale(changed);
+    };
+
+    window.addEventListener(LOCALE_EVENT, onLocaleChanged as EventListener);
+    window.addEventListener('storage', onLocaleChanged);
+
+    return () => {
+      window.removeEventListener(LOCALE_EVENT, onLocaleChanged as EventListener);
+      window.removeEventListener('storage', onLocaleChanged);
+    };
   }, []);
 
   const t = useMemo(() => copy[locale], [locale]);
 
-  const toggleLocale = () => {
-    const next: Locale = locale === 'ko' ? 'en' : 'ko';
-    setLocale(next);
-    localStorage.setItem(STORAGE_KEY, next);
-    document.documentElement.lang = next;
-  };
-
   return (
     <main className="container">
       <section className="hero">
-        <button
-          id="lang-toggle"
-          className="site-button"
-          onClick={toggleLocale}
-          type="button"
-          style={{ marginBottom: 14 }}
-        >
-          {t.localeBtn}
-        </button>
         <h1>{t.title}</h1>
         <p>{t.desc}</p>
         <div className="cta-row">

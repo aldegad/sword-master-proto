@@ -77,6 +77,41 @@ a {
   border-color: var(--accent);
 }
 
+.settings-wrap {
+  position: relative;
+}
+
+.settings-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 210px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 60;
+}
+
+.settings-item {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.settings-item:hover {
+  border-color: var(--accent);
+}
+
 .container {
   max-width: 1080px;
   margin: 0 auto;
@@ -200,6 +235,54 @@ a {
   background: var(--panel-2);
 }
 
+.rulebook-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.rulebook-modal {
+  width: min(980px, 100%);
+  max-height: min(90vh, 100%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rulebook-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.rulebook-modal-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.rulebook-modal-body {
+  overflow: auto;
+  padding: 16px;
+}
+
+.rulebook-in-modal {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
 .game-shell {
   min-height: calc(100vh - 84px);
   display: flex;
@@ -267,6 +350,12 @@ a {
   .site-links {
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  .settings-menu {
+    right: auto;
+    left: 0;
+    min-width: 190px;
   }
 
   .hero {
