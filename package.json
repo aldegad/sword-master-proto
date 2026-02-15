@@ -2,14 +2,11 @@
   "name": "sword-master-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "Sword Master 모노레포 - 게임 및 도구 프로젝트",
+  "description": "Sword Master 게임 프로젝트",
   "scripts": {
     "dev:game": "pnpm --filter sword-master dev",
     "build:game": "pnpm --filter sword-master build",
     "deploy:game": "pnpm --filter sword-master build && pnpm --filter sword-master run deploy",
-    "dev:sprite": "pnpm --filter sprite-generator dev",
-    "build:sprite": "pnpm --filter sprite-generator build",
-    "deploy:sprite": "pnpm --filter sprite-generator build && pnpm --filter sprite-generator run deploy",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

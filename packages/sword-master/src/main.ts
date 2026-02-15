@@ -28,18 +28,12 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, GameScene, UIScene],
 };
 
-// 게임 시작 함수를 전역으로 노출
 let gameInstance: Phaser.Game | null = null;
 
-function startGame() {
+function bootGame() {
   if (!gameInstance) {
     gameInstance = new Phaser.Game(config);
   }
 }
 
-// 전역 객체에 등록
-(window as unknown as { startGame: () => void }).startGame = startGame;
-
-// 게임 시작 이벤트 리스너
-window.addEventListener('startGame', startGame);
-
+bootGame();

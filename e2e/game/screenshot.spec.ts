@@ -9,7 +9,7 @@ test.describe('Game i18n Screenshot', () => {
     });
     const page = await context.newPage();
 
-    await page.goto('http://localhost:3000');
+    await page.goto('http://localhost:3000/');
     await page.waitForTimeout(2000);
 
     // 랜딩 페이지 스크린샷 (한국어)
@@ -26,8 +26,8 @@ test.describe('Game i18n Screenshot', () => {
     await page.click('#lang-toggle');
     await page.waitForTimeout(500);
 
-    // 게임 시작 버튼 클릭 (HTML 버튼)
-    await page.click('#start-game-btn');
+    // 게임 페이지로 이동
+    await page.goto('http://localhost:3000/game/');
     await page.waitForTimeout(3000); // 게임 로딩 대기
 
     // 게임 인트로 스크린샷 (BootScene)

@@ -8,7 +8,7 @@
  * 2. player-walk.png + player-walk.json   - 걷기/달리기 모션
  * 3. player-action.png + player-action.json - 스킬/무기교체 모션
  * 
- * PNG와 JSON은 sprite-generator 도구로 생성할 수 있습니다.
+ * PNG와 JSON은 Artkit 도구(https://artkit.web.app)로 생성할 수 있습니다.
  */
 
 export interface SpriteConfig {
@@ -27,7 +27,7 @@ export interface AnimationConfig {
 }
 
 /**
- * 스프라이트 시트 JSON 메타데이터 형식 (sprite-generator 출력)
+ * 스프라이트 시트 JSON 메타데이터 형식 (Artkit 출력)
  */
 export interface SpriteSheetMeta {
   frames: {
