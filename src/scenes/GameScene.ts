@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import type { PlayerState, GameState, Card, PassiveTemplate } from '../types';
+import type { PlayerState, GameState, Card, PassiveTemplate, GamePhase } from '../types';
 import { GAME_CONSTANTS } from '../constants/gameConfig';
 import { createSwordCard, getRandomSword, getRandomUniqueSword } from '../data/swords';
 import { isBossWave, getCurrentTier, ENEMIES_TIER1, ENEMIES_TIER2, createEnemy } from '../data/enemies';
@@ -10,6 +10,7 @@ import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../syst
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
 import { GAME_START_CONFIG } from '../constants/gameStart';
+import { isGamePhase, transitionGamePhase } from '../domain/gameFlow';
 
 type SkillSelectType = 'searchSword' | 'graveRecall' | 'graveEquip';
 
@@ -229,13 +230,17 @@ export class GameScene extends Phaser.Scene {
     return typeof value === 'object' && value !== null;
   }
 
-  private isValidPhase(value: unknown): value is GameState['phase'] {
-    return value === 'running'
-      || value === 'combat'
-      || value === 'victory'
-      || value === 'paused'
-      || value === 'gameOver'
-      || value === 'event';
+  private isPhase(phase: GamePhase): boolean {
+    return this.gameState.phase === phase;
+  }
+
+  private transitionPhase(nextPhase: GamePhase, reason: string, force: boolean = false): boolean {
+    const result = transitionGamePhase(this.gameState, nextPhase, { force });
+    if (!result.accepted) {
+      console.warn(`[GameFlow] invalid transition ${result.from} -> ${result.to} (${reason})`);
+      return false;
+    }
+    return true;
   }
 
   private parseSavedSnapshot(raw: string): SavedGameSnapshot | null {
@@ -253,7 +258,7 @@ export class GameScene extends Phaser.Scene {
 
       if (!Array.isArray(player.hand) || !Array.isArray(player.deck) || !Array.isArray(player.discard)) return null;
       if (!Array.isArray(player.buffs) || !Array.isArray(player.countEffects) || !Array.isArray(player.passives)) return null;
-      if (!Array.isArray(game.enemies) || !this.isValidPhase(game.phase)) return null;
+      if (!Array.isArray(game.enemies) || !isGamePhase(game.phase)) return null;
       if (!Array.isArray(runtime.rewardCards) || !Array.isArray(runtime.levelUpSkillCards)) return null;
       if (!Array.isArray(runtime.levelUpPassives) || !Array.isArray(runtime.bossRewardCards)) return null;
       if (!Array.isArray(runtime.skillSelectCards)) return null;
@@ -306,12 +311,12 @@ export class GameScene extends Phaser.Scene {
 
   private restoreLoadedSession() {
     // 비정상 상태 보호: phase가 combat인데 적이 비어있으면 이동으로 복구
-    if (this.gameState.phase === 'combat' && this.gameState.enemies.length === 0) {
-      this.gameState.phase = 'running';
+    if (this.isPhase('combat') && this.gameState.enemies.length === 0) {
+      this.transitionPhase('running', 'restoreLoadedSession:emptyCombat', true);
       this.isMoving = true;
     }
 
-    if (this.gameState.phase === 'combat') {
+    if (this.isPhase('combat')) {
       this.isMoving = false;
       this.gameState.enemies.forEach((enemy) => {
         this.enemyManager.createEnemySprite(enemy);
@@ -322,9 +327,9 @@ export class GameScene extends Phaser.Scene {
         });
         this.enemyManager.updateEnemyActionDisplay();
       });
-    } else if (this.gameState.phase === 'running') {
+    } else if (this.isPhase('running')) {
       this.isMoving = true;
-    } else if (this.gameState.phase === 'gameOver') {
+    } else if (this.isPhase('gameOver')) {
       this.isMoving = false;
       this.time.delayedCall(200, () => this.gameOver());
     } else {
@@ -358,7 +363,7 @@ export class GameScene extends Phaser.Scene {
       }
 
       // 이벤트/승리/일시정지 상태는 저장 시점 컨텍스트가 끊기므로 안전하게 이동으로 복귀
-      if (this.gameState.phase === 'event' || this.gameState.phase === 'victory' || this.gameState.phase === 'paused') {
+      if (this.isPhase('event') || this.isPhase('victory') || this.isPhase('paused')) {
         this.startMoving();
       }
     });
@@ -881,20 +886,20 @@ export class GameScene extends Phaser.Scene {
   setupInput() {
     for (let i = 1; i <= 9; i++) {
       this.input.keyboard!.on(`keydown-${i}`, () => {
-        if (this.gameState.phase === 'combat') {
+        if (this.isPhase('combat')) {
           this.cardSystem.useCard(i - 1);
         }
       });
     }
     
     this.input.keyboard!.on('keydown-ZERO', () => {
-      if (this.gameState.phase === 'combat') {
+      if (this.isPhase('combat')) {
         this.cardSystem.useCard(9);
       }
     });
     
     this.input.keyboard!.on('keydown-SPACE', () => {
-      if (this.gameState.phase === 'combat') {
+      if (this.isPhase('combat')) {
         // UIScene의 ActionButtonsUI를 통해 턴 종료 (연속 입력 방지)
         const uiScene = this.scene.get('UIScene') as import('./UIScene').UIScene;
         uiScene?.actionButtonsUI?.tryEndTurn();
@@ -905,10 +910,10 @@ export class GameScene extends Phaser.Scene {
   // ========== 이동 & 전투 페이즈 ==========
   
   startMoving() {
-    if (this.gameState.phase === 'gameOver') return;
+    if (this.isPhase('gameOver')) return;
     
     this.isMoving = true;
-    this.gameState.phase = 'running';
+    this.transitionPhase('running', 'startMoving');
     this.moveDistance = 0;
     
     this.animationHelper.showMessage('이동중...', COLORS.success.dark);
@@ -926,7 +931,7 @@ export class GameScene extends Phaser.Scene {
     }
     
     // 무조건 전투 시작 (이벤트는 전투 후에 발생)
-    this.gameState.phase = 'combat';
+    this.transitionPhase('combat', 'encounterEnemies');
     this.enemyManager.spawnWaveEnemies();
     this.startCombat();
   }
@@ -981,7 +986,7 @@ export class GameScene extends Phaser.Scene {
    * 랜덤 이벤트 발생
    */
   private triggerRandomEvent() {
-    this.gameState.phase = 'event';
+    this.transitionPhase('event', 'triggerRandomEvent');
     this.gameState.eventsThisTier++;
     this.gameState.lastEventWave = this.gameState.currentWave;
     
@@ -1182,7 +1187,7 @@ export class GameScene extends Phaser.Scene {
    * 이벤트 전투 시작 (특정 적과 싸움)
    */
   private startEventCombat(enemyType: string) {
-    this.gameState.phase = 'combat';
+    this.transitionPhase('combat', 'startEventCombat');
     
     // 티어에 맞는 적 템플릿 찾기
     const tier = getCurrentTier(this.gameState.currentWave);
@@ -1232,7 +1237,7 @@ export class GameScene extends Phaser.Scene {
   // ========== 턴 종료 ==========
 
   async endTurn() {
-    if (this.gameState.phase !== 'combat') return;
+    if (!this.isPhase('combat')) return;
     
     // 0. 신기루 카드 처리 (사용하지 않으면 사라짐)
     this.cardSystem.removeMirageCards();
@@ -1283,8 +1288,8 @@ this.playerState.mana = this.playerState.maxMana;
   }
 
   checkCombatEnd(): boolean {
-    if (this.gameState.enemies.length === 0 && this.gameState.phase === 'combat') {
-      this.gameState.phase = 'victory';
+    if (this.gameState.enemies.length === 0 && this.isPhase('combat')) {
+      this.transitionPhase('victory', 'checkCombatEnd');
       this.animationHelper.showMessage('승리!', COLORS.success.dark);
 
       // 버프/카운트 효과 초기화 (덱/손패/무덤은 그대로 유지)
@@ -1744,7 +1749,7 @@ selectRewardCard(index: number) {
   // ========== 게임 오버 ==========
 
   gameOver() {
-    this.gameState.phase = 'gameOver';
+    this.transitionPhase('gameOver', 'gameOver');
     
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
