@@ -4,8 +4,33 @@ import { PLAYER_SPRITES, USE_SPRITES, loadedSpriteMeta, type SpriteSheetMeta } f
 import { FONTS } from '../constants/typography';
 
 export class BootScene extends Phaser.Scene {
+  private readonly SAVE_STORAGE_KEY = 'sword-master-save-v1';
+  private readonly SAVE_VERSION = 1;
+
   constructor() {
     super({ key: 'BootScene' });
+  }
+
+  private hasRestorableSave(): boolean {
+    try {
+      const raw = window.localStorage.getItem(this.SAVE_STORAGE_KEY);
+      if (!raw) return false;
+
+      const parsed = JSON.parse(raw) as { version?: unknown } | null;
+      if (!parsed || typeof parsed !== 'object' || parsed.version !== this.SAVE_VERSION) {
+        window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
+        return false;
+      }
+      return true;
+    } catch {
+      // 저장 데이터 손상 시 삭제 후 일반 시작 플로우로 진행
+      try {
+        window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
+      } catch {
+        // noop
+      }
+      return false;
+    }
   }
 
   /**
@@ -61,6 +86,14 @@ export class BootScene extends Phaser.Scene {
     
     // 배경 이미지 로드
     this.load.image('background', '/assets/background.jpg');
+
+    // 캔버스 UI용 SVG 아이콘 로드
+    this.load.svg('icon-gear', '/icons/gear.svg');
+    this.load.svg('icon-fullscreen', '/icons/fullscreen.svg');
+    this.load.svg('icon-language', '/icons/language.svg');
+    this.load.svg('icon-book', '/icons/book.svg');
+    this.load.svg('icon-restart', '/icons/restart.svg');
+    this.load.svg('icon-home', '/icons/home.svg');
     
     // 스프라이트 로드 (atlas 형식으로 변경)
     if (USE_SPRITES) {
@@ -120,6 +153,12 @@ export class BootScene extends Phaser.Scene {
   create() {
     // 스프라이트 애니메이션 생성
     this.createAnimations();
+
+    // 저장 데이터가 있으면 타이틀을 건너뛰고 즉시 복원 진입
+    if (this.hasRestorableSave()) {
+      this.scene.start('GameScene');
+      return;
+    }
     
     // 타이틀 화면 (1920x1080 스케일)
     const width = this.cameras.main.width;
@@ -236,4 +275,3 @@ export class BootScene extends Phaser.Scene {
     this.cameras.main.fadeIn(800, 0, 0, 0);
   }
 }
-

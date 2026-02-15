@@ -1,6 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-  <path d="M9 4H4V9" stroke="#E7EEF9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M15 4H20V9" stroke="#E7EEF9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M9 20H4V15" stroke="#E7EEF9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M15 20H20V15" stroke="#E7EEF9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- outer frame -->
+  <rect x="2" y="2" width="20" height="20" rx="2" stroke="#E7EEF9" stroke-width="1.2" opacity="0.3"/>
+  <!-- top-left corner -->
+  <path d="M3 9V4.5A1.5 1.5 0 0 1 4.5 3H9" stroke="#E7EEF9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- top-right corner -->
+  <path d="M15 3h4.5A1.5 1.5 0 0 1 21 4.5V9" stroke="#E7EEF9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- bottom-left corner -->
+  <path d="M3 15v4.5A1.5 1.5 0 0 0 4.5 21H9" stroke="#E7EEF9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- bottom-right corner -->
+  <path d="M15 21h4.5a1.5 1.5 0 0 0 1.5-1.5V15" stroke="#E7EEF9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- center arrows -->
+  <path d="M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3" stroke="#E7EEF9" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
 </svg>

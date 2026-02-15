@@ -21,11 +21,11 @@ Sword Master 웹 허브/데모 리포지토리입니다.
 ## Scripts
 
 ```bash
-pnpm install
-pnpm dev       # http://localhost:3000
-pnpm build
-pnpm run deploy
-pnpm test:e2e
+yarn install
+yarn dev       # http://localhost:3000
+yarn build
+yarn deploy
+yarn test:e2e
 ```
 
 ## Project Structure

@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card, SwordCard, SkillCard } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { UI_LAYOUT } from '../constants/uiLayout';
 import { i18n, t } from '../i18n';
 
 // 카드 레이아웃 상수
@@ -57,6 +58,9 @@ export function calculateCardPosition(
  */
 export class CardUI {
   private scene: UIScene;
+  private bottomCenterAnchor!: Phaser.GameObjects.Container;
+  private bottomLeftAnchor!: Phaser.GameObjects.Container;
+  private bottomRightAnchor!: Phaser.GameObjects.Container;
   
   private cardContainer!: Phaser.GameObjects.Container;
   private cardSprites: Phaser.GameObjects.Container[] = [];
@@ -100,54 +104,62 @@ export class CardUI {
   }
   
   private create() {
-    const height = this.scene.cameras.main.height;
-    const width = this.scene.cameras.main.width;
+    const cardArea = UI_LAYOUT.cardArea;
+    const graveLayout = cardArea.graveButton;
+    const deckLayout = cardArea.deckButton;
+
+    this.bottomCenterAnchor = this.scene.getUIAnchor('bottomCenter');
+    this.bottomLeftAnchor = this.scene.getUIAnchor('bottomLeft');
+    this.bottomRightAnchor = this.scene.getUIAnchor('bottomRight');
     
-    // 카드 영역 배경 (높이 줄임)
+    // 카드 영역 배경 (bottom-center anchor 기준)
     const cardAreaBg = this.scene.add.rectangle(
-      width / 2,
-      height - 148,
-      1838,
-      300,
+      cardArea.background.x,
+      cardArea.background.y,
+      cardArea.background.width,
+      cardArea.background.height,
       COLORS.background.dark,
       0.95
     );
     cardAreaBg.setStrokeStyle(3, COLORS.border.medium);
+    this.bottomCenterAnchor.add(cardAreaBg);
     
     // 손패 라벨 (스케일)
-    this.scene.add.text(
-      width / 2,
-      height - 298,
+    const handLabel = this.scene.add.text(
+      cardArea.handLabel.x,
+      cardArea.handLabel.y,
       t('ui.cards.handMax', { max: 12 }),
       {
-        font: 'bold 24px monospace',
+        font: `bold ${cardArea.handLabel.fontSize}px monospace`,
         color: COLORS_STR.primary.main,
       }
     ).setOrigin(0.5);
+    this.bottomCenterAnchor.add(handLabel);
     
     // 카드 컨테이너
     this.cardContainer = this.scene.add.container(
-      width / 2,
-      height - 145
+      cardArea.handContainer.x,
+      cardArea.handContainer.y
     );
+    this.bottomCenterAnchor.add(this.cardContainer);
     
     // 무덤 버튼 (손패 좌측 하단)
-    this.graveButton = this.scene.add.container(100, height - 50);
+    this.graveButton = this.scene.add.container(graveLayout.x, graveLayout.y);
+    this.bottomLeftAnchor.add(this.graveButton);
     
-    const graveBg = this.scene.add.rectangle(0, 0, 140, 50, COLORS.background.dark, 0.9);
+    const graveBg = this.scene.add.rectangle(0, 0, graveLayout.width, graveLayout.height, COLORS.background.dark, 0.9);
     graveBg.setStrokeStyle(2, COLORS.secondary.dark);
     
-    const graveIcon = this.scene.add.text(-50, 0, '🪦', {
-      font: '24px Arial',
+    const graveIcon = this.scene.add.text(graveLayout.iconX, 0, '🪦', {
+      font: `${graveLayout.iconFontSize}px Arial`,
     }).setOrigin(0.5);
     
-    this.graveCountText = this.scene.add.text(10, 0, 'GRAVE: 0', {
-      font: 'bold 18px monospace',
+    this.graveCountText = this.scene.add.text(graveLayout.textX, 0, 'GRAVE: 0', {
+      font: `bold ${graveLayout.textFontSize}px monospace`,
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     
     this.graveButton.add([graveBg, graveIcon, this.graveCountText]);
-    this.graveButton.setDepth(2500);  // 보상 선택 UI(2000)보다 위
     
     // 무덤 버튼 클릭 이벤트
     graveBg.setInteractive({ useHandCursor: true });
@@ -164,22 +176,22 @@ export class CardUI {
     });
     
     // 덱 버튼 (손패 우측 하단)
-    this.deckButton = this.scene.add.container(width - 100, height - 50);
+    this.deckButton = this.scene.add.container(deckLayout.x, deckLayout.y);
+    this.bottomRightAnchor.add(this.deckButton);
     
-    const deckBg = this.scene.add.rectangle(0, 0, 140, 50, COLORS.background.dark, 0.9);
+    const deckBg = this.scene.add.rectangle(0, 0, deckLayout.width, deckLayout.height, COLORS.background.dark, 0.9);
     deckBg.setStrokeStyle(2, COLORS.primary.dark);
     
-    const deckIcon = this.scene.add.text(-50, 0, '📚', {
-      font: '24px Arial',
+    const deckIcon = this.scene.add.text(deckLayout.iconX, 0, '📚', {
+      font: `${deckLayout.iconFontSize}px Arial`,
     }).setOrigin(0.5);
     
-    this.deckCountText = this.scene.add.text(10, 0, 'DECK: 0', {
-      font: 'bold 18px monospace',
+    this.deckCountText = this.scene.add.text(deckLayout.textX, 0, 'DECK: 0', {
+      font: `bold ${deckLayout.textFontSize}px monospace`,
       color: COLORS_STR.primary.main,
     }).setOrigin(0.5);
     
     this.deckButton.add([deckBg, deckIcon, this.deckCountText]);
-    this.deckButton.setDepth(2500);  // 보상 선택 UI(2000)보다 위
     
     // 덱 버튼 클릭 이벤트
     deckBg.setInteractive({ useHandCursor: true });
@@ -200,9 +212,26 @@ export class CardUI {
    * 카드 컨테이너의 절대 좌표 반환
    */
   getContainerPosition(): { x: number; y: number } {
+    const anchorPos = this.scene.getUIAnchorWorldPosition('bottomCenter');
     return {
-      x: this.cardContainer.x,
-      y: this.cardContainer.y,
+      x: anchorPos.x + this.cardContainer.x,
+      y: anchorPos.y + this.cardContainer.y,
+    };
+  }
+
+  getGraveWorldPosition(): { x: number; y: number } {
+    const anchorPos = this.scene.getUIAnchorWorldPosition('bottomLeft');
+    return {
+      x: anchorPos.x + this.graveButton.x,
+      y: anchorPos.y + this.graveButton.y,
+    };
+  }
+
+  getDeckWorldPosition(): { x: number; y: number } {
+    const anchorPos = this.scene.getUIAnchorWorldPosition('bottomRight');
+    return {
+      x: anchorPos.x + this.deckButton.x,
+      y: anchorPos.y + this.deckButton.y,
     };
   }
   
@@ -221,8 +250,9 @@ export class CardUI {
     const cardSprite = this.cardSprites[index];
     
     // 절대 좌표 계산 (컨테이너 좌표 + 카드의 상대 좌표)
-    const absoluteX = this.cardContainer.x + cardSprite.x;
-    const absoluteY = this.cardContainer.y + cardSprite.y;
+    const cardContainerPos = this.getContainerPosition();
+    const absoluteX = cardContainerPos.x + cardSprite.x;
+    const absoluteY = cardContainerPos.y + cardSprite.y;
     
     // cardContainer에서 제거 (destroy하지 않음)
     this.cardContainer.remove(cardSprite, false);
@@ -400,32 +430,54 @@ export class CardUI {
     // 호버 효과
     bg.setInteractive({ useHandCursor: isUsable || this.scene.gameScene.isExchangeMode });
     bg.on('pointerover', () => {
+      const hover = UI_LAYOUT.interactions.cardHover;
       if (this.scene.gameScene.isExchangeMode) {
-        container.y = y - 38;
+        this.scene.tweens.killTweensOf(container);
+        this.scene.tweens.add({
+          targets: container,
+          y: y - hover.liftY,
+          duration: hover.durationInMs,
+          ease: hover.easeIn,
+        });
         bg.setStrokeStyle(5, COLORS.primary.light);
       } else if (isUsable) {
-        container.y = y - 38;
+        this.scene.tweens.killTweensOf(container);
+        this.scene.tweens.add({
+          targets: container,
+          y: y - hover.liftY,
+          duration: hover.durationInMs,
+          ease: hover.easeIn,
+        });
         bg.setStrokeStyle(5, COLORS.primary.light);
       }
+      const containerPos = this.getContainerPosition();
       this.scene.tooltipUI.show(
-        this.cardContainer.x + x,
-        this.cardContainer.y + y,
+        containerPos.x + x,
+        containerPos.y + y,
         card,
         bg  // 원본 히트 영역 전달
       );
     });
     bg.on('pointerout', () => {
-      container.y = y;
-      // 툴팁 영역 위에 있는지 확인 후 숨김
-      if (!this.scene.tooltipUI.isVisible()) {
-        this.scene.tooltipUI.hide();
-      }
+      const hover = UI_LAYOUT.interactions.cardHover;
+      this.scene.tweens.killTweensOf(container);
+      this.scene.tweens.add({
+        targets: container,
+        y,
+        duration: hover.durationOutMs,
+        ease: hover.easeOut,
+      });
+      // 카드에서 툴팁으로 이동하는 짧은 구간을 허용하기 위해 약간 지연 후 판정
+      this.scene.time.delayedCall(24, () => {
+        if (this.scene.tooltipUI.shouldHideForSource(bg)) {
+          this.scene.tooltipUI.hide();
+        }
+      });
       if (this.scene.gameScene.isExchangeMode) {
         bg.setStrokeStyle(5, COLORS.primary.dark);
       } else {
         bg.setStrokeStyle(isUsable ? 4 : 2, borderColor);
       }
-      this.scene.tooltipUI.hide();
     });
     bg.on('pointerdown', () => {
       if (this.scene.gameScene.isExchangeMode) {

@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { CountEffect } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { UI_LAYOUT } from '../constants/uiLayout';
 import { CARD_SIZE } from './CardRenderer';
 
 /**
@@ -19,16 +20,37 @@ export class CountEffectUI {
   }
   
   private create() {
-    // 카운트 효과 표시 컨테이너 (아래로 내림, 스케일)
-    this.container = this.scene.add.container(38, 560);
+    const layout = UI_LAYOUT.countEffects;
+    // 카운트 효과 표시 컨테이너 (좌측 하단 앵커 기준)
+    const bottomLeft = this.scene.getUIAnchor('bottomLeft');
+    this.container = this.scene.add.container(0, layout.rootOffsetY);
+    bottomLeft.add(this.container);
     
     // 툴팁 컨테이너
     this.tooltipContainer = this.scene.add.container(0, 0);
     this.tooltipContainer.setVisible(false);
     this.tooltipContainer.setDepth(1000);
   }
+
+  private getContainerWorldOrigin(): { x: number; y: number } {
+    const anchor = this.scene.getUIAnchorWorldPosition('bottomLeft');
+    return {
+      x: anchor.x + this.container.x,
+      y: anchor.y + this.container.y,
+    };
+  }
+
+  getPrimaryAnchorPosition(): { x: number; y: number } {
+    const origin = this.getContainerWorldOrigin();
+    const offset = UI_LAYOUT.countEffects.primaryAnchorOffset;
+    return {
+      x: origin.x + offset.x,
+      y: origin.y + offset.y,
+    };
+  }
   
   update() {
+    const layout = UI_LAYOUT.countEffects;
     // 기존 효과 아이템 제거
     this.effectItems.forEach(item => item.destroy());
     this.effectItems = [];
@@ -43,12 +65,13 @@ export class CountEffectUI {
       this.container.add(itemContainer);
       this.effectItems.push(itemContainer);
       
-      yOffset += 60;  // 간격 늘림
+      yOffset += layout.item.yStep;
     });
   }
   
   private createEffectItem(effect: CountEffect, yOffset: number): Phaser.GameObjects.Container {
-    const container = this.scene.add.container(0, yOffset);
+    const layout = UI_LAYOUT.countEffects;
+    const container = this.scene.add.container(layout.item.containerX, yOffset);
     
     // 효과 타입별 색상
     let color: string = COLORS_STR.success.dark;
@@ -65,14 +88,21 @@ export class CountEffectUI {
     }
     
     // 배경 (스케일)
-    const bg = this.scene.add.rectangle(150, 0, 338, 49, COLORS.background.dark, 0.95);
+    const bg = this.scene.add.rectangle(
+      layout.item.bgX,
+      layout.item.bgY,
+      layout.item.bgWidth,
+      layout.item.bgHeight,
+      COLORS.background.dark,
+      0.95
+    );
     bg.setStrokeStyle(3, colorHex);
     bg.setOrigin(0.5, 0.5);
     
     // 텍스트 (배경 중앙에 맞춤)
-    const text = this.scene.add.text(150, 0, 
+    const text = this.scene.add.text(layout.item.textX, layout.item.textY, 
       `${effect.emoji} ${effect.name} ⏳${effect.remainingDelays}`, {
-      font: 'bold 26px monospace',
+      font: `bold ${layout.item.textFontSize}px monospace`,
       color: color,
     }).setOrigin(0.5, 0.5);
     
@@ -83,7 +113,8 @@ export class CountEffectUI {
     
     bg.on('pointerover', () => {
       bg.setStrokeStyle(4, COLORS.primary.light);
-      this.showTooltip(effect, this.container.x + 375, this.container.y + yOffset);
+      const origin = this.getContainerWorldOrigin();
+      this.showTooltip(effect, origin.x + layout.tooltipOffsetX, origin.y + yOffset);
     });
     
     bg.on('pointerout', () => {

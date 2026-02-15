@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== 'production';
+
 const nextConfig = {
-  output: 'export',
-  distDir: 'dist',
+  ...(isDev
+    ? {}
+    : {
+        output: 'export',
+        distDir: 'dist',
+      }),
   trailingSlash: false,
   images: {
     unoptimized: true,

@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import type { Card } from '../types';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
+import { UI_LAYOUT } from '../constants/uiLayout';
 
 /**
  * 툴팁 UI - 카드 상세 정보 표시
@@ -13,6 +14,7 @@ export class TooltipUI {
   private cardRenderer!: CardRenderer;
   private hitArea!: Phaser.GameObjects.Rectangle;
   private sourceHitArea: Phaser.GameObjects.Rectangle | null = null;
+  private visible = false;
   
   constructor(scene: UIScene) {
     this.scene = scene;
@@ -23,7 +25,7 @@ export class TooltipUI {
   private create() {
     this.tooltipContainer = this.scene.add.container(0, 0);
     this.tooltipContainer.setVisible(false);
-    this.tooltipContainer.setDepth(1000);
+    this.tooltipContainer.setDepth(UI_LAYOUT.interactions.tooltip.depth);
     
     // 툴팁 영역 히트박스 (마우스가 벗어나면 숨김)
     this.hitArea = this.scene.add.rectangle(0, 0, 1, 1, 0x000000, 0);
@@ -47,9 +49,21 @@ export class TooltipUI {
     const bounds = this.sourceHitArea.getBounds();
     return bounds.contains(pointer.x, pointer.y);
   }
+
+  private isPointerOverTooltipArea(): boolean {
+    if (!this.visible || !this.hitArea) return false;
+    const pointer = this.scene.input.activePointer;
+    const bounds = this.hitArea.getBounds();
+    return bounds.contains(pointer.x, pointer.y);
+  }
   
   show(x: number, y: number, card: Card, sourceHitArea?: Phaser.GameObjects.Rectangle) {
+    const transition = UI_LAYOUT.interactions.tooltip;
+
+    this.scene.tweens.killTweensOf(this.tooltipContainer);
     this.tooltipContainer.removeAll(true);
+    this.tooltipContainer.setDepth(transition.depth);
+    this.scene.children.bringToTop(this.tooltipContainer);
     this.sourceHitArea = sourceHitArea || null;
     
     // CardRenderer로 상세 카드 생성
@@ -68,11 +82,14 @@ export class TooltipUI {
     if (posX + cardWidth / 2 > screenWidth - 10) posX = screenWidth - cardWidth / 2 - 10;
     if (posY - cardHeight / 2 < 10) posY = y + cardHeight / 2 + 50;
     
-    detailCard.setPosition(posX, posY);
+    this.tooltipContainer.setPosition(posX, posY + transition.popOffsetY);
+    this.tooltipContainer.setAlpha(0);
+
+    detailCard.setPosition(0, 0);
     this.tooltipContainer.add(detailCard);
     
     // 히트 영역 설정 (툴팁 크기와 동일)
-    this.hitArea = this.scene.add.rectangle(posX, posY, cardWidth + 20, cardHeight + 20, 0x000000, 0);
+    this.hitArea = this.scene.add.rectangle(0, 0, cardWidth + 20, cardHeight + 20, 0x000000, 0);
     this.hitArea.setInteractive();
     this.hitArea.on('pointerout', () => {
       if (!this.isPointerOverSource()) {
@@ -82,14 +99,53 @@ export class TooltipUI {
     this.tooltipContainer.add(this.hitArea);
     
     this.tooltipContainer.setVisible(true);
+    this.visible = true;
+
+    this.scene.tweens.add({
+      targets: this.tooltipContainer,
+      alpha: 1,
+      y: posY,
+      duration: transition.showDurationMs,
+      ease: transition.easeShow,
+    });
   }
   
   hide() {
-    this.tooltipContainer.setVisible(false);
+    if (!this.visible) {
+      this.tooltipContainer.setVisible(false);
+      this.sourceHitArea = null;
+      return;
+    }
+
+    const transition = UI_LAYOUT.interactions.tooltip;
+    const currentY = this.tooltipContainer.y;
+    this.scene.tweens.killTweensOf(this.tooltipContainer);
+    this.scene.tweens.add({
+      targets: this.tooltipContainer,
+      alpha: 0,
+      y: currentY - transition.popOffsetY,
+      duration: transition.hideDurationMs,
+      ease: transition.easeHide,
+      onComplete: () => {
+        this.tooltipContainer.setVisible(false);
+      },
+    });
+
+    this.visible = false;
     this.sourceHitArea = null;
   }
   
   isVisible(): boolean {
-    return this.tooltipContainer.visible;
+    return this.visible;
+  }
+
+  isPointerOverTooltip(): boolean {
+    return this.isPointerOverTooltipArea();
+  }
+
+  shouldHideForSource(sourceHitArea: Phaser.GameObjects.Rectangle): boolean {
+    if (!this.visible) return false;
+    if (this.sourceHitArea !== sourceHitArea) return false;
+    return !this.isPointerOverSource() && !this.isPointerOverTooltipArea();
   }
 }

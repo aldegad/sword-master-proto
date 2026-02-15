@@ -10,6 +10,30 @@ import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../syst
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
 
+type SkillSelectType = 'searchSword' | 'graveRecall' | 'graveEquip';
+
+interface SavedGameSnapshot {
+  version: number;
+  savedAt: string;
+  playerState: PlayerState;
+  gameState: GameState;
+  runtime: {
+    isMoving: boolean;
+    moveDistance: number;
+    rewardCards: Card[];
+    levelUpSkillCards: Card[];
+    levelUpPassives: PassiveTemplate[];
+    bossRewardCards: Card[];
+    skillSelectCards: Card[];
+    skillSelectType: SkillSelectType | null;
+    pendingSkillCard: Card | null;
+    pendingEventReward: EventOutcome | null;
+    pendingEvent: boolean;
+    pendingLevelUp: boolean;
+    isEventSkillSelection: boolean;
+  };
+}
+
 /**
  * 메인 게임 씬
  * - 게임 초기화, 업데이트, 상태 관리
@@ -57,7 +81,7 @@ export class GameScene extends Phaser.Scene {
 
   // 스킬 효과로 인한 카드 선택
   skillSelectCards: Card[] = [];
-  skillSelectType: 'searchSword' | 'graveRecall' | 'graveEquip' | null = null;
+  skillSelectType: SkillSelectType | null = null;
   pendingSkillCard: Card | null = null;  // 취소 시 복구할 카드
   
   // 이벤트 전투 후 보상
@@ -71,22 +95,36 @@ export class GameScene extends Phaser.Scene {
   
   // 이벤트 스킬 선택 여부 (레벨업 vs 이벤트 구분용)
   isEventSkillSelection: boolean = false;
+
+  // 자동 저장
+  private readonly SAVE_STORAGE_KEY = 'sword-master-save-v1';
+  private readonly SAVE_VERSION = 1;
+  private readonly SAVE_INTERVAL_MS = 400;
+  private lastSaveAt = 0;
+  private lastSavedPayload = '';
+  private beforeUnloadHandler?: () => void;
+  private restoredFromSave = false;
+  private suppressAutoSave = false;
   
   constructor() {
     super({ key: 'GameScene' });
   }
 
   create() {
+    // restartFromBeginning()에서 임시로 끈 자동저장을 새 세션에서는 다시 활성화
+    this.suppressAutoSave = false;
+
     // 시스템 초기화
     this.animationHelper = new AnimationHelper(this);
     this.combatSystem = new CombatSystem(this);
     this.cardSystem = new CardSystem(this);
     this.enemyManager = new EnemyManager(this);
     
-    this.initializeGame();
+    this.restoredFromSave = this.initializeGame();
     this.createBackground();
     this.createPlayer();
     this.setupInput();
+    this.setupAutoSave();
     
     // UI 씬 시작
     this.scene.launch('UIScene', { gameScene: this });
@@ -100,17 +138,31 @@ export class GameScene extends Phaser.Scene {
       this.events.off('statsUpdated', this.updatePlayerStatsDisplay, this);
       this.events.off('statsUpdated', this.updatePlayerBuffDisplay, this);
       this.enemySprites.clear();
+      if (this.beforeUnloadHandler) {
+        window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+        this.beforeUnloadHandler = undefined;
+      }
     });
     
     this.cameras.main.fadeIn(500, 0, 0, 0);
     
-    // 첫 이동 시작
-    this.startMoving();
+    if (this.restoredFromSave) {
+      this.restoreLoadedSession();
+    } else {
+      // 첫 이동 시작
+      this.startMoving();
+    }
+
+    this.persistGameSnapshot(true);
   }
 
   // ========== 초기화 ==========
 
-  initializeGame() {
+  initializeGame(): boolean {
+    if (this.tryRestoreGameSnapshot()) {
+      return true;
+    }
+
     const starterSword = createSwordCard('armingsword')!;
     
     const { swords, skills } = getStarterDeck();
@@ -159,6 +211,208 @@ export class GameScene extends Phaser.Scene {
       eventsThisTier: 0,       // 이번 티어에서 발생한 이벤트 수
       lastEventWave: 0,        // 마지막 이벤트 발생 웨이브
     };
+    return false;
+  }
+
+  private setupAutoSave() {
+    this.beforeUnloadHandler = () => {
+      this.persistGameSnapshot(true);
+    };
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
+  }
+
+  private isObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private isValidPhase(value: unknown): value is GameState['phase'] {
+    return value === 'running'
+      || value === 'combat'
+      || value === 'victory'
+      || value === 'paused'
+      || value === 'gameOver'
+      || value === 'event';
+  }
+
+  private parseSavedSnapshot(raw: string): SavedGameSnapshot | null {
+    try {
+      const parsed = JSON.parse(raw) as Partial<SavedGameSnapshot>;
+      if (!this.isObject(parsed)) return null;
+      if (parsed.version !== this.SAVE_VERSION) return null;
+      if (!this.isObject(parsed.playerState) || !this.isObject(parsed.gameState) || !this.isObject(parsed.runtime)) {
+        return null;
+      }
+
+      const player = parsed.playerState as PlayerState;
+      const game = parsed.gameState as GameState;
+      const runtime = parsed.runtime as SavedGameSnapshot['runtime'];
+
+      if (!Array.isArray(player.hand) || !Array.isArray(player.deck) || !Array.isArray(player.discard)) return null;
+      if (!Array.isArray(player.buffs) || !Array.isArray(player.countEffects) || !Array.isArray(player.passives)) return null;
+      if (!Array.isArray(game.enemies) || !this.isValidPhase(game.phase)) return null;
+      if (!Array.isArray(runtime.rewardCards) || !Array.isArray(runtime.levelUpSkillCards)) return null;
+      if (!Array.isArray(runtime.levelUpPassives) || !Array.isArray(runtime.bossRewardCards)) return null;
+      if (!Array.isArray(runtime.skillSelectCards)) return null;
+
+      return parsed as SavedGameSnapshot;
+    } catch {
+      return null;
+    }
+  }
+
+  private tryRestoreGameSnapshot(): boolean {
+    try {
+      const raw = window.localStorage.getItem(this.SAVE_STORAGE_KEY);
+      if (!raw) return false;
+
+      const snapshot = this.parseSavedSnapshot(raw);
+      if (!snapshot) {
+        window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
+        return false;
+      }
+
+      this.playerState = snapshot.playerState;
+      this.gameState = snapshot.gameState;
+
+      this.isMoving = snapshot.runtime.isMoving;
+      this.moveDistance = snapshot.runtime.moveDistance;
+      this.rewardCards = snapshot.runtime.rewardCards;
+      this.levelUpSkillCards = snapshot.runtime.levelUpSkillCards;
+      this.levelUpPassives = snapshot.runtime.levelUpPassives;
+      this.bossRewardCards = snapshot.runtime.bossRewardCards;
+      this.skillSelectCards = snapshot.runtime.skillSelectCards;
+      this.skillSelectType = snapshot.runtime.skillSelectType;
+      this.pendingSkillCard = snapshot.runtime.pendingSkillCard;
+      this.pendingEventReward = snapshot.runtime.pendingEventReward;
+      this.pendingEvent = snapshot.runtime.pendingEvent;
+      this.pendingLevelUp = snapshot.runtime.pendingLevelUp;
+      this.isEventSkillSelection = snapshot.runtime.isEventSkillSelection;
+
+      // 입력 상태는 복원하지 않음
+      this.isExchangeMode = false;
+      this.isTargetingMode = false;
+      this.pendingCard = null;
+
+      this.lastSavedPayload = raw;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private restoreLoadedSession() {
+    // 비정상 상태 보호: phase가 combat인데 적이 비어있으면 이동으로 복구
+    if (this.gameState.phase === 'combat' && this.gameState.enemies.length === 0) {
+      this.gameState.phase = 'running';
+      this.isMoving = true;
+    }
+
+    if (this.gameState.phase === 'combat') {
+      this.isMoving = false;
+      this.gameState.enemies.forEach((enemy) => {
+        this.enemyManager.createEnemySprite(enemy);
+      });
+      this.time.delayedCall(520, () => {
+        this.gameState.enemies.forEach((enemy) => {
+          this.enemyManager.updateEnemySprite(enemy);
+        });
+        this.enemyManager.updateEnemyActionDisplay();
+      });
+    } else if (this.gameState.phase === 'running') {
+      this.isMoving = true;
+    } else if (this.gameState.phase === 'gameOver') {
+      this.isMoving = false;
+      this.time.delayedCall(200, () => this.gameOver());
+    } else {
+      this.isMoving = false;
+    }
+
+    this.events.emit('statsUpdated');
+    this.events.emit('handUpdated');
+
+    // 모달성 선택 UI 복원
+    this.time.delayedCall(80, () => {
+      if (this.levelUpSkillCards.length > 0) {
+        this.events.emit('showLevelUpSkillSelection');
+        return;
+      }
+      if (this.levelUpPassives.length > 0) {
+        this.events.emit('showLevelUpPassiveSelection');
+        return;
+      }
+      if (this.bossRewardCards.length > 0) {
+        this.events.emit('showBossRewardSelection');
+        return;
+      }
+      if (this.skillSelectCards.length > 0 && this.skillSelectType) {
+        this.events.emit('showSkillCardSelection');
+        return;
+      }
+      if (this.rewardCards.length > 0) {
+        this.events.emit('showRewardSelection');
+        return;
+      }
+
+      // 이벤트/승리/일시정지 상태는 저장 시점 컨텍스트가 끊기므로 안전하게 이동으로 복귀
+      if (this.gameState.phase === 'event' || this.gameState.phase === 'victory' || this.gameState.phase === 'paused') {
+        this.startMoving();
+      }
+    });
+
+    this.animationHelper.showMessage('자동 저장 데이터를 불러왔습니다.', COLORS.success.dark);
+  }
+
+  private buildSnapshot(): SavedGameSnapshot {
+    return {
+      version: this.SAVE_VERSION,
+      savedAt: new Date().toISOString(),
+      playerState: this.playerState,
+      gameState: this.gameState,
+      runtime: {
+        isMoving: this.isMoving,
+        moveDistance: this.moveDistance,
+        rewardCards: this.rewardCards,
+        levelUpSkillCards: this.levelUpSkillCards,
+        levelUpPassives: this.levelUpPassives,
+        bossRewardCards: this.bossRewardCards,
+        skillSelectCards: this.skillSelectCards,
+        skillSelectType: this.skillSelectType,
+        pendingSkillCard: this.pendingSkillCard,
+        pendingEventReward: this.pendingEventReward,
+        pendingEvent: this.pendingEvent,
+        pendingLevelUp: this.pendingLevelUp,
+        isEventSkillSelection: this.isEventSkillSelection,
+      },
+    };
+  }
+
+  private persistGameSnapshot(force: boolean = false) {
+    if (this.suppressAutoSave) return;
+
+    const now = this.time.now;
+    if (!force && now - this.lastSaveAt < this.SAVE_INTERVAL_MS) return;
+
+    try {
+      const payload = JSON.stringify(this.buildSnapshot());
+      if (!force && payload === this.lastSavedPayload) {
+        this.lastSaveAt = now;
+        return;
+      }
+      window.localStorage.setItem(this.SAVE_STORAGE_KEY, payload);
+      this.lastSavedPayload = payload;
+      this.lastSaveAt = now;
+    } catch {
+      // localStorage 사용 불가 시 저장 스킵
+    }
+  }
+
+  private clearSavedGameSnapshot() {
+    try {
+      window.localStorage.removeItem(this.SAVE_STORAGE_KEY);
+      this.lastSavedPayload = '';
+    } catch {
+      // localStorage 사용 불가 시 무시
+    }
   }
 
   // ========== 배경 & 플레이어 ==========
@@ -1468,6 +1722,21 @@ selectRewardCard(index: number) {
     this.animationHelper.showMessage(msg, color);
   }
 
+  restartFromBeginning() {
+    this.suppressAutoSave = true;
+    this.clearSavedGameSnapshot();
+    this.scene.stop('UIScene');
+    this.time.delayedCall(100, () => {
+      this.scene.restart();
+    });
+  }
+
+  returnToMainMenu() {
+    this.persistGameSnapshot(true);
+    this.scene.stop('UIScene');
+    window.location.assign('/');
+  }
+
   // ========== 게임 오버 ==========
 
   gameOver() {
@@ -1497,7 +1766,7 @@ selectRewardCard(index: number) {
     }).setOrigin(0.5);
     killText.setDepth(5001);
     
-    const scoreText = this.add.text(width/2, height/2 + 90, `공: ${this.gameState.score}`, {
+    const scoreText = this.add.text(width/2, height/2 + 90, `점수: ${this.gameState.score}`, {
       font: 'bold 28px monospace',
       color: COLORS_STR.primary.dark,
     }).setOrigin(0.5);
@@ -1518,14 +1787,7 @@ selectRewardCard(index: number) {
     restartBtn.on('pointerdown', () => {
       // 버튼 중복 클릭 방지
       restartBtn.disableInteractive();
-      
-      // UIScene 정리
-      this.scene.stop('UIScene');
-      
-      // 약간의 딜레이 후 재시작
-      this.time.delayedCall(100, () => {
-        this.scene.restart();
-      });
+      this.restartFromBeginning();
     });
   }
 
@@ -1558,6 +1820,7 @@ selectRewardCard(index: number) {
         this.pendingEvent = false;
         this.isMoving = false;
         this.triggerRandomEvent();
+        this.persistGameSnapshot();
         return;
       }
       
@@ -1571,6 +1834,7 @@ selectRewardCard(index: number) {
         this.playStopAnimation();
       }
     }
+    this.persistGameSnapshot();
   }
   
   /**

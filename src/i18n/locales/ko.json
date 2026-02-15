@@ -5,9 +5,9 @@
       "mana": "◈ 기력",
       "level": "LV.{{level}} [{{exp}}/{{expNeeded}}]",
       "wave": "제 {{wave}} 파",
-      "turn": "{{turn}} 순",
-      "score": "공 {{score}}",
-      "silver": "💰 {{amount}} 은전",
+      "turn": "턴 {{turn}}",
+      "score": "점수 {{score}}",
+      "silver": "은전 {{amount}}",
       "passive": "🔮 패시브"
     },
     "phases": {

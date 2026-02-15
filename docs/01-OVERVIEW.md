@@ -28,8 +28,8 @@
 ## 로컬 실행
 
 ```bash
-pnpm install
-pnpm dev
+yarn install
+yarn dev
 ```
 
 개발 서버: `http://localhost:3000`
@@ -37,6 +37,6 @@ pnpm dev
 ## 빌드/배포
 
 ```bash
-pnpm build
-pnpm run deploy
+yarn build
+yarn deploy
 ```

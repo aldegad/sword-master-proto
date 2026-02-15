@@ -3,11 +3,11 @@
 ## 1) 기본 명령어
 
 ```bash
-pnpm install
-pnpm dev
-pnpm build
-pnpm test:e2e
-pnpm run deploy
+yarn install
+yarn dev
+yarn build
+yarn test:e2e
+yarn deploy
 ```
 
 ## 2) 작업 원칙
@@ -24,7 +24,7 @@ pnpm run deploy
 1. `lib/game-data.ts` 수정
 2. `app/rulebook/page.tsx` 표/설명 확인
 3. `docs/02-GAME-SYSTEMS.md`, `docs/04-DATA-REFERENCE.md` 동기화
-4. `pnpm build` + `pnpm test:e2e` 실행
+4. `yarn build` + `yarn test:e2e` 실행
 
 ### Pixi 렌더/UI 변경
 
@@ -41,7 +41,7 @@ pnpm run deploy
 ## 4) 테스트 기준
 
 최소 기준:
-- `pnpm build` 성공
+- `yarn build` 성공
 - e2e 스크린샷 테스트 통과
 - `/game`에서 캔버스 렌더 및 카드 클릭 동작
 - `/rulebook` 주요 섹션 렌더
@@ -49,7 +49,7 @@ pnpm run deploy
 ## 5) 배포 절차
 
 1. 로컬 검증 (`build`, `test:e2e`)
-2. `pnpm run deploy`
+2. `yarn deploy`
 3. 배포 URL에서 `/`, `/game`, `/rulebook` 실확인
 4. 배포 후 README의 데모 링크가 최신인지 점검
 

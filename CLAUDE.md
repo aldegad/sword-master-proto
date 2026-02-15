@@ -5,11 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Development Commands
 
 ```bash
-pnpm install
-pnpm dev
-pnpm build
-pnpm run deploy
-pnpm test:e2e
+yarn install
+yarn dev
+yarn build
+yarn deploy
+yarn test:e2e
 ```
 
 ## Architecture

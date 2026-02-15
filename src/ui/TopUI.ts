@@ -2,7 +2,8 @@ import * as Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { GAME_CONSTANTS } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
-import { i18n, t } from '../i18n';
+import { UI_LAYOUT } from '../constants/uiLayout';
+import { t } from '../i18n';
 
 /**
  * 상단 UI - HP바, 마나, 턴/웨이브/점수 표시
@@ -40,70 +41,65 @@ export class TopUI {
     this.createHpBar();
     this.createManaUI();
     this.createStatusTexts();
-    this.createLanguageToggle();
-  }
-
-  private createLanguageToggle() {
-    const width = this.scene.cameras.main.width;
-
-    const langBtn = this.scene.add.text(width - 38, 120, t('ui.buttons.langToggle'), {
-      font: 'bold 18px monospace',
-      color: '#ffffff',
-      backgroundColor: '#1a1a2e',
-      padding: { x: 8, y: 4 },
-    }).setOrigin(1, 0);
-
-    langBtn.setInteractive({ useHandCursor: true });
-    langBtn.on('pointerover', () => langBtn.setColor('#00ffff'));
-    langBtn.on('pointerout', () => langBtn.setColor('#ffffff'));
-    langBtn.on('pointerdown', () => {
-      i18n.toggleLocale();
-      // 현재 씬 재시작하여 모든 텍스트 갱신
-      this.scene.scene.restart();
-      this.scene.gameScene.scene.restart();
-    });
   }
   
   private createHpBar() {
-    // HP 바 배경 (1920x1080 스케일)
-    const hpBg = this.scene.add.rectangle(38, 42, 525, 34, COLORS.background.dark).setOrigin(0);
+    const topLeftHud = this.scene.getTopLeftHudStack();
+    const hp = UI_LAYOUT.topBar.hp;
+
+    // HP 바 배경 (top-left 앵커 기준)
+    const hpBg = this.scene
+      .add
+      .rectangle(hp.panelX, hp.panelY, hp.panelWidth, hp.panelHeight, COLORS.background.dark)
+      .setOrigin(0);
     hpBg.setStrokeStyle(2, COLORS.border.medium);
+    topLeftHud.add(hpBg);
     
     // HP 바
     this.hpBar = this.scene.add.graphics();
+    this.hpBar.setPosition(hp.panelX, hp.panelY);
+    topLeftHud.add(this.hpBar);
     
     // HP 텍스트
-    this.hpText = this.scene.add.text(300, 58, '', {
-      font: 'bold 20px monospace',
+    this.hpText = this.scene.add.text(hp.textX, hp.textY, '', {
+      font: `bold ${hp.textFontSize}px monospace`,
       color: '#ffffff',
     }).setOrigin(0.5);
+    topLeftHud.add(this.hpText);
     
     // HP 라벨 + LV (체력 옆으로 이동)
-    this.scene.add.text(38, 10, t('ui.topBar.health'), {
-      font: 'bold 22px monospace',
+    const healthLabel = this.scene.add.text(hp.labelX, hp.labelY, t('ui.topBar.health'), {
+      font: `bold ${hp.labelFontSize}px monospace`,
       color: COLORS_STR.secondary.main,
     });
+    topLeftHud.add(healthLabel);
     
     // 레벨 표시 (체력 라벨 옆)
-    this.levelText = this.scene.add.text(170, 10, '', {
-      font: 'bold 22px monospace',
+    this.levelText = this.scene.add.text(hp.levelX, hp.levelY, '', {
+      font: `bold ${hp.levelFontSize}px monospace`,
       color: COLORS_STR.primary.dark,
     });
+    topLeftHud.add(this.levelText);
   }
   
   private createManaUI() {
-    this.scene.add.text(38, 90, t('ui.topBar.mana'), {
-      font: 'bold 20px monospace',
+    const topLeftHud = this.scene.getTopLeftHudStack();
+    const mana = UI_LAYOUT.topBar.mana;
+
+    const manaLabel = this.scene.add.text(mana.labelX, mana.labelY, t('ui.topBar.mana'), {
+      font: `bold ${mana.labelFontSize}px monospace`,
       color: COLORS_STR.primary.main,
     });
+    topLeftHud.add(manaLabel);
     
-    this.manaContainer = this.scene.add.container(200, 112);
+    this.manaContainer = this.scene.add.container(mana.containerX, mana.containerY);
+    topLeftHud.add(this.manaContainer);
     
     // 마름모꼴 마나 게이지
-    const diamondSize = 14;  // 마름모 반지름
+    const diamondSize = mana.orbSize;
     for (let i = 0; i < GAME_CONSTANTS.MAX_MANA; i++) {
       const diamond = this.scene.add.graphics();
-      diamond.setPosition(i * 38, 0);
+      diamond.setPosition(i * mana.orbSpacing, 0);
       this.drawDiamond(diamond, 0, 0, diamondSize, COLORS.primary.main, COLORS.primary.dark);
       this.manaOrbs.push(diamond);
       this.manaContainer.add(diamond);
@@ -130,56 +126,69 @@ export class TopUI {
   }
   
   private createStatusTexts() {
-    const width = this.scene.cameras.main.width;
+    const topCenter = this.scene.getUIAnchor('topCenter');
+    const topRightStack = this.scene.getTopRightHudStack();
+    const topLeftHud = this.scene.getTopLeftHudStack();
+    const centerLayout = UI_LAYOUT.topBar.center;
+    const rightHud = UI_LAYOUT.hud.topRight;
+    const passiveLayout = UI_LAYOUT.topBar.passive;
     
     // 웨이브 표시
-    this.waveText = this.scene.add.text(width / 2, 20, '', {
-      font: 'bold 50px monospace',
+    this.waveText = this.scene.add.text(centerLayout.waveX, centerLayout.waveY, '', {
+      font: `bold ${centerLayout.waveFontSize}px monospace`,
       color: COLORS_STR.secondary.main,
     }).setOrigin(0.5, 0);
+    topCenter.add(this.waveText);
     
     // 페이즈 표시
-    this.phaseText = this.scene.add.text(width / 2, 78, '', {
-      font: 'bold 28px monospace',
+    this.phaseText = this.scene.add.text(centerLayout.phaseX, centerLayout.phaseY, '', {
+      font: `bold ${centerLayout.phaseFontSize}px monospace`,
       color: COLORS_STR.primary.main,
     }).setOrigin(0.5, 0);
+    topCenter.add(this.phaseText);
     
-    // 턴 표시
-    this.turnText = this.scene.add.text(width - 38, 20, '', {
-      font: 'bold 28px monospace',
-      color: COLORS_STR.primary.dark,
+    // 우측 상단 HUD 세로 흐름: settings -> turn -> score -> silver
+    this.turnText = this.scene.add.text(rightHud.flowX, rightHud.itemY.turn, '', {
+      font: `bold ${rightHud.fontSize}px monospace`,
+      color: COLORS_STR.text.primary,
     }).setOrigin(1, 0);
-    
-    // 점수 표시
-    this.scoreText = this.scene.add.text(width - 38, 56, '', {
-      font: 'bold 22px monospace',
+    topRightStack.add(this.turnText);
+
+    this.scoreText = this.scene.add.text(rightHud.flowX, rightHud.itemY.score, '', {
+      font: `bold ${rightHud.fontSize}px monospace`,
       color: COLORS_STR.primary.main,
     }).setOrigin(1, 0);
-    
-    // 은전 표시
-    this.silverText = this.scene.add.text(width - 38, 88, '', {
-      font: 'bold 20px monospace',
-      color: '#ffd700',
+    topRightStack.add(this.scoreText);
+
+    this.silverText = this.scene.add.text(rightHud.flowX, rightHud.itemY.silver, '', {
+      font: `bold ${rightHud.fontSize}px monospace`,
+      color: COLORS_STR.secondary.main,
     }).setOrigin(1, 0);
+    topRightStack.add(this.silverText);
     
     // 패시브 표시 영역
-    this.statsText = this.scene.add.text(38, 560, '', {
-      font: 'bold 20px monospace',
+    this.statsText = this.scene.add.text(passiveLayout.statsX, passiveLayout.statsY, '', {
+      font: `bold ${passiveLayout.statsFontSize}px monospace`,
       color: COLORS_STR.text.muted,
     });
     this.statsText.setVisible(false);
+    topLeftHud.add(this.statsText);
     
     // 패시브 컨테이너 (아이콘 형태로 표시)
-    this.passiveContainer = this.scene.add.container(38, 145);
+    this.passiveContainer = this.scene.add.container(passiveLayout.containerX, passiveLayout.containerY);
+    topLeftHud.add(this.passiveContainer);
     
     // 패시브 툴팁 생성
     this.createPassiveTooltip();
   }
   
   private createPassiveTooltip() {
-    this.passiveTooltip = this.scene.add.container(38, 200);
+    const topLeftHud = this.scene.getTopLeftHudStack();
+    const passiveLayout = UI_LAYOUT.topBar.passive;
+    this.passiveTooltip = this.scene.add.container(passiveLayout.tooltipX, passiveLayout.tooltipY);
     this.passiveTooltip.setVisible(false);
     this.passiveTooltip.setDepth(1000);
+    topLeftHud.add(this.passiveTooltip);
   }
   
   private updatePassiveDisplay() {
@@ -268,6 +277,7 @@ export class TopUI {
   }
   
   updateHpBar() {
+    const hp = UI_LAYOUT.topBar.hp;
     const player = this.scene.gameScene.playerState;
     const ratio = Math.max(0, player.hp) / player.maxHp;
     
@@ -278,7 +288,7 @@ export class TopUI {
     if (ratio < 0.25) color = COLORS.status.hp.low;
     
     this.hpBar.fillStyle(color);
-    this.hpBar.fillRect(42, 46, 517 * ratio, 26);  // 스케일 적용
+    this.hpBar.fillRect(hp.fillX, hp.fillY, hp.fillWidth * ratio, hp.fillHeight);  // hpBar(panelX,panelY) 기준 로컬 좌표
     
     if (this.hpText) {
       this.hpText.setText(`${Math.max(0, player.hp)} / ${player.maxHp}`);
@@ -288,7 +298,7 @@ export class TopUI {
   updateManaDisplay() {
     const mana = this.scene.gameScene.playerState.mana;
     const maxMana = this.scene.gameScene.playerState.maxMana;
-    const diamondSize = 14;
+    const diamondSize = UI_LAYOUT.topBar.mana.orbSize;
     
     this.manaOrbs.forEach((diamond, idx) => {
       if (idx < maxMana) {

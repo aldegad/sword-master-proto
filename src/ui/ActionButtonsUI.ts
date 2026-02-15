@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { UI_LAYOUT } from '../constants/uiLayout';
 import { t } from '../i18n';
 
 /**
@@ -8,6 +9,7 @@ import { t } from '../i18n';
  */
 export class ActionButtonsUI {
   private scene: UIScene;
+  private bottomLeftAnchor!: Phaser.GameObjects.Container;
   
   private waitBtn!: Phaser.GameObjects.Container;
   private exchangeBtn!: Phaser.GameObjects.Container;
@@ -31,13 +33,13 @@ export class ActionButtonsUI {
   }
   
   private create() {
-    const height = this.scene.cameras.main.height;
+    const buttons = UI_LAYOUT.actionButtons;
+    this.bottomLeftAnchor = this.scene.getUIAnchor('bottomLeft');
     
-    // 버튼을 가로로 나열 (왼쪽 하단, 1920x1080 스케일)
-    const btnY = height - 316;  // 더 위로 올림
-    const btnWidth = 168;  // 버튼 너비
-    const btnSpacing = btnWidth + 15;  // 버튼 간격 (버튼 너비 + 여백)
-    const startX = 112;  // 왼쪽 여백 (플레이어 쪽)
+    // 버튼을 가로로 나열 (좌측 하단 앵커 기준)
+    const btnY = buttons.y;
+    const btnSpacing = buttons.buttonWidth + buttons.spacing;
+    const startX = buttons.startX;
     
     // 순서: 교환 → 대기 → 턴종료 (역순)
 
@@ -102,19 +104,21 @@ export class ActionButtonsUI {
     color: number, 
     callback: () => void
   ): Phaser.GameObjects.Container {
+    const buttons = UI_LAYOUT.actionButtons;
     const container = this.scene.add.container(x, y);
+    this.bottomLeftAnchor.add(container);
     
     // 버튼 크기 (높이 줄임)
-    const bg = this.scene.add.rectangle(0, 0, 168, 56, COLORS.background.dark, 0.95);
+    const bg = this.scene.add.rectangle(0, 0, buttons.buttonWidth, buttons.buttonHeight, COLORS.background.dark, 0.95);
     bg.setStrokeStyle(3, color);
     
-    const text = this.scene.add.text(0, -8, label, {
-      font: 'bold 20px monospace',
+    const text = this.scene.add.text(0, buttons.labelY, label, {
+      font: `bold ${buttons.labelFontSize}px monospace`,
       color: `#${color.toString(16).padStart(6, '0')}`,
     }).setOrigin(0.5);
     
-    const sub = this.scene.add.text(0, 16, subLabel, {
-      font: '16px monospace',
+    const sub = this.scene.add.text(0, buttons.subLabelY, subLabel, {
+      font: `${buttons.subLabelFontSize}px monospace`,
       color: COLORS_STR.text.muted,
     }).setOrigin(0.5);
     

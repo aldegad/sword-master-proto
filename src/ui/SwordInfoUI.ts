@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import { UI_LAYOUT } from '../constants/uiLayout';
 import { CardRenderer, CARD_SIZE } from './CardRenderer';
 import { i18n } from '../i18n';
 
@@ -24,30 +25,40 @@ export class SwordInfoUI {
   }
   
   private create() {
-    // 무기 정보 패널 (1920x1080 스케일)
-    this.infoPanel = this.scene.add.rectangle(38, 160, 488, 188, COLORS.background.dark, 0.95).setOrigin(0);
+    const topLeftHud = this.scene.getTopLeftHudStack();
+    const layout = UI_LAYOUT.swordInfo;
+
+    // 무기 정보 패널 (top-left 앵커 기준)
+    this.infoPanel = this.scene.add
+      .rectangle(layout.panelX, layout.panelY, layout.panelWidth, layout.panelHeight, COLORS.background.dark, 0.95)
+      .setOrigin(0);
     this.infoPanel.setStrokeStyle(3, COLORS.border.medium);
+    topLeftHud.add(this.infoPanel);
     
-    this.scene.add.text(56, 172, i18n.t('ui.swordInfo.title'), {
-      font: 'bold 26px monospace',
+    const title = this.scene.add.text(layout.titleX, layout.titleY, i18n.t('ui.swordInfo.title'), {
+      font: `bold ${layout.titleFontSize}px monospace`,
       color: COLORS_STR.secondary.main,
     });
+    topLeftHud.add(title);
     
-    this.swordEmoji = this.scene.add.text(432, 253, '', {
-      font: '75px Arial',
+    this.swordEmoji = this.scene.add.text(layout.emojiX, layout.emojiY, '', {
+      font: `${layout.emojiFontSize}px Arial`,
     }).setOrigin(0.5);
+    topLeftHud.add(this.swordEmoji);
     
-    this.swordInfoText = this.scene.add.text(56, 210, '', {
-      font: '22px monospace',
+    this.swordInfoText = this.scene.add.text(layout.infoX, layout.infoY, '', {
+      font: `${layout.infoFontSize}px monospace`,
       color: COLORS_STR.text.secondary,
-      lineSpacing: 8,
+      lineSpacing: layout.infoLineSpacing,
     });
+    topLeftHud.add(this.swordInfoText);
     
     // 특수효과 텍스트 (패널 하단)
-    this.specialEffectText = this.scene.add.text(56, 322, '', {
-      font: 'bold 18px monospace',
+    this.specialEffectText = this.scene.add.text(layout.specialX, layout.specialY, '', {
+      font: `bold ${layout.specialFontSize}px monospace`,
       color: '#FFD700',
     });
+    topLeftHud.add(this.specialEffectText);
     
     // 툴팁 컨테이너
     this.tooltipContainer = this.scene.add.container(0, 0);
@@ -68,10 +79,12 @@ export class SwordInfoUI {
     
     // CardRenderer로 상세 카드 생성
     const detailCard = this.cardRenderer.createDetailCard({ type: 'sword', data: sword }, null);
+    const layout = UI_LAYOUT.swordInfo;
     
     // 위치: 패널 오른쪽에 표시 (아래로 이동해서 위가 안 잘리게)
-    const panelRight = 38 + 488 + 20;
-    const tooltipY = CARD_SIZE.DETAIL.height / 2 + 50;  // 상단에서 50px 여유
+    const topLeftHud = this.scene.getTopLeftHudWorldPosition();
+    const panelRight = topLeftHud.x + layout.panelX + layout.panelWidth + layout.tooltipGapX;
+    const tooltipY = topLeftHud.y + layout.panelY + CARD_SIZE.DETAIL.height / 2 + layout.tooltipTopMargin;
     
     detailCard.setPosition(panelRight + CARD_SIZE.DETAIL.width / 2, tooltipY);
     this.tooltipContainer.add(detailCard);
