@@ -1,124 +1,60 @@
 # 소드마스터 - 개발 가이드
 
-## 📝 문서 업데이트 규칙
+## 1) 기본 명령어
 
-### ⚠️ 중요: 코드 수정 시 문서도 함께 업데이트!
-
-코드를 수정하면 **반드시** 관련 문서도 업데이트해야 합니다.
-
-| 수정 내용 | 업데이트할 문서 |
-|-----------|-----------------|
-| 새 검 추가 | `04-DATA-REFERENCE.md` 검 목록 |
-| 새 스킬 추가 | `04-DATA-REFERENCE.md` 스킬 목록 |
-| 새 적 추가 | `04-DATA-REFERENCE.md` 적 목록 |
-| 시스템 변경 | `02-GAME-SYSTEMS.md` |
-| 타입 변경 | `03-CODE-ARCHITECTURE.md` |
-| 새 기능 추가 | `01-OVERVIEW.md` 또는 해당 문서 |
-
-### 문서 위치
-
-```
-docs/
-├── 01-OVERVIEW.md        # 프로젝트 개요
-├── 02-GAME-SYSTEMS.md    # 게임 시스템 상세
-├── 03-CODE-ARCHITECTURE.md # 코드 구조
-├── 04-DATA-REFERENCE.md  # 데이터 레퍼런스
-└── 05-CONTRIBUTION.md    # 이 문서 (개발 가이드)
+```bash
+pnpm install
+pnpm dev
+pnpm build
+pnpm test:e2e
+pnpm run deploy
 ```
 
----
+## 2) 작업 원칙
 
-## 🛠️ 개발 시 체크리스트
+- 런타임 로직은 `app/game/PixiGame.tsx` 중심으로 유지
+- 밸런스 데이터는 `lib/game-data.ts`를 단일 소스로 사용
+- 룰 설명은 `app/rulebook/page.tsx`와 `docs/*`를 함께 업데이트
+- 문서에 현재 미구현 기능을 구현된 것처럼 쓰지 않기
 
-### 새 검 추가 시
+## 3) 기능 수정 체크리스트
 
-1. `src/data/swords.ts`에 검 데이터 추가
-2. `docs/04-DATA-REFERENCE.md` 검 목록 테이블에 추가
-3. (선택) 초기 덱에 포함시키려면 `src/data/skills.ts`의 `getStarterDeck()` 수정
+### 카드/적 밸런스 변경
 
-### 새 스킬 추가 시
+1. `lib/game-data.ts` 수정
+2. `app/rulebook/page.tsx` 표/설명 확인
+3. `docs/02-GAME-SYSTEMS.md`, `docs/04-DATA-REFERENCE.md` 동기화
+4. `pnpm build` + `pnpm test:e2e` 실행
 
-1. `src/data/skills.ts`에 스킬 데이터 추가
-2. `docs/04-DATA-REFERENCE.md` 스킬 목록에 추가
-3. 새로운 효과 타입이면 `src/types/index.ts`의 `SkillEffect` 수정
-4. `03-CODE-ARCHITECTURE.md` 타입 문서 업데이트
+### Pixi 렌더/UI 변경
 
-### 새 적 추가 시
+1. `app/game/PixiGame.tsx` 수정
+2. 모바일 뷰포트(최소 390px 폭) 확인
+3. 캔버스 초기화/resize/cleanup 누락 여부 확인
 
-1. `src/data/enemies.ts`에 적 템플릿 추가
-2. `createRandomEnemy()` 함수의 난이도 풀에 추가
-3. `docs/04-DATA-REFERENCE.md` 적 목록에 추가
+### 페이지/네비게이션 변경
 
-### 시스템 변경 시
+1. `app/layout.tsx`, `components/common/SiteNav.tsx` 확인
+2. `/`, `/game`, `/rulebook` 링크 무결성 확인
+3. 정적 빌드 후 직접 라우팅 테스트
 
-1. 해당 코드 수정
-2. `02-GAME-SYSTEMS.md` 관련 섹션 업데이트
-3. 타입이 변경되면 `03-CODE-ARCHITECTURE.md`도 업데이트
+## 4) 테스트 기준
 
----
+최소 기준:
+- `pnpm build` 성공
+- e2e 스크린샷 테스트 통과
+- `/game`에서 캔버스 렌더 및 카드 클릭 동작
+- `/rulebook` 주요 섹션 렌더
 
-## 📋 코드 스타일
+## 5) 배포 절차
 
-### 타입 정의
+1. 로컬 검증 (`build`, `test:e2e`)
+2. `pnpm run deploy`
+3. 배포 URL에서 `/`, `/game`, `/rulebook` 실확인
+4. 배포 후 README의 데모 링크가 최신인지 점검
 
-- 모든 인터페이스는 `src/types/index.ts`에 정의
-- 데이터 템플릿 타입은 각 데이터 파일 상단에 정의 가능
+## 6) 커밋 가이드
 
-### 데이터 구조
-
-```typescript
-// 검 데이터 예시
-swordId: {
-  id: 'swordId',           // 고유 ID (키와 동일)
-  name: '검 이름',          // 표시 이름
-  emoji: '⚔️',             // 이모지
-  origin: 'korean',        // 출신
-  attack: 10,              // 공격력
-  attackCount: 1,          // 타수
-  reach: 'single',         // 범위
-  defense: 3,              // 방어
-  durability: 3,           // 내구도 (1~5)
-  manaCost: 1,             // 마나
-  description: '설명',      // 툴팁에 표시
-  specialEffect?: '특수',   // 선택적
-}
-```
-
-### 이벤트 기반 통신
-
-GameScene과 UIScene은 이벤트로 통신:
-
-```typescript
-// GameScene에서 발생
-this.events.emit('handUpdated');
-this.events.emit('statsUpdated');
-this.events.emit('turnEnded');
-this.events.emit('combatStarted');
-
-// UIScene에서 수신
-this.gameScene.events.on('handUpdated', this.updateCardDisplay, this);
-```
-
----
-
-## 🔧 자주 하는 수정
-
-### 밸런스 조정
-
-- 검 스탯: `src/data/swords.ts`
-- 스킬 스탯: `src/data/skills.ts`
-- 적 스탯: `src/data/enemies.ts`
-- 게임 상수: `src/types/index.ts`의 `GAME_CONSTANTS`
-
-### UI 수정
-
-- 카드 UI: `src/scenes/UIScene.ts`의 `renderSwordCard()`, `renderSkillCard()`
-- 툴팁: `showTooltip()`
-- 버튼: `createActionButtons()`
-
-### 전투 로직 수정
-
-- 데미지 계산: `src/scenes/GameScene.ts`의 `executeAttack()`
-- 적 행동: `executeEnemyAction()`
-- 턴 흐름: `endTurn()`, `reduceAllEnemyDelays()`
-
+- 한 커밋에 한 목적(예: 밸런스 조정, 룰북 수정, 아키텍처 정리)
+- 변경 이유가 드러나는 메시지 사용
+- 문서 동기화가 필요한 변경은 같은 커밋에 포함

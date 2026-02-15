@@ -2,40 +2,17 @@
 
 import { useEffect, useRef } from 'react';
 import { Application, Container, Graphics, Text } from 'pixi.js';
+import { buildEnemy, CARD_POOL, type Enemy, PLAYER_BASE, STARTER_DECK, getWaveEnemyCount } from '@/lib/game-data';
 
-type CardType = 'attack' | 'defend';
-
-interface CardDef {
+interface Card {
   key: string;
   name: string;
   cost: number;
-  type: CardType;
+  type: 'attack' | 'defend';
   value: number;
   desc: string;
-}
-
-interface Card extends CardDef {
   id: number;
 }
-
-interface Enemy {
-  id: number;
-  name: string;
-  hp: number;
-  maxHp: number;
-  attack: number;
-  delay: number;
-  delayMax: number;
-  reward: number;
-}
-
-const CARD_POOL: CardDef[] = [
-  { key: 'slash', name: '베기', cost: 1, type: 'attack', value: 9, desc: '적 1명에게 9 피해' },
-  { key: 'thrust', name: '찌르기', cost: 1, type: 'attack', value: 7, desc: '적 1명에게 7 피해' },
-  { key: 'power', name: '강타', cost: 2, type: 'attack', value: 16, desc: '적 1명에게 16 피해' },
-  { key: 'guard', name: '가드', cost: 1, type: 'defend', value: 8, desc: '방어 +8' },
-  { key: 'iron', name: '철벽', cost: 2, type: 'defend', value: 14, desc: '방어 +14' },
-];
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items];
@@ -61,10 +38,10 @@ export function PixiGame() {
 
     const state = {
       player: {
-        hp: 80,
-        maxHp: 80,
-        mana: 3,
-        maxMana: 3,
+        hp: PLAYER_BASE.hp,
+        maxHp: PLAYER_BASE.hp,
+        mana: PLAYER_BASE.mana,
+        maxMana: PLAYER_BASE.mana,
         block: 0,
         gold: 0,
         wave: 1,
@@ -89,11 +66,9 @@ export function PixiGame() {
         }
       };
 
-      pushCard('slash', 4);
-      pushCard('thrust', 3);
-      pushCard('power', 2);
-      pushCard('guard', 3);
-      pushCard('iron', 2);
+      for (const item of STARTER_DECK) {
+        pushCard(item.key, item.count);
+      }
 
       return shuffle(list);
     }
@@ -103,22 +78,10 @@ export function PixiGame() {
     }
 
     function spawnWave(wave: number) {
-      const count = Math.min(1 + Math.floor((wave - 1) / 2), 3);
-      const names = ['잔철 망령', '심연 파수병', '붉은 추적자'];
-      state.enemies = Array.from({ length: count }).map((_, index) => {
-        const hp = 26 + wave * 7 + index * 6;
-        const delayMax = 2 + (index % 2);
-        return {
-          id: state.nextEnemyId++,
-          name: names[index] ?? `균열체 ${index + 1}`,
-          hp,
-          maxHp: hp,
-          attack: 7 + Math.floor(wave * 1.4) + index,
-          delay: delayMax,
-          delayMax,
-          reward: 4 + wave,
-        };
-      });
+      const count = getWaveEnemyCount(wave);
+      state.enemies = Array.from({ length: count }).map((_, index) =>
+        buildEnemy(wave, index, state.nextEnemyId++)
+      );
     }
 
     function drawCards(count: number) {
@@ -175,9 +138,9 @@ export function PixiGame() {
       resolveEnemyAttacks();
     }
 
-    function clearWaveIfNeeded() {
-      if (state.gameOver) return;
-      if (getAliveEnemies().length > 0) return;
+    function clearWaveIfNeeded(): boolean {
+      if (state.gameOver) return false;
+      if (getAliveEnemies().length > 0) return false;
 
       const reward = state.enemies.reduce((sum, enemy) => sum + enemy.reward, 0);
       state.player.gold += reward;
@@ -190,6 +153,7 @@ export function PixiGame() {
       spawnWave(state.player.wave);
       state.message = `웨이브 클리어! +${reward}G, 다음 웨이브 시작`;
       startTurn();
+      return true;
     }
 
     function playCard(handIndex: number) {
@@ -232,8 +196,8 @@ export function PixiGame() {
     function endTurn() {
       if (state.gameOver) return;
       advanceEnemyDelays(1);
-      clearWaveIfNeeded();
-      if (!state.gameOver) {
+      const waveCleared = clearWaveIfNeeded();
+      if (!state.gameOver && !waveCleared) {
         startTurn();
       }
       render();

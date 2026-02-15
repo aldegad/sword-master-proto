@@ -8,6 +8,17 @@ test.describe('Next.js Pages Screenshot', () => {
     });
 
     const page = await context.newPage();
+    const pageErrors: string[] = [];
+    const consoleErrors: string[] = [];
+
+    page.on('pageerror', (error) => {
+      pageErrors.push(error.message);
+    });
+
+    page.on('console', (msg) => {
+      if (msg.type() !== 'error') return;
+      consoleErrors.push(msg.text());
+    });
 
     await page.goto('http://localhost:3000/');
     await page.waitForLoadState('networkidle');
@@ -18,15 +29,17 @@ test.describe('Next.js Pages Screenshot', () => {
     await expect(page.getByText('Play Game')).toBeVisible();
     await page.screenshot({ path: 'screenshots/game-landing-en.png', fullPage: true });
 
-    await page.goto('http://localhost:3000/game/');
+    await page.goto('http://localhost:3000/game');
     await expect(page.getByText('Game Runtime (Pixi.js)')).toBeVisible();
     await expect(page.locator('canvas')).toBeVisible();
     await page.waitForTimeout(1500);
     await page.screenshot({ path: 'screenshots/game-play-ko.png', fullPage: true });
 
-    await page.goto('http://localhost:3000/rulebook/');
+    await page.goto('http://localhost:3000/rulebook');
     await expect(page.getByRole('heading', { name: '룰북' })).toBeVisible();
     await page.screenshot({ path: 'screenshots/game-intro-ko.png', fullPage: true });
+    expect(pageErrors).toEqual([]);
+    expect(consoleErrors).toEqual([]);
 
     await context.close();
   });
