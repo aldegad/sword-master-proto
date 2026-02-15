@@ -208,7 +208,7 @@ a {
 }
 
 .game-stage {
-  border: 1px solid var(--line);
+  border: none;
   background: #0b0d12;
   border-radius: 14px;
   padding: 10px;
@@ -225,7 +225,7 @@ a {
 }
 
 .game-note {
-  border: 1px solid var(--line);
+  border: none;
   border-radius: 12px;
   background: var(--panel);
   padding: 12px;
