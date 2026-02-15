@@ -21,6 +21,12 @@ export const UI_LAYOUT = {
     topLeft: {
       rootX: 0,
       rootY: 0,
+      sections: {
+        hp: { x: 0, y: 0 },
+        mana: { x: 0, y: 0 },
+        swordInfo: { x: 0, y: 0 },
+        passive: { x: 0, y: 0 },
+      },
     },
     topRight: {
       rootX: 8,

@@ -25,7 +25,7 @@ export class SwordInfoUI {
   }
   
   private create() {
-    const topLeftHud = this.scene.getTopLeftHudStack();
+    const swordInfoSection = this.scene.getTopLeftHudSection('swordInfo');
     const layout = UI_LAYOUT.swordInfo;
 
     // 무기 정보 패널 (top-left 앵커 기준)
@@ -33,32 +33,32 @@ export class SwordInfoUI {
       .rectangle(layout.panelX, layout.panelY, layout.panelWidth, layout.panelHeight, COLORS.background.dark, 0.95)
       .setOrigin(0);
     this.infoPanel.setStrokeStyle(3, COLORS.border.medium);
-    topLeftHud.add(this.infoPanel);
+    swordInfoSection.add(this.infoPanel);
     
     const title = this.scene.add.text(layout.titleX, layout.titleY, i18n.t('ui.swordInfo.title'), {
       font: `bold ${layout.titleFontSize}px monospace`,
       color: COLORS_STR.secondary.main,
     });
-    topLeftHud.add(title);
+    swordInfoSection.add(title);
     
     this.swordEmoji = this.scene.add.text(layout.emojiX, layout.emojiY, '', {
       font: `${layout.emojiFontSize}px Arial`,
     }).setOrigin(0.5);
-    topLeftHud.add(this.swordEmoji);
+    swordInfoSection.add(this.swordEmoji);
     
     this.swordInfoText = this.scene.add.text(layout.infoX, layout.infoY, '', {
       font: `${layout.infoFontSize}px monospace`,
       color: COLORS_STR.text.secondary,
       lineSpacing: layout.infoLineSpacing,
     });
-    topLeftHud.add(this.swordInfoText);
+    swordInfoSection.add(this.swordInfoText);
     
     // 특수효과 텍스트 (패널 하단)
     this.specialEffectText = this.scene.add.text(layout.specialX, layout.specialY, '', {
       font: `bold ${layout.specialFontSize}px monospace`,
       color: '#FFD700',
     });
-    topLeftHud.add(this.specialEffectText);
+    swordInfoSection.add(this.specialEffectText);
     
     // 툴팁 컨테이너
     this.tooltipContainer = this.scene.add.container(0, 0);
@@ -82,9 +82,9 @@ export class SwordInfoUI {
     const layout = UI_LAYOUT.swordInfo;
     
     // 위치: 패널 오른쪽에 표시 (아래로 이동해서 위가 안 잘리게)
-    const topLeftHud = this.scene.getTopLeftHudWorldPosition();
-    const panelRight = topLeftHud.x + layout.panelX + layout.panelWidth + layout.tooltipGapX;
-    const tooltipY = topLeftHud.y + layout.panelY + CARD_SIZE.DETAIL.height / 2 + layout.tooltipTopMargin;
+    const swordInfoSection = this.scene.getTopLeftHudSectionWorldPosition('swordInfo');
+    const panelRight = swordInfoSection.x + layout.panelX + layout.panelWidth + layout.tooltipGapX;
+    const tooltipY = swordInfoSection.y + layout.panelY + CARD_SIZE.DETAIL.height / 2 + layout.tooltipTopMargin;
     
     detailCard.setPosition(panelRight + CARD_SIZE.DETAIL.width / 2, tooltipY);
     this.tooltipContainer.add(detailCard);

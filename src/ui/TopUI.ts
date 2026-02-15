@@ -3,6 +3,7 @@ import type { UIScene } from '../scenes/UIScene';
 import { GAME_CONSTANTS } from '../types';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { UI_LAYOUT } from '../constants/uiLayout';
+import { TOP_RIGHT_HUD_TEXT_ITEMS, type TopRightHudTextId } from '../constants/uiSchema';
 import { t } from '../i18n';
 
 /**
@@ -21,9 +22,7 @@ export class TopUI {
   
   // 상태 텍스트
   private statsText!: Phaser.GameObjects.Text;
-  private turnText!: Phaser.GameObjects.Text;
-  private scoreText!: Phaser.GameObjects.Text;
-  private silverText!: Phaser.GameObjects.Text;
+  private topRightTexts: Partial<Record<TopRightHudTextId, Phaser.GameObjects.Text>> = {};
   private waveText!: Phaser.GameObjects.Text;
   private phaseText!: Phaser.GameObjects.Text;
   private levelText!: Phaser.GameObjects.Text;
@@ -44,7 +43,7 @@ export class TopUI {
   }
   
   private createHpBar() {
-    const topLeftHud = this.scene.getTopLeftHudStack();
+    const hpSection = this.scene.getTopLeftHudSection('hp');
     const hp = UI_LAYOUT.topBar.hp;
 
     // HP 바 배경 (top-left 앵커 기준)
@@ -53,47 +52,47 @@ export class TopUI {
       .rectangle(hp.panelX, hp.panelY, hp.panelWidth, hp.panelHeight, COLORS.background.dark)
       .setOrigin(0);
     hpBg.setStrokeStyle(2, COLORS.border.medium);
-    topLeftHud.add(hpBg);
+    hpSection.add(hpBg);
     
     // HP 바
     this.hpBar = this.scene.add.graphics();
     this.hpBar.setPosition(hp.panelX, hp.panelY);
-    topLeftHud.add(this.hpBar);
+    hpSection.add(this.hpBar);
     
     // HP 텍스트
     this.hpText = this.scene.add.text(hp.textX, hp.textY, '', {
       font: `bold ${hp.textFontSize}px monospace`,
       color: '#ffffff',
     }).setOrigin(0.5);
-    topLeftHud.add(this.hpText);
+    hpSection.add(this.hpText);
     
     // HP 라벨 + LV (체력 옆으로 이동)
     const healthLabel = this.scene.add.text(hp.labelX, hp.labelY, t('ui.topBar.health'), {
       font: `bold ${hp.labelFontSize}px monospace`,
       color: COLORS_STR.secondary.main,
     });
-    topLeftHud.add(healthLabel);
+    hpSection.add(healthLabel);
     
     // 레벨 표시 (체력 라벨 옆)
     this.levelText = this.scene.add.text(hp.levelX, hp.levelY, '', {
       font: `bold ${hp.levelFontSize}px monospace`,
       color: COLORS_STR.primary.dark,
     });
-    topLeftHud.add(this.levelText);
+    hpSection.add(this.levelText);
   }
   
   private createManaUI() {
-    const topLeftHud = this.scene.getTopLeftHudStack();
+    const manaSection = this.scene.getTopLeftHudSection('mana');
     const mana = UI_LAYOUT.topBar.mana;
 
     const manaLabel = this.scene.add.text(mana.labelX, mana.labelY, t('ui.topBar.mana'), {
       font: `bold ${mana.labelFontSize}px monospace`,
       color: COLORS_STR.primary.main,
     });
-    topLeftHud.add(manaLabel);
+    manaSection.add(manaLabel);
     
     this.manaContainer = this.scene.add.container(mana.containerX, mana.containerY);
-    topLeftHud.add(this.manaContainer);
+    manaSection.add(this.manaContainer);
     
     // 마름모꼴 마나 게이지
     const diamondSize = mana.orbSize;
@@ -128,7 +127,7 @@ export class TopUI {
   private createStatusTexts() {
     const topCenter = this.scene.getUIAnchor('topCenter');
     const topRightStack = this.scene.getTopRightHudStack();
-    const topLeftHud = this.scene.getTopLeftHudStack();
+    const passiveSection = this.scene.getTopLeftHudSection('passive');
     const centerLayout = UI_LAYOUT.topBar.center;
     const rightHud = UI_LAYOUT.hud.topRight;
     const passiveLayout = UI_LAYOUT.topBar.passive;
@@ -147,24 +146,21 @@ export class TopUI {
     }).setOrigin(0.5, 0);
     topCenter.add(this.phaseText);
     
-    // 우측 상단 HUD 세로 흐름: settings -> turn -> score -> silver
-    this.turnText = this.scene.add.text(rightHud.flowX, rightHud.itemY.turn, '', {
-      font: `bold ${rightHud.fontSize}px monospace`,
-      color: COLORS_STR.text.primary,
-    }).setOrigin(1, 0);
-    topRightStack.add(this.turnText);
+    // 우측 상단 HUD 세로 흐름을 스키마 기반으로 렌더
+    const colorById: Record<TopRightHudTextId, string> = {
+      turn: COLORS_STR.text.primary,
+      score: COLORS_STR.primary.main,
+      silver: COLORS_STR.secondary.main,
+    };
 
-    this.scoreText = this.scene.add.text(rightHud.flowX, rightHud.itemY.score, '', {
-      font: `bold ${rightHud.fontSize}px monospace`,
-      color: COLORS_STR.primary.main,
-    }).setOrigin(1, 0);
-    topRightStack.add(this.scoreText);
-
-    this.silverText = this.scene.add.text(rightHud.flowX, rightHud.itemY.silver, '', {
-      font: `bold ${rightHud.fontSize}px monospace`,
-      color: COLORS_STR.secondary.main,
-    }).setOrigin(1, 0);
-    topRightStack.add(this.silverText);
+    TOP_RIGHT_HUD_TEXT_ITEMS.forEach((item) => {
+      const text = this.scene.add.text(rightHud.flowX, rightHud.itemY[item.yKey], '', {
+        font: `bold ${rightHud.fontSize}px monospace`,
+        color: colorById[item.id],
+      }).setOrigin(1, 0);
+      topRightStack.add(text);
+      this.topRightTexts[item.id] = text;
+    });
     
     // 패시브 표시 영역
     this.statsText = this.scene.add.text(passiveLayout.statsX, passiveLayout.statsY, '', {
@@ -172,23 +168,23 @@ export class TopUI {
       color: COLORS_STR.text.muted,
     });
     this.statsText.setVisible(false);
-    topLeftHud.add(this.statsText);
+    passiveSection.add(this.statsText);
     
     // 패시브 컨테이너 (아이콘 형태로 표시)
     this.passiveContainer = this.scene.add.container(passiveLayout.containerX, passiveLayout.containerY);
-    topLeftHud.add(this.passiveContainer);
+    passiveSection.add(this.passiveContainer);
     
     // 패시브 툴팁 생성
     this.createPassiveTooltip();
   }
   
   private createPassiveTooltip() {
-    const topLeftHud = this.scene.getTopLeftHudStack();
+    const passiveSection = this.scene.getTopLeftHudSection('passive');
     const passiveLayout = UI_LAYOUT.topBar.passive;
     this.passiveTooltip = this.scene.add.container(passiveLayout.tooltipX, passiveLayout.tooltipY);
     this.passiveTooltip.setVisible(false);
     this.passiveTooltip.setDepth(1000);
-    topLeftHud.add(this.passiveTooltip);
+    passiveSection.add(this.passiveTooltip);
   }
   
   private updatePassiveDisplay() {
@@ -325,9 +321,14 @@ export class TopUI {
     this.levelText.setText(t('ui.topBar.level', { level: player.level, exp: player.exp, expNeeded }));
 
     this.waveText.setText(t('ui.topBar.wave', { wave: game.currentWave }));
-    this.turnText.setText(t('ui.topBar.turn', { turn: game.turn }));
-    this.scoreText.setText(t('ui.topBar.score', { score: game.score }));
-    this.silverText.setText(t('ui.topBar.silver', { amount: player.silver }));
+    const textById: Record<TopRightHudTextId, string> = {
+      turn: t('ui.topBar.turn', { turn: game.turn }),
+      score: t('ui.topBar.score', { score: game.score }),
+      silver: t('ui.topBar.silver', { amount: player.silver }),
+    };
+    TOP_RIGHT_HUD_TEXT_ITEMS.forEach((item) => {
+      this.topRightTexts[item.id]?.setText(textById[item.id]);
+    });
 
     const phaseKey = game.phase as 'running' | 'combat' | 'victory' | 'paused' | 'gameOver' | 'event';
     this.phaseText.setText(t(`ui.phases.${phaseKey}`));

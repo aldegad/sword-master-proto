@@ -23,6 +23,13 @@ import {
 } from '../ui';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { UI_LAYOUT } from '../constants/uiLayout';
+import {
+  TOP_LEFT_HUD_SECTIONS,
+  SETTINGS_MENU_ITEMS,
+  TOP_RIGHT_HUD_TEXT_ITEMS,
+  type TopLeftHudSectionId,
+  type SettingsMenuActionId,
+} from '../constants/uiSchema';
 
 export type UIAnchorKey =
   | 'topLeft'
@@ -66,11 +73,7 @@ export class UIScene extends Phaser.Scene {
   private settingsMenu?: Phaser.GameObjects.Container;
   private settingsMenuTween?: Phaser.Tweens.Tween;
   private settingsMenuBaseY = 0;
-  private fullscreenLabel?: Phaser.GameObjects.Text;
-  private localeLabel?: Phaser.GameObjects.Text;
-  private rulebookLabel?: Phaser.GameObjects.Text;
-  private restartLabel?: Phaser.GameObjects.Text;
-  private mainMenuLabel?: Phaser.GameObjects.Text;
+  private settingsMenuLabels: Partial<Record<SettingsMenuActionId, Phaser.GameObjects.Text>> = {};
   private locale: 'ko' | 'en' = 'ko';
   private readonly LOCALE_KEY = 'sword-master-locale';
   private readonly LOCALE_EVENT = 'sword-master-locale-change';
@@ -79,6 +82,7 @@ export class UIScene extends Phaser.Scene {
   private localeListener?: () => void;
   private uiAnchors?: Record<UIAnchorKey, Phaser.GameObjects.Container>;
   private topLeftHudStack?: Phaser.GameObjects.Container;
+  private topLeftHudSections: Partial<Record<TopLeftHudSectionId, Phaser.GameObjects.Container>> = {};
   private topRightHudStack?: Phaser.GameObjects.Container;
   private debugOverlayRoot?: Phaser.GameObjects.Container;
   private debugOverlayGraphics?: Phaser.GameObjects.Graphics;
@@ -141,6 +145,14 @@ export class UIScene extends Phaser.Scene {
       .container(leftLayout.rootX, leftLayout.rootY)
       .setDepth(UI_LAYOUT.anchors.depth);
     topLeft.add(this.topLeftHudStack);
+
+    this.topLeftHudSections = {};
+    TOP_LEFT_HUD_SECTIONS.forEach((section) => {
+      const sectionLayout = leftLayout.sections[section.id];
+      const sectionContainer = this.add.container(sectionLayout.x, sectionLayout.y);
+      this.topLeftHudStack?.add(sectionContainer);
+      this.topLeftHudSections[section.id] = sectionContainer;
+    });
   }
 
   getTopLeftHudStack(): Phaser.GameObjects.Container {
@@ -148,10 +160,23 @@ export class UIScene extends Phaser.Scene {
     return this.getUIAnchor('topLeft');
   }
 
+  getTopLeftHudSection(sectionId: TopLeftHudSectionId): Phaser.GameObjects.Container {
+    if (this.topLeftHudSections[sectionId]) {
+      return this.topLeftHudSections[sectionId]!;
+    }
+    return this.getTopLeftHudStack();
+  }
+
   getTopLeftHudWorldPosition(): { x: number; y: number } {
     const anchorPos = this.getUIAnchorWorldPosition('topLeft');
     const stack = this.getTopLeftHudStack();
     return { x: anchorPos.x + stack.x, y: anchorPos.y + stack.y };
+  }
+
+  getTopLeftHudSectionWorldPosition(sectionId: TopLeftHudSectionId): { x: number; y: number } {
+    const root = this.getTopLeftHudWorldPosition();
+    const section = this.getTopLeftHudSection(sectionId);
+    return { x: root.x + section.x, y: root.y + section.y };
   }
 
   private createTopRightHudStack() {
@@ -343,25 +368,26 @@ export class UIScene extends Phaser.Scene {
     // 4) 주요 UI 박스 가이드
     const hp = UI_LAYOUT.topBar.hp;
     const topLeftHud = UI_LAYOUT.hud.topLeft;
+    const topLeftSections = topLeftHud.sections;
     this.drawAnchorRect(
       'topLeft',
-      topLeftHud.rootX + hp.panelX,
-      topLeftHud.rootY + hp.panelY,
+      topLeftHud.rootX + topLeftSections.hp.x + hp.panelX,
+      topLeftHud.rootY + topLeftSections.hp.y + hp.panelY,
       hp.panelWidth,
       hp.panelHeight,
       0x7ef6ff,
-      'topLeft / hud > hp.panel'
+      'topLeft / hud.hp > panel'
     );
 
     const sword = UI_LAYOUT.swordInfo;
     this.drawAnchorRect(
       'topLeft',
-      topLeftHud.rootX + sword.panelX,
-      topLeftHud.rootY + sword.panelY,
+      topLeftHud.rootX + topLeftSections.swordInfo.x + sword.panelX,
+      topLeftHud.rootY + topLeftSections.swordInfo.y + sword.panelY,
       sword.panelWidth,
       sword.panelHeight,
       0x5df2a0,
-      'topLeft / hud > swordInfo.panel'
+      'topLeft / hud.swordInfo > panel'
     );
 
     const center = UI_LAYOUT.topBar.center;
@@ -379,8 +405,9 @@ export class UIScene extends Phaser.Scene {
     const settings = UI_LAYOUT.settings;
     const settingsTop = right.rootY + right.itemY.settings - settings.gear.hitSize / 2;
     const settingsBottom = right.rootY + right.itemY.settings + settings.gear.hitSize / 2;
-    const rightColumnTop = right.rootY + right.itemY.turn;
-    const rightColumnBottom = right.rootY + right.itemY.silver + right.fontSize + 6;
+    const topRightTextYs = TOP_RIGHT_HUD_TEXT_ITEMS.map((item) => right.itemY[item.yKey]);
+    const rightColumnTop = right.rootY + Math.min(...topRightTextYs);
+    const rightColumnBottom = right.rootY + Math.max(...topRightTextYs) + right.fontSize + 6;
     const rightGroupTop = Math.min(settingsTop, rightColumnTop);
     const rightGroupHeight = Math.max(settingsBottom, rightColumnBottom) - rightGroupTop;
     this.drawAnchorRect(
@@ -490,29 +517,64 @@ export class UIScene extends Phaser.Scene {
 
   private refreshCanvasSettingLabels() {
     const isFullscreen = Boolean(document.fullscreenElement);
+    SETTINGS_MENU_ITEMS.forEach((item) => {
+      this.settingsMenuLabels[item.id]?.setText(this.getSettingsMenuLabel(item.id, isFullscreen));
+    });
+  }
 
-    if (this.fullscreenLabel) {
-      this.fullscreenLabel.setText(
-        this.locale === 'en'
+  private getSettingsMenuLabel(actionId: SettingsMenuActionId, isFullscreen: boolean): string {
+    switch (actionId) {
+      case 'fullscreen':
+        return this.locale === 'en'
           ? (isFullscreen ? 'Exit Fullscreen' : 'Fullscreen')
-          : (isFullscreen ? '전체화면 나가기' : '전체화면')
-      );
+          : (isFullscreen ? '전체화면 나가기' : '전체화면');
+      case 'locale':
+        return this.locale === 'en' ? '한국어' : 'English';
+      case 'rulebook':
+        return this.locale === 'en' ? 'Open Rulebook Popup' : '룰북 팝업 열기';
+      case 'restart':
+        return this.locale === 'en' ? 'Restart Game' : '처음부터 다시 시작';
+      case 'mainMenu':
+        return this.locale === 'en' ? 'Main Menu' : '메인 메뉴로';
+      default:
+        return '';
     }
+  }
 
-    if (this.localeLabel) {
-      this.localeLabel.setText(this.locale === 'en' ? '한국어' : 'English');
-    }
-
-    if (this.rulebookLabel) {
-      this.rulebookLabel.setText(this.locale === 'en' ? 'Open Rulebook Popup' : '룰북 팝업 열기');
-    }
-
-    if (this.restartLabel) {
-      this.restartLabel.setText(this.locale === 'en' ? 'Restart Game' : '처음부터 다시 시작');
-    }
-
-    if (this.mainMenuLabel) {
-      this.mainMenuLabel.setText(this.locale === 'en' ? 'Main Menu' : '메인 메뉴로');
+  private runSettingsMenuAction(actionId: SettingsMenuActionId) {
+    switch (actionId) {
+      case 'fullscreen':
+        if (document.fullscreenElement) {
+          void document.exitFullscreen();
+        } else {
+          void document.documentElement.requestFullscreen().catch(() => undefined);
+        }
+        this.closeSettingsMenu();
+        return;
+      case 'locale': {
+        const next = this.locale === 'ko' ? 'en' : 'ko';
+        this.locale = next;
+        window.localStorage.setItem(this.LOCALE_KEY, next);
+        document.documentElement.lang = next;
+        window.dispatchEvent(new CustomEvent(this.LOCALE_EVENT, { detail: next }));
+        this.refreshCanvasSettingLabels();
+        this.closeSettingsMenu();
+        return;
+      }
+      case 'rulebook':
+        window.dispatchEvent(new CustomEvent(this.OPEN_RULEBOOK_EVENT));
+        this.closeSettingsMenu();
+        return;
+      case 'restart':
+        this.closeSettingsMenu();
+        this.gameScene.restartFromBeginning();
+        return;
+      case 'mainMenu':
+        this.closeSettingsMenu();
+        this.gameScene.returnToMainMenu();
+        return;
+      default:
+        return;
     }
   }
 
@@ -615,7 +677,6 @@ export class UIScene extends Phaser.Scene {
     const makeItem = (
       y: number,
       iconKey: string,
-      initialLabel: string,
       onClick: () => void
     ): Phaser.GameObjects.Text => {
       const item = this.add.container(settings.menu.itemX, y);
@@ -638,7 +699,7 @@ export class UIScene extends Phaser.Scene {
             .text(settings.menu.itemIconX, 0, '•', { font: '14px monospace', color: '#f4f7fb' })
             .setOrigin(0.5);
 
-      const text = this.add.text(settings.menu.itemLabelX, 0, initialLabel, {
+      const text = this.add.text(settings.menu.itemLabelX, 0, '', {
         font: `${settings.menu.itemLabelFontSize}px monospace`,
         color: COLORS_STR.text.primary,
       }).setOrigin(0, 0.5);
@@ -652,38 +713,14 @@ export class UIScene extends Phaser.Scene {
       return text;
     };
 
-    this.fullscreenLabel = makeItem(settings.menu.itemY.fullscreen, 'icon-fullscreen', '', () => {
-      if (document.fullscreenElement) {
-        void document.exitFullscreen();
-      } else {
-        void document.documentElement.requestFullscreen().catch(() => undefined);
-      }
-      this.closeSettingsMenu();
-    });
-
-    this.localeLabel = makeItem(settings.menu.itemY.locale, 'icon-language', '', () => {
-      const next = this.locale === 'ko' ? 'en' : 'ko';
-      this.locale = next;
-      window.localStorage.setItem(this.LOCALE_KEY, next);
-      document.documentElement.lang = next;
-      window.dispatchEvent(new CustomEvent(this.LOCALE_EVENT, { detail: next }));
-      this.refreshCanvasSettingLabels();
-      this.closeSettingsMenu();
-    });
-
-    this.rulebookLabel = makeItem(settings.menu.itemY.rulebook, 'icon-book', '', () => {
-      window.dispatchEvent(new CustomEvent(this.OPEN_RULEBOOK_EVENT));
-      this.closeSettingsMenu();
-    });
-
-    this.restartLabel = makeItem(settings.menu.itemY.restart, 'icon-restart', '', () => {
-      this.closeSettingsMenu();
-      this.gameScene.restartFromBeginning();
-    });
-
-    this.mainMenuLabel = makeItem(settings.menu.itemY.mainMenu, 'icon-home', '', () => {
-      this.closeSettingsMenu();
-      this.gameScene.returnToMainMenu();
+    this.settingsMenuLabels = {};
+    SETTINGS_MENU_ITEMS.forEach((item) => {
+      const label = makeItem(
+        settings.menu.itemY[item.yKey],
+        item.iconKey,
+        () => this.runSettingsMenuAction(item.id)
+      );
+      this.settingsMenuLabels[item.id] = label;
     });
 
     gearHit.on('pointerdown', () => {
@@ -895,6 +932,8 @@ private setupEventListeners() {
 
       this.settingsMenuTween?.stop();
       this.settingsMenuTween = undefined;
+      this.settingsMenuLabels = {};
+      this.topLeftHudSections = {};
 
       if (this.debugToggleKey) {
         this.debugToggleKey.off('down', this.toggleDebugOverlay, this);
