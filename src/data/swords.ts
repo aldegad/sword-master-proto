@@ -1,4 +1,14 @@
 import type { SwordCard, SwordPrefix, SwordSuffix, SwordTemplate } from '../types';
+import { SWORD_ID, SWORD_ID_LIST, type SwordId } from '../constants/gameIds';
+import {
+  SWORD_ORIGIN,
+  SWORD_RARITY,
+  WEAPON_CATEGORY,
+} from '../constants/swordMeta';
+
+const ORIGIN = SWORD_ORIGIN;
+const RARITY = SWORD_RARITY;
+const CATEGORY = WEAPON_CATEGORY;
 
 // ===== 인첸트 접두사 =====
 export const PREFIXES: Record<string, SwordPrefix> = {
@@ -25,9 +35,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'samjeongdo',
     name: '삼정도',
     emoji: '🗡️',
-    origin: 'korean',
-    rarity: 'common',
-    category: 'sword',
+    origin: ORIGIN.KOREAN,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
     attack: 16,
     attackCount: 1,
     reach: 'single',
@@ -50,9 +60,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'katana',
     name: '카타나',
     emoji: '⚔️',
-    origin: 'japanese',
-    rarity: 'common',
-    category: 'sword',
+    origin: ORIGIN.JAPANESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
     attack: 14,
     attackCount: 1,
     reach: 'single',
@@ -75,9 +85,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'byeongdo',
     name: '병도',
     emoji: '🔪',
-    origin: 'chinese',
-    rarity: 'common',
-    category: 'sword',
+    origin: ORIGIN.CHINESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
     attack: 14,
     attackCount: 1,
     reach: 'double',
@@ -97,73 +107,46 @@ export const SWORDS: Record<string, SwordTemplate> = {
   },
 
   // =============================================
-  // 2. 파갑도형 (Armor Breaker)
+  // 2. 갑파괴형 (Armor Breaker)
   // 갑옷·방패·중장보병 대응용. 날이 두껍고 무거우며 관통 성능이 높음.
   // =============================================
   
-  // --- 한국 파갑도 ---
-  pagapdo: {
-    id: 'pagapdo',
-    name: '파갑도',
-    emoji: '⚔️',
-    origin: 'korean',
-    rarity: 'common',
-    category: 'sword',
-    attack: 13,
+  // --- 일본 장병기 ---
+  nagamaki: {
+    id: 'nagamaki',
+    name: '나가마키',
+    emoji: '🔱',
+    origin: ORIGIN.JAPANESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
+    attack: 16,
     attackCount: 1,
-    reach: 'single',
-    defense: 16,
+    reach: 'double',
+    defense: 12,
     pierce: 5,
     durability: 5,
-    manaCost: 2,
-    description: '갑주 파괴 전용 도검. 방어력 감소 효과에 특화된 누적 피해형 무기.',
-    armorBreakOnHit: 2,
+    manaCost: 3,
+    description: '긴 자루와 긴 도날을 결합한 일본 장병기. 강한 베기와 충격 전달로 중장갑 보병 압박에 유리.',
+    specialEffect: '충격 전달: 타격 시 적 대기 +1',
+    delayIncreaseOnHit: 1,
     drawAttack: { 
-      name: '파갑일섬', 
-      multiplier: 1.3, 
-      reach: 'single', 
+      name: '장병참', 
+      multiplier: 1.6, 
+      reach: 'double', 
       durabilityCost: 1,
-      effect: '적 방어력 무시. 방어력 -5.',
-      pierce: true,
-      armorReduce: 5,
+      effect: '긴 자루로 충격을 실어 크게 베어 중장갑에도 타격을 준다',
+      armorReduce: 2,
     },
   },
 
-  // --- 일본 파갑도 ---
-  yoroikiri: {
-    id: 'yoroikiri',
-    name: '요로이키리',
-    emoji: '🔱',
-    origin: 'japanese',
-    rarity: 'common',
-    category: 'sword',
-    attack: 15,
-    attackCount: 1,
-    reach: 'single',
-    defense: 12,
-    pierce: 6,
-    durability: 4,
-    manaCost: 2,
-    description: '갑옷의 틈과 구조를 노리는 도검. 베기보다 파괴 목적에 특화.',
-    specialEffect: '관통 특화: 높은 기본 관통력',
-    drawAttack: { 
-      name: '갑열참', 
-      multiplier: 1.5, 
-      reach: 'single', 
-      durabilityCost: 1,
-      effect: '갑옷을 무시하고 벤다',
-      pierce: true,
-    },
-  },
-
-  // --- 중국 파갑도 ---
+  // --- 중국 갑파괴검 ---
   jungdo: {
     id: 'jungdo',
     name: '중도',
     emoji: '🔨',
-    origin: 'chinese',
-    rarity: 'common',
-    category: 'sword',
+    origin: ORIGIN.CHINESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
     attack: 17,
     attackCount: 1,
     reach: 'single',
@@ -193,9 +176,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'bongukgeom',
     name: '본국검',
     emoji: '🗡️',
-    origin: 'korean',
-    rarity: 'common',
-    category: 'sword',
+    origin: ORIGIN.KOREAN,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
     attack: 14,
     attackCount: 1,
     reach: 'single',
@@ -220,9 +203,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'gekkenkatana',
     name: '격검용 카타나',
     emoji: '⚡',
-    origin: 'japanese',
-    rarity: 'common',
-    category: 'sword',
+    origin: ORIGIN.JAPANESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
     attack: 12,
     attackCount: 1,
     reach: 'single',
@@ -247,9 +230,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'jian',
     name: '젠',
     emoji: '✨',
-    origin: 'chinese',
-    rarity: 'common',
-    category: 'sword',
+    origin: ORIGIN.CHINESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.SWORD,
     attack: 10,
     attackCount: 2,
     reach: 'single',
@@ -278,9 +261,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'bisu',
     name: '비수',
     emoji: '🗡️',
-    origin: 'korean',
-    rarity: 'common',
-    category: 'dagger',
+    origin: ORIGIN.KOREAN,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.DAGGER,
     attack: 7,
     attackCount: 2,
     reach: 'single',
@@ -307,9 +290,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'wakizashi',
     name: '와키자시',
     emoji: '🔪',
-    origin: 'japanese',
-    rarity: 'common',
-    category: 'dagger',
+    origin: ORIGIN.JAPANESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.DAGGER,
     attack: 8,
     attackCount: 2,
     reach: 'single',
@@ -333,9 +316,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'yoroidoshi',
     name: '요이도로시',
     emoji: '🗡️',
-    origin: 'japanese',
-    rarity: 'common',
-    category: 'dagger',
+    origin: ORIGIN.JAPANESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.DAGGER,
     attack: 8,
     attackCount: 2,
     reach: 'single',
@@ -363,9 +346,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'jagaekdangeom',
     name: '자객 단검',
     emoji: '🌙',
-    origin: 'chinese',
-    rarity: 'common',
-    category: 'dagger',
+    origin: ORIGIN.CHINESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.DAGGER,
     attack: 9,
     attackCount: 3,
     reach: 'single',
@@ -398,9 +381,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'woldo',
     name: '월도',
     emoji: '🌙',
-    origin: 'korean',
-    rarity: 'common',
-    category: 'greatsword',
+    origin: ORIGIN.KOREAN,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.GREATSWORD,
     attack: 22,
     attackCount: 1,
     reach: 'triple',
@@ -423,9 +406,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'nodachi',
     name: '노다치',
     emoji: '🔱',
-    origin: 'japanese',
-    rarity: 'common',
-    category: 'greatsword',
+    origin: ORIGIN.JAPANESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.GREATSWORD,
     attack: 25,
     attackCount: 1,
     reach: 'double',
@@ -448,9 +431,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'guandao',
     name: '언월도',
     emoji: '🐉',
-    origin: 'chinese',
-    rarity: 'common',
-    category: 'greatsword',
+    origin: ORIGIN.CHINESE,
+    rarity: RARITY.COMMON,
+    category: CATEGORY.GREATSWORD,
     attack: 28,
     attackCount: 1,
     reach: 'all',
@@ -478,9 +461,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'jangwang',
     name: '잔광',
     emoji: '✨',
-    origin: 'unique',
-    rarity: 'unique',
-    category: 'unique',
+    origin: ORIGIN.UNIQUE,
+    rarity: RARITY.UNIQUE,
+    category: CATEGORY.UNIQUE,
     attack: 30,
     attackCount: 1,
     reach: 'double',
@@ -506,9 +489,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'chilseong',
     name: '성흔절도',
     emoji: '⭐',
-    origin: 'unique',
-    rarity: 'unique',
-    category: 'unique',
+    origin: ORIGIN.UNIQUE,
+    rarity: RARITY.UNIQUE,
+    category: CATEGORY.UNIQUE,
     attack: 28,
     attackCount: 3,
     reach: 'single',
@@ -531,9 +514,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'saingum',
     name: '공허침식도',
     emoji: '☯',
-    origin: 'unique',
-    rarity: 'unique',
-    category: 'unique',
+    origin: ORIGIN.UNIQUE,
+    rarity: RARITY.UNIQUE,
+    category: CATEGORY.UNIQUE,
     attack: 32,
     attackCount: 2,
     reach: 'double',
@@ -558,9 +541,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'muramasa',
     name: '폭풍유리검',
     emoji: '👹',
-    origin: 'unique',
-    rarity: 'unique',
-    category: 'unique',
+    origin: ORIGIN.UNIQUE,
+    rarity: RARITY.UNIQUE,
+    category: CATEGORY.UNIQUE,
     attack: 35,
     attackCount: 2,
     reach: 'single',
@@ -583,9 +566,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'masamune',
     name: '야식맹세검',
     emoji: '🌸',
-    origin: 'unique',
-    rarity: 'unique',
-    category: 'unique',
+    origin: ORIGIN.UNIQUE,
+    rarity: RARITY.UNIQUE,
+    category: CATEGORY.UNIQUE,
     attack: 25,
     attackCount: 3,
     reach: 'double',
@@ -607,9 +590,9 @@ export const SWORDS: Record<string, SwordTemplate> = {
     id: 'kusanagi',
     name: '여명파열도',
     emoji: '🌊',
-    origin: 'unique',
-    rarity: 'unique',
-    category: 'unique',
+    origin: ORIGIN.UNIQUE,
+    rarity: RARITY.UNIQUE,
+    category: CATEGORY.UNIQUE,
     attack: 30,
     attackCount: 2,
     reach: 'all',
@@ -632,7 +615,13 @@ export const SWORDS: Record<string, SwordTemplate> = {
 
 // 유니크 무기 목록
 // 보스 보상용 유니크 무기 (잔광 제외)
-export const UNIQUE_SWORDS_BOSS = ['chilseong', 'saingum', 'muramasa', 'masamune', 'kusanagi'];
+export const UNIQUE_SWORDS_BOSS: SwordId[] = [
+  SWORD_ID.CHILSEONG,
+  SWORD_ID.SAINGUM,
+  SWORD_ID.MURAMASA,
+  SWORD_ID.MASAMUNE,
+  SWORD_ID.KUSANAGI,
+];
 
 // 랜덤 유니크 무기 생성 (보스 보상용 - 잔광 제외)
 export function getRandomUniqueSword(): SwordCard {
@@ -642,7 +631,7 @@ export function getRandomUniqueSword(): SwordCard {
 
 // ===== 검 생성 함수 =====
 
-export function createSwordCard(swordId: string, prefix?: string, suffix?: string): SwordCard | null {
+export function createSwordCard(swordId: SwordId, prefix?: string, suffix?: string): SwordCard | null {
   const template = SWORDS[swordId];
   if (!template) return null;
   
@@ -668,7 +657,7 @@ export function createSwordCard(swordId: string, prefix?: string, suffix?: strin
     if (p.effect.type === 'durability') {
       if (p.id === 'chipped') {
         // 이가 빠진: 단검류는 내구도 1, 나머지는 내구도 2
-        const isDagger = template.category === 'dagger';
+        const isDagger = template.category === CATEGORY.DAGGER;
         const chippedDurability = isDagger ? 1 : 2;
         sword.durability = chippedDurability;
         sword.currentDurability = chippedDurability;
@@ -695,7 +684,7 @@ export function createSwordCard(swordId: string, prefix?: string, suffix?: strin
 // 랜덤 검 생성 (인첸트 확률 포함)
 export function getRandomSword(_wave: number = 1): SwordCard {
   // 유니크 제외한 모든 무기 풀
-  const pool = Object.keys(SWORDS).filter(id => SWORDS[id].rarity !== 'unique');
+  const pool = SWORD_ID_LIST.filter((id) => SWORDS[id]?.rarity !== RARITY.UNIQUE);
   const randomId = pool[Math.floor(Math.random() * pool.length)];
   
   // 20% 확률로 '이가 빠진' 인첸트
@@ -707,7 +696,7 @@ export function getRandomSword(_wave: number = 1): SwordCard {
 // 상점용 깨끗한 검 생성 (인첸트 없음)
 export function getCleanSword(_wave: number = 1): SwordCard {
   // 유니크 제외한 모든 무기 풀
-  const pool = Object.keys(SWORDS).filter(id => SWORDS[id].rarity !== 'unique');
+  const pool = SWORD_ID_LIST.filter((id) => SWORDS[id]?.rarity !== RARITY.UNIQUE);
   const randomId = pool[Math.floor(Math.random() * pool.length)];
   
   // 인첸트 없이 깨끗한 상태로 생성
@@ -716,10 +705,10 @@ export function getCleanSword(_wave: number = 1): SwordCard {
 
 // 유니크 무기 "잔광" 생성
 export function createJangwang(): SwordCard {
-  return createSwordCard('jangwang')!;
+  return createSwordCard(SWORD_ID.JANGWANG)!;
 }
 
 // 녹슨 검 생성 (일회용)
-export function createRustySword(swordId: string): SwordCard | null {
+export function createRustySword(swordId: SwordId): SwordCard | null {
   return createSwordCard(swordId, 'rusty');
 }

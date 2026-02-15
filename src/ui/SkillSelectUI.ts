@@ -154,16 +154,13 @@ export class SkillSelectUI {
     if (isSword) {
       const sword = data as SwordCard;
       const drawAtk = sword.drawAttack;
-      const reachMap: Record<string, string> = {
-        single: i18n.t('ui.range.single'), double: i18n.t('ui.range.double'), triple: i18n.t('ui.range.triple'), all: i18n.t('ui.range.all'), swordDouble: i18n.t('ui.range.swordDouble')
-      };
       const swiftTag = drawAtk.isSwift ? '⚡' : '';
       infoText = [
-        `공격력 ${sword.attack} | ${sword.attackCount}타 | ${reachMap[sword.reach] || sword.reach}`,
+        `공격력 ${sword.attack} | ${sword.attackCount}타 | ${i18n.getRangeText(sword.reach)}`,
         `내구도: ${sword.currentDurability}/${sword.durability} | 방어: ${sword.defense}`,
         ``,
         `━━ 발도: ${drawAtk.name} ${swiftTag} ━━`,
-        `x${drawAtk.multiplier} | ${reachMap[drawAtk.reach] || drawAtk.reach}`,
+        `x${drawAtk.multiplier} | ${i18n.getRangeText(drawAtk.reach)}`,
         drawAtk.effect || '',
       ].filter(line => line !== undefined).join('\n');
     } else {

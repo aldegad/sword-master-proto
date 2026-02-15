@@ -3,6 +3,11 @@ import type { Enemy, SkillCard, EnemyAction, SwordCard } from '../types';
 import { COLORS } from '../constants/colors';
 import { hasPassive, getPassiveLevel } from '../data/passives';
 import { createEnemy, ENEMIES_TIER1 } from '../data/enemies';
+import {
+  combineReachByPriority,
+  getTargetCountByReach as getTargetCountByReachUtil,
+  resolveReachWithSword,
+} from '../utils/reach';
 
 /**
  * 전투 시스템 - 공격, 방어, 데미지 계산 담당
@@ -945,30 +950,14 @@ export class CombatSystem {
   // ========== 유틸리티 ==========
   
   combineReach(swordReach: string, skillReach: string): string {
-    const reachOrder = ['single', 'double', 'triple', 'all'];
-    const swordIdx = reachOrder.indexOf(swordReach);
-    const skillIdx = reachOrder.indexOf(skillReach);
-    return reachOrder[Math.max(swordIdx, skillIdx)];
+    return combineReachByPriority(swordReach, skillReach);
   }
   
   /**
    * 범위 결정: 스킬 범위와 무기 범위를 기반으로 최종 범위 계산
    */
   resolveReach(skillReach: string, swordReach: string): string {
-    if (skillReach === 'single') {
-      return swordReach;  // 무기 범위 사용
-    }
-    if (skillReach === 'swordDouble') {
-      // 무기 범위의 2배 타겟 수
-      const reachToCount: Record<string, number> = { single: 1, double: 2, triple: 3, all: 999 };
-      const countToReach: [number, string][] = [[999, 'all'], [6, 'all'], [4, 'all'], [3, 'triple'], [2, 'double'], [1, 'single']];
-      const doubled = (reachToCount[swordReach] || 1) * 2;
-      for (const [count, reach] of countToReach) {
-        if (doubled >= count) return reach;
-      }
-      return 'single';
-    }
-    return skillReach;  // 스킬 자체 범위 사용
+    return resolveReachWithSword(skillReach, swordReach);
   }
   
   getTargetsByReach(reach: string): Enemy[] {
@@ -988,13 +977,7 @@ export class CombatSystem {
    * 범위 타입을 타겟 수로 변환
    */
   getTargetCountByReach(reach: string): number {
-    switch (reach) {
-      case 'single': return 1;
-      case 'double': return 2;
-      case 'triple': return 3;
-      case 'all': return 999;
-      default: return 1;
-    }
+    return getTargetCountByReachUtil(reach);
   }
   
   getTargetsByReachFromEnemy(reach: string, baseEnemy: Enemy): Enemy[] {
@@ -1234,4 +1217,3 @@ export class CombatSystem {
     });
   }
 }
-

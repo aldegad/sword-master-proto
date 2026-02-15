@@ -2,6 +2,10 @@ import type { GameScene } from '../scenes/GameScene';
 import type { Enemy, EnemyAction } from '../types';
 import { createWaveEnemies } from '../data/enemies';
 import { COLORS, COLORS_STR } from '../constants/colors';
+import {
+  getTargetCountByReach,
+  resolveReachWithSword,
+} from '../utils/reach';
 
 // 적 행동 큐 아이템 타입
 interface ActionQueueItem {
@@ -987,20 +991,7 @@ spawnWaveEnemies() {
    * 스킬 범위 결정 (swordDouble 처리 포함)
    */
   private resolveReachForPreview(skillReach: string, swordReach: string): string {
-    if (skillReach === 'weapon') {
-      return swordReach;
-    }
-    if (skillReach === 'swordDouble') {
-      // 무기 범위의 2배 타겟 수
-      const reachToCount: Record<string, number> = { single: 1, double: 2, triple: 3, all: 999 };
-      const countToReach: [number, string][] = [[999, 'all'], [6, 'all'], [4, 'all'], [3, 'triple'], [2, 'double'], [1, 'single']];
-      const doubled = (reachToCount[swordReach] || 1) * 2;
-      for (const [count, reach] of countToReach) {
-        if (doubled >= count) return reach;
-      }
-      return 'single';
-    }
-    return skillReach;
+    return resolveReachWithSword(skillReach, swordReach);
   }
   
   /**
@@ -1063,15 +1054,9 @@ spawnWaveEnemies() {
     // 타겟 계산 (호버한 적 기준 범위)
     const enemies = this.scene.gameState.enemies;
     const baseIndex = enemies.indexOf(hoveredEnemy);
-    let targetCount = 1;
-    
-    switch (reach) {
-      case 'single': targetCount = 1; break;
-      case 'double': targetCount = 2; break;
-      case 'triple': targetCount = 3; break;
-      case 'all': targetCount = enemies.length; break;
-      default: targetCount = parseInt(reach) || 1;
-    }
+    const targetCount = reach === 'all'
+      ? enemies.length
+      : getTargetCountByReach(reach);
     
     const targets = reach === 'all' 
       ? enemies 
@@ -1239,4 +1224,3 @@ spawnWaveEnemies() {
     this.previewedEnemyIds = [];
   }
 }
-

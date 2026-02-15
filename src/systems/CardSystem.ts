@@ -1,6 +1,6 @@
 import type { GameScene } from '../scenes/GameScene';
 import type { Card, SwordCard, SkillCard, Enemy } from '../types';
-import { GAME_CONSTANTS } from '../types';
+import { GAME_CONSTANTS } from '../constants/gameConfig';
 import { getRandomSword, createJangwang } from '../data/swords';
 import { getRandomSkill } from '../data/skills';
 import { COLORS } from '../constants/colors';
@@ -1106,4 +1106,3 @@ drawCards(count: number) {
     return true;
   }
 }
-

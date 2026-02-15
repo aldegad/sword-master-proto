@@ -1,4 +1,6 @@
 import type { SkillCard } from '../types';
+import { SKILL_ID_LIST, type SkillId, type SwordId } from '../constants/gameIds';
+import { GAME_START_CONFIG } from '../constants/gameStart';
 
 // 스킬 데이터베이스 (마나 0~3 범위로 밸런스 조정)
 // attackCount: 무기 타수에 곱해지는 배율 (1 = 무기 타수 그대로, 2 = 2배)
@@ -17,7 +19,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,  // 타수만큼 자동 소모
     manaCost: 1,
-    description: '기본 베기 공격.',
+    description: '무기 범위에 기본 베기. 공격 배율 x1.5.',
   },
   thrust: {
     id: 'thrust',
@@ -30,7 +32,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '관통력 있는 찌르기. 적 방어력 -3.',
+    description: '무기 범위 찌르기. 공격 배율 x1.5, 관통 +3(적 방어 3 무시).',
     effect: { type: 'pierce', value: 3 },
   },
 
@@ -46,7 +48,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '연속으로 베기. 무기 타수x2!',
+    description: '무기 범위 연속 베기. 공격 배율 x0.7, 무기 타수 x2.',
   },
   flurry: {
     id: 'flurry',
@@ -59,7 +61,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '흐름을 끊지 않고 연속으로 베어낸다.',
+    description: '무기 범위 5연속 베기. 공격 배율 x0.5, 무기 타수 x5.',
   },
 
   // ===== 범위 공격기 (자체 범위 사용) =====
@@ -74,7 +76,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '옆으로 크게 휘둘러 무기 범위x2 공격.',
+    description: '무기 범위를 2배로 확장해 공격.',
   },
   whirlwind: {
     id: 'whirlwind',
@@ -87,7 +89,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '회전하며 모든 적을 공격',
+    description: '전체 범위를 2연타로 공격.',
   },
   crescent: {
     id: 'crescent',
@@ -100,7 +102,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '초승달 궤적으로 크게 벤다',
+    description: '무기 범위를 2배로 확장해 공격 배율 x1.2 일격.',
   },
 
   // ===== 강타기 (카운트 기반) =====
@@ -115,7 +117,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '1타 공격. 1대기 후 강력한 일격! x3.0 데미지.',
+    description: '즉시 타격하지 않고 1대기 후 발동. 공격 배율 x3.0.',
     effect: { type: 'chargeAttack', value: 3.0, duration: 1 },
   },
   heavenSplitter: {
@@ -129,7 +131,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '궁극의 일격! 스턴.',
+    description: '공격 배율 x3.5 일격 후 1턴 기절 부여.',
     effect: { type: 'stun', value: 1, duration: 1 },
   },
 
@@ -145,7 +147,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '깊은 상처로 출혈 유발',
+    description: '공격 후 출혈 15 피해를 3턴 부여.',
     effect: { type: 'bleed', value: 15, duration: 3 },
   },
   vampireSlash: {
@@ -159,7 +161,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '피해의 30%를 HP로 흡수!',
+    description: '가한 피해의 30%를 체력으로 회복.',
     effect: { type: 'lifesteal', value: 0.3 },
   },
   armorBreaker: {
@@ -173,7 +175,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '방어 완전 무시! x1.5. 적 방어력 -5.',
+    description: '방어를 완전히 무시하고 공격. 적 방어력 영구 -5.',
     effect: { type: 'armorBreaker', value: 5 },
   },
   
@@ -189,7 +191,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '적을 베면서 카드 1장 드로우!',
+    description: '공격 후 카드 1장 드로우.',
     effect: { type: 'draw', value: 1 },
   },
 
@@ -205,7 +207,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '적의 빈틈을 찌른다. 단검일 경우 치명타 발동',
+    description: '신속. 공격 배율 x1.0, 무기 타수 x1. 방어를 무시하며 단검 장착 시 크리티컬 x2.0.',
     isSwift: true,
     isPiercing: true,           // 방어 무시
     criticalCondition: 'dagger', // 단검 크리티컬
@@ -221,7 +223,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '신속 2연타! 적 대기턴을 줄이지 않음.',
+    description: '신속 2연타. 공격 배율 x0.8, 적 대기턴을 감소시키지 않음.',
     isSwift: true,
   },
   followUpSlash: {
@@ -235,7 +237,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 0,
-    description: '공격의 흐름을 끊지 않고 이어벤다. 이번 턴에 공격/무기 사용 후에만 낼 수 있음.',
+    description: '신속 연계기. 이번 턴에 공격/무기 사용 후에만 사용 가능, 공격 배율 x1.2.',
     isSwift: true,
     effect: { type: 'followUp', value: 1.2 },  // followUp: 공격 후에만 사용 가능
   },
@@ -252,7 +254,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '적을 도발! 적 대기턴 -1, 카드 1장 드로우.',
+    description: '적 전체 대기턴 -1, 카드 1장 드로우.',
     effect: { type: 'taunt', value: 1 },
   },
 
@@ -268,7 +270,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 1,
     durabilityCost: 1,
     manaCost: 1,
-    description: '1대기 동안 방어율 x5. 방어 성공 시 반격!',
+    description: '신속 카운트 방어. 방어율 x5, 성공 시 반격 x1.0 (1회 방어 후 소멸).',
     isSwift: true,
     effect: { 
       type: 'countDefense', 
@@ -290,7 +292,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 1,
     durabilityCost: 0,
     manaCost: 1,
-    description: '3대기 동안 방어율 x10. 1회 방어 후 소멸.',
+    description: '카운트 방어. 방어율 x10, 반격 없음 (1회 방어 후 소멸).',
     effect: { 
       type: 'countDefense', 
       value: 10,             // 방어율 배수
@@ -310,7 +312,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 1,
     durabilityCost: 1,
     manaCost: 3,
-    description: '5대기 동안 흐름을 읽는다. 대기가 길수록 방어율/반격력 증가!',
+    description: '카운트 방어 5단계. 대기할수록 방어 x1→2→4→6→8, 반격 x0.25→0.5→1.0→1.5→2.0.',
     effect: { 
       type: 'flowRead', 
       value: 8,              // 최대 방어율 배수
@@ -333,7 +335,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '다음 공격의 배율 +50%!',
+    description: '신속. 다음 공격 최종 피해 배율 +50%.',
     isSwift: true,
     effect: { type: 'focus', value: 0.5, duration: 1 },
   },
@@ -348,7 +350,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '3턴간 공격력+5. 덱의 모든 검 내구도 1회복. (1회용)',
+    description: '신속 1회용. 3턴간 공격력 +5, 덱의 모든 검 내구도 +1.',
     isSwift: true,
     isConsumable: true,
     effect: { type: 'sharpen', value: 5, duration: 3 },
@@ -366,7 +368,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '카드 3장 드로우! 드로우한 모든 카드 즉시 발동!',
+    description: '신속. 카드 3장 드로우 후, 뽑은 카드를 즉시 자동 발동.',
     effect: { type: 'bladeDance', value: 3 },
     isSwift: true,
   },
@@ -381,7 +383,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 0,
-    description: '무기를 손패로 되돌린다. 납도 카드도 손패로 돌아온다.',
+    description: '신속. 현재 장착 무기를 손패로 되돌리고, 발도 스킬을 즉시 재시전.',
     effect: { type: 'sheathe', value: 1 },
     isSwift: true,
   },
@@ -398,7 +400,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '덱에서 카드 2장을 드로우한다.',
+    description: '덱에서 카드 2장 드로우.',
     effect: { type: 'draw', value: 2 },
   },
   bladeSeeker: {
@@ -412,7 +414,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '덱 최상위 검 즉시 장착+발도! 그 다음 검은 손패로.',
+    description: '신속. 덱 상단에서 첫 검은 즉시 장착+발도, 다음 검은 손패로.',
     effect: { type: 'bladeGrab', value: 1 },
     isSwift: true,
   },
@@ -427,7 +429,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '무덤 상위 카드 2장을 손패로 가져온다.',
+    description: '신속. 무덤(버린 더미) 상단 카드 2장을 손패로 회수.',
     effect: { type: 'graveDrawTop', value: 2 },
     isSwift: true,
   },
@@ -442,7 +444,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 1,
-    description: '무덤에 있는 검 중 랜덤 장착 및 발도스킬 시전.',
+    description: '신속. 무덤의 검 후보 중 하나를 선택해 즉시 장착 후 발도.',
     effect: { type: 'graveEquip', value: 1 },
     isSwift: true,
   },
@@ -459,7 +461,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 2,
-    description: '검을 크게 휘둘러 무기 범위x2를 x2.0으로 벤다.',
+    description: '무기 범위 x2로 공격 배율 x2.0 일격.',
     effect: { type: 'sweep', value: 3 },
   },
   bladeStorm: {
@@ -473,7 +475,7 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 3,
-    description: '검을 거칠게 휘둘러 전체를 베어낸다.',
+    description: '전체 범위 난무. 공격 배율 x0.8, 무기 타수 x3.',
   },
   finalJudgment: {
     id: 'finalJudgment',
@@ -486,13 +488,13 @@ export const SKILLS: Record<string, SkillCard> = {
     defenseBonus: 0,
     durabilityCost: 0,
     manaCost: 4,
-    description: '검이 버티지 못할 만큼 세게 내려친다. *사용 후 무기는 파괴된다.*',
+    description: '초고배율 일격(x5.0) 후 현재 무기 즉시 파괴.',
     effect: { type: 'destroyWeapon', value: 0 },
   },
 };
 
 // 스킬 생성 헬퍼 함수
-export function createSkillCard(skillId: string): SkillCard | null {
+export function createSkillCard(skillId: SkillId): SkillCard | null {
   const template = SKILLS[skillId];
   if (!template) return null;
   
@@ -501,38 +503,20 @@ export function createSkillCard(skillId: string): SkillCard | null {
 
 // 랜덤 스킬 생성
 export function getRandomSkill(): SkillCard {
-  const skillIds = Object.keys(SKILLS);
-  const randomId = skillIds[Math.floor(Math.random() * skillIds.length)];
+  const randomId = SKILL_ID_LIST[Math.floor(Math.random() * SKILL_ID_LIST.length)];
   return createSkillCard(randomId)!;
 }
 
 // 타입별 스킬 필터
-export function getSkillsByType(type: SkillCard['type']): string[] {
-  return Object.entries(SKILLS)
-    .filter(([_, skill]) => skill.type === type)
-    .map(([id]) => id);
+export function getSkillsByType(type: SkillCard['type']): SkillId[] {
+  return SKILL_ID_LIST.filter((id) => SKILLS[id]?.type === type);
 }
 
 // 기본 덱 구성 (동양검만 사용)
-export function getStarterDeck(): { swords: string[]; skills: string[] } {
+export function getStarterDeck(): { swords: SwordId[]; skills: SkillId[] } {
   return {
-    swords: [
-      'katana', 'samjeongdo', 'wakizashi',  // 기본 3종 (동양검)
-      'bongukgeom',  // 추가 1종
-      'pagapdo', 'katana',  // 칼 2개 추가 (파갑도 = 구 해갑도)
-    ],
-    skills: [
-      'slash', 'slash',
-      'thrust',              // thrust 하나 줄임
-      'consecutiveSlash',    // 연속베기 (구 이연격)
-      'parry', 'parry',
-      'quickSlash',
-      'focus',
-      'powerStrike',
-      'sweepingBlow',
-      'slashAndDraw',        // 베며 가다듬기
-      'setupBoard', 'setupBoard',
-      'followUpSlash',       // 이어베기 추가 (요이도로시 대체)
-    ],
+    // 설정값을 복사 반환하여 런타임 변조로부터 원본 보호
+    swords: [...GAME_START_CONFIG.starterDeck.swords],
+    skills: [...GAME_START_CONFIG.starterDeck.skills],
   };
 }

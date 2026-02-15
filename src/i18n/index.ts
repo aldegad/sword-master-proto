@@ -175,10 +175,13 @@ class I18n {
 
   // 범위 텍스트
   getRangeText(reach: string): string {
-    const rangeKey = reach === 'single' ? 'single' :
-                     reach === 'double' ? 'double' :
-                     reach === 'triple' ? 'triple' : 'all';
-    return this.t(`ui.range.${rangeKey}`);
+    if (reach === 'single') return this.t('ui.range.single');
+    if (reach === 'double') return this.t('ui.range.double');
+    if (reach === 'triple') return this.t('ui.range.triple');
+    if (reach === 'all') return this.t('ui.range.all');
+    if (reach === 'swordDouble') return this.t('ui.range.swordDouble');
+    if (reach === 'weapon') return this.t('ui.range.weapon');
+    return reach;
   }
 }
 

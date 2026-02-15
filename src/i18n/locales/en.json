@@ -183,16 +183,11 @@
         "drawAttack": { "name": "Cross Slash", "effect": "Wide horizontal swing hitting 2 enemies" },
         "specialEffect": "2-target range attack"
       },
-      "pagapdo": {
-        "name": "Armor Breaker",
-        "description": "Specialized for armor destruction. Built for cumulative damage through defense reduction.",
-        "drawAttack": { "name": "Armor Rend", "effect": "Ignores defense. Defense -5." }
-      },
-      "yoroikiri": {
-        "name": "Yoroikiri",
-        "description": "A sword that targets armor gaps and weak points. Specialized for destruction over cutting.",
-        "drawAttack": { "name": "Armor Split", "effect": "Cuts through armor" },
-        "specialEffect": "Pierce Specialization: High base pierce"
+      "nagamaki": {
+        "name": "Nagamaki",
+        "description": "A Japanese pole sword with a long handle and long blade. Its heavy cuts and impact transfer pressure armored infantry.",
+        "drawAttack": { "name": "Poleblade Cleave", "effect": "A wide, impact-loaded cut from the long grip that still hits armored targets hard" },
+        "specialEffect": "Impact Transfer: +1 enemy delay on hit"
       },
       "jungdo": {
         "name": "Jungdo",

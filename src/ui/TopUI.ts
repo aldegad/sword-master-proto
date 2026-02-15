@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import type { UIScene } from '../scenes/UIScene';
-import { GAME_CONSTANTS } from '../types';
+import { GAME_CONSTANTS } from '../constants/gameConfig';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { UI_LAYOUT } from '../constants/uiLayout';
 import { TOP_RIGHT_HUD_TEXT_ITEMS, type TopRightHudTextId } from '../constants/uiSchema';

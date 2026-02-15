@@ -115,19 +115,12 @@ export class SwordInfoUI {
       return;
     }
     
-    const reachMap: Record<string, string> = {
-      single: i18n.t('ui.range.single'),
-      double: i18n.t('ui.range.double'),
-      triple: i18n.t('ui.range.triple'),
-      all: i18n.t('ui.range.all'),
-    };
-    
     this.swordEmoji.setText(sword.emoji);
     const displayName = sword.displayName || sword.name;
     this.swordInfoText.setText([
       `${displayName}`,
       i18n.t('ui.swordInfo.stats', { attack: sword.attack, defense: sword.defense, pierce: sword.pierce || 0, count: sword.attackCount }),
-      i18n.t('ui.swordInfo.rangeAndDur', { range: reachMap[sword.reach], current: sword.currentDurability, max: sword.durability }),
+      i18n.t('ui.swordInfo.rangeAndDur', { range: i18n.getRangeText(sword.reach), current: sword.currentDurability, max: sword.durability }),
     ].join('\n'));
     
     // 등급에 따른 색상 변경

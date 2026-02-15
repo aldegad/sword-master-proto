@@ -13,15 +13,6 @@ export const CARD_SIZE = {
   DETAIL: { width: 420, height: 620 },
 };
 
-// 공통 맵 (동적으로 i18n 적용)
-const getReachMap = (): Record<string, string> => ({
-  single: i18n.t('ui.range.single'),
-  double: i18n.t('ui.range.double'),
-  triple: i18n.t('ui.range.triple'),
-  all: i18n.t('ui.range.all'),
-  swordDouble: i18n.t('ui.range.swordDouble'),
-});
-
 const getTypeMap = (): Record<string, string> => ({
   attack: '⚔ ' + i18n.t('ui.cards.attack'),
   defense: '🛡 ' + i18n.t('ui.cards.defense'),
@@ -153,7 +144,7 @@ export class CardRenderer {
     }).setOrigin(0.5);
     
     // 스탯
-    const statsText = this.scene.add.text(0, 9, `${i18n.t('ui.cards.attack')}${sword.attack} ${sword.attackCount}${i18n.t('ui.misc.hits')} ${getReachMap()[sword.reach] || sword.reach}`, {
+    const statsText = this.scene.add.text(0, 9, `${i18n.t('ui.cards.attack')}${sword.attack} ${sword.attackCount}${i18n.t('ui.misc.hits')} ${i18n.getRangeText(sword.reach)}`, {
       font: '18px monospace',
       color: subColor,
       align: 'center',
@@ -222,7 +213,7 @@ export class CardRenderer {
     if (skill.type === 'attack' || skill.type === 'special') {
       const rangeText = skill.reach === 'single' ? i18n.t('ui.range.weapon') :
                         skill.reach === 'swordDouble' ? i18n.t('ui.range.swordDouble') :
-                        (getReachMap()[skill.reach] || skill.reach);
+                        i18n.getRangeText(skill.reach);
       const hitsText = skill.attackCount === 1 ? i18n.t('ui.range.weapon') : `x${skill.attackCount}`;
       subLine = `${rangeText} ${hitsText}${i18n.t('ui.misc.hits')}`;
     } else if (skill.type === 'defense') {
@@ -308,7 +299,7 @@ export class CardRenderer {
     container.add(line1);
     yPos += 18;
     
-    const reachText = getReachMap()[sword.reach] || sword.reach;
+    const reachText = i18n.getRangeText(sword.reach);
     
     // 이가 빠진 인첸트 확인
     const isChipped = sword.prefix?.id === 'chipped';
@@ -375,7 +366,7 @@ export class CardRenderer {
     yPos += 34;
     
     // 발도 기본 정보
-    const drawReach = getReachMap()[drawAtk.reach] || drawAtk.reach;
+    const drawReach = i18n.getRangeText(drawAtk.reach);
     
     // 발도는 항상 1타 (무기 타수와 무관)
     const baseDamage = Math.floor(sword.attack * drawAtk.multiplier);
@@ -624,7 +615,7 @@ export class CardRenderer {
       skillStats.push(`타수 배율: x${skill.attackCount}`);
     }
     if (skill.reach && isAttackSkill) {
-      const reachText = skill.reach === 'single' ? i18n.t('ui.tooltip.weaponRange') : (getReachMap()[skill.reach] || skill.reach);
+      const reachText = skill.reach === 'single' ? i18n.t('ui.tooltip.weaponRange') : i18n.getRangeText(skill.reach);
       skillStats.push(`${i18n.t('ui.tooltip.range')}: ${reachText}`);
     }
     // 카운트 방어 스킬은 방어율 배수 표시

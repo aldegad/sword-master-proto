@@ -3,11 +3,11 @@
  */
 
 // 공용 타입
-export type { ReachType } from './common';
-export { GAME_CONSTANTS } from './common';
+export type { ReachType, ResolvedReachType } from './common';
 
 // 검(무기) 타입
 export type { 
+  SwordOrigin,
   SwordRarity, 
   WeaponCategory,
   SwordPrefix, 

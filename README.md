@@ -22,11 +22,22 @@ Sword Master 웹 허브/데모 리포지토리입니다.
 
 ```bash
 yarn install
+yarn gen:ids   # swords/skills 데이터 기반 ID 상수 + JSDoc 재생성
 yarn dev       # http://localhost:3000
 yarn build
 yarn deploy
 yarn test:e2e
 ```
+
+## Game ID / 시작 설정
+
+- `src/constants/gameConfig.ts`
+  - 게임 룰 상수(`GAME_CONSTANTS`)와 기본 플레이어 시작 스탯(`DEFAULT_PLAYER_START_STATS`)을 한 곳에서 관리합니다.
+- `src/constants/gameIds.ts`
+  - `SWORD_ID.*`, `SKILL_ID.*` enum-like 상수와 설명 JSDoc이 정의됩니다.
+  - 검/스킬 데이터(`src/data/swords.ts`, `src/data/skills.ts`) 수정 후 `yarn gen:ids`로 갱신하세요.
+- `src/constants/gameStart.ts`
+  - 기본 장착 검(`equippedSwordId`)과 시작 덱(`starterDeck`)을 한 곳에서 관리합니다.
 
 ## Project Structure
 

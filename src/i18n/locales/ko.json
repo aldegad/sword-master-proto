@@ -183,16 +183,11 @@
         "drawAttack": { "name": "횡참", "effect": "옆으로 크게 휘둘러 2명의 적을 벤다" },
         "specialEffect": "2적 범위 공격"
       },
-      "pagapdo": {
-        "name": "파갑도",
-        "description": "갑주 파괴 전용 도검. 방어력 감소 효과에 특화된 누적 피해형 무기.",
-        "drawAttack": { "name": "파갑일섬", "effect": "적 방어력 무시. 방어력 -5." }
-      },
-      "yoroikiri": {
-        "name": "요로이키리",
-        "description": "갑옷의 틈과 구조를 노리는 도검. 베기보다 파괴 목적에 특화.",
-        "drawAttack": { "name": "갑열참", "effect": "갑옷을 무시하고 벤다" },
-        "specialEffect": "관통 특화: 높은 기본 관통력"
+      "nagamaki": {
+        "name": "나가마키",
+        "description": "긴 자루와 긴 도날을 결합한 일본 장병기. 강한 베기와 충격 전달로 중장갑 보병 압박에 유리.",
+        "drawAttack": { "name": "장병참", "effect": "긴 자루로 충격을 실어 크게 베어 중장갑에도 타격을 준다" },
+        "specialEffect": "충격 전달: 타격 시 적 대기 +1"
       },
       "jungdo": {
         "name": "중도",

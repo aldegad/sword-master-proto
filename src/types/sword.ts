@@ -2,12 +2,13 @@
  * 검(무기) 관련 타입 정의
  */
 import type { ReachType } from './common';
+import type {
+  SwordOrigin,
+  SwordRarity,
+  WeaponCategory,
+} from '../constants/swordMeta';
 
-// 무기 등급
-export type SwordRarity = 'common' | 'uncommon' | 'rare' | 'unique';
-
-// 무기 종류
-export type WeaponCategory = 'sword' | 'dagger' | 'greatsword' | 'unique';
+export type { SwordOrigin, SwordRarity, WeaponCategory };
 
 // 인첸트 접두사
 export interface SwordPrefix {
@@ -54,7 +55,7 @@ export interface SwordTemplate {
   id: string;
   name: string;
   emoji: string;
-  origin: 'korean' | 'japanese' | 'chinese' | 'western' | 'unique';
+  origin: SwordOrigin;
   rarity: SwordRarity;
   category: WeaponCategory;
   attack: number;
@@ -84,4 +85,3 @@ export interface SwordCard extends SwordTemplate {
   poisonOnHit?: { damage: number; duration: number };  // 독 피해
   isMirage?: boolean;  // 신기루: 사용하지 않으면 턴 종료 시 사라짐
 }
-

@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 import type { PlayerState, GameState, Card, PassiveTemplate } from '../types';
-import { GAME_CONSTANTS } from '../types';
+import { GAME_CONSTANTS } from '../constants/gameConfig';
 import { createSwordCard, getRandomSword, getRandomUniqueSword } from '../data/swords';
 import { isBossWave, getCurrentTier, ENEMIES_TIER1, ENEMIES_TIER2, createEnemy } from '../data/enemies';
 import { getRandomEvent, getRandomOutcome, type GameEvent, type EventChoice, type EventOutcome } from '../data/events';
@@ -9,6 +9,7 @@ import { addOrUpgradePassive, getRandomPassivesWithoutDuplicates } from '../data
 import { CombatSystem, CardSystem, EnemyManager, AnimationHelper } from '../systems';
 import { COLORS, COLORS_STR } from '../constants/colors';
 import { USE_SPRITES, SPRITE_SCALE } from '../constants/sprites';
+import { GAME_START_CONFIG } from '../constants/gameStart';
 
 type SkillSelectType = 'searchSword' | 'graveRecall' | 'graveEquip';
 
@@ -163,7 +164,10 @@ export class GameScene extends Phaser.Scene {
       return true;
     }
 
-    const starterSword = createSwordCard('armingsword')!;
+    const starterSword = createSwordCard(GAME_START_CONFIG.equippedSwordId);
+    if (!starterSword) {
+      throw new Error('[GAME_START_CONFIG] 기본 무장을 생성할 수 없습니다. equippedSwordId를 확인하세요.');
+    }
     
     const { swords, skills } = getStarterDeck();
     const deck: Card[] = [];
@@ -181,11 +185,11 @@ export class GameScene extends Phaser.Scene {
     this.cardSystem.shuffleArray(deck);
     
     this.playerState = {
-      hp: 50,
-      maxHp: 50,
-      mana: GAME_CONSTANTS.INITIAL_MANA,
-      maxMana: GAME_CONSTANTS.INITIAL_MANA,
-      defense: 0,
+      hp: GAME_START_CONFIG.player.hp,
+      maxHp: GAME_START_CONFIG.player.maxHp,
+      mana: GAME_START_CONFIG.player.mana,
+      maxMana: GAME_START_CONFIG.player.maxMana,
+      defense: GAME_START_CONFIG.player.defense,
       currentSword: starterSword,
       hand: [],
       deck: deck,
@@ -195,9 +199,9 @@ export class GameScene extends Phaser.Scene {
       position: 0,
       usedAttackThisTurn: false,   // 이번 턴에 공격/무기 스킬 사용 여부
       passives: [],  // 패시브는 레벨업 시 획득
-      exp: 0,
-      level: 1,
-      silver: 0,  // 은전
+      exp: GAME_START_CONFIG.player.exp,
+      level: GAME_START_CONFIG.player.level,
+      silver: GAME_START_CONFIG.player.silver,
     };
     
     this.gameState = {

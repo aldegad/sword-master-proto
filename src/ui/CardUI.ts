@@ -570,14 +570,6 @@ export class CardUI {
       special: '💥',
     };
     
-    // 스탯
-    const reachMap: Record<string, string> = {
-      single: i18n.t('ui.range.single'),
-      double: i18n.t('ui.range.double'),
-      triple: i18n.t('ui.range.triple'),
-      all: i18n.t('ui.range.all'),
-    };
-    
     // 간결한 스탯 표시 (스케일)
     let statLine = typeMap[skill.type];
     if (skill.attackMultiplier > 0) {
@@ -603,7 +595,7 @@ export class CardUI {
       } else if (skill.reach === 'swordDouble') {
         rangeText = i18n.t('ui.range.swordDouble');
       } else {
-        rangeText = reachMap[skill.reach] || skill.reach;
+        rangeText = i18n.getRangeText(skill.reach);
       }
       // 타수배율: 1이면 '무기', 아니면 x배율
       const hitsText = skill.attackCount === 1 ? i18n.t('ui.range.weapon') : `x${skill.attackCount}`;
